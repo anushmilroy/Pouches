@@ -14,9 +14,9 @@ export default function ShopPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | "">("");
-  const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | "">("");
-  const [selectedStrength, setSelectedStrength] = useState<keyof typeof NicotineStrength | "">("");
+  const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | null>(null);
+  const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | null>(null);
+  const [selectedStrength, setSelectedStrength] = useState<keyof typeof NicotineStrength | null>(null);
   const [cart, setCart] = useState<Record<number, number>>({});
 
   const { data: products, isLoading } = useQuery<Product[]>({
@@ -89,14 +89,14 @@ export default function ShopPage() {
           />
 
           <Select
-            value={selectedCategory}
-            onValueChange={(value) => setSelectedCategory(value as keyof typeof PouchCategory | "")}
+            value={selectedCategory || "all"}
+            onValueChange={(value) => setSelectedCategory(value === "all" ? null : value as keyof typeof PouchCategory)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="all">All Categories</SelectItem>
               {Object.entries(PouchCategory).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value} Nicotine Pouches</SelectItem>
               ))}
@@ -104,14 +104,14 @@ export default function ShopPage() {
           </Select>
 
           <Select
-            value={selectedFlavor}
-            onValueChange={(value) => setSelectedFlavor(value as keyof typeof PouchFlavor | "")}
+            value={selectedFlavor || "all"}
+            onValueChange={(value) => setSelectedFlavor(value === "all" ? null : value as keyof typeof PouchFlavor)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Flavor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Flavors</SelectItem>
+              <SelectItem value="all">All Flavors</SelectItem>
               {Object.entries(PouchFlavor).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value}</SelectItem>
               ))}
@@ -119,14 +119,14 @@ export default function ShopPage() {
           </Select>
 
           <Select
-            value={selectedStrength}
-            onValueChange={(value) => setSelectedStrength(value as keyof typeof NicotineStrength | "")}
+            value={selectedStrength || "all"}
+            onValueChange={(value) => setSelectedStrength(value === "all" ? null : value as keyof typeof NicotineStrength)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Strength" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Strengths</SelectItem>
+              <SelectItem value="all">All Strengths</SelectItem>
               {Object.entries(NicotineStrength).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value}mg</SelectItem>
               ))}
