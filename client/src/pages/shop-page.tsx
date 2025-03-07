@@ -6,19 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Product, PouchCategory, PouchFlavor, NicotineStrength } from "@shared/schema";
-import { Loader2, Package, ShoppingBag } from "lucide-react";
+import { Loader2, Package, ShoppingCart, Plus, Minus } from "lucide-react";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ShopPage() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | "">("");
   const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | "">("");
   const [selectedStrength, setSelectedStrength] = useState<keyof typeof NicotineStrength | "">("");
+  const [cart, setCart] = useState<Record<number, number>>({});
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
+
+  const totalCans = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
 
   const filteredProducts = products
     ?.filter((product) => {
@@ -32,6 +37,37 @@ export default function ShopPage() {
 
       return matchesSearch && matchesCategory && matchesFlavor && matchesStrength;
     });
+
+  const handleAddToCart = (productId: number) => {
+    setCart(prev => ({
+      ...prev,
+      [productId]: (prev[productId] || 0) + 1
+    }));
+  };
+
+  const handleRemoveFromCart = (productId: number) => {
+    setCart(prev => {
+      const newCart = { ...prev };
+      if (newCart[productId] > 1) {
+        newCart[productId]--;
+      } else {
+        delete newCart[productId];
+      }
+      return newCart;
+    });
+  };
+
+  const handleCheckout = () => {
+    if (totalCans < 5) {
+      toast({
+        title: "Minimum Order Required",
+        description: "Please add at least 5 cans to your cart before checkout",
+        variant: "destructive"
+      });
+      return;
+    }
+    setLocation("/checkout");
+  };
 
   return (
     <StoreLayout>
@@ -60,7 +96,7 @@ export default function ShopPage() {
               <SelectValue placeholder="Select Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Categories</SelectItem>
+              <SelectItem value="">All Categories</SelectItem>
               {Object.entries(PouchCategory).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value} Nicotine Pouches</SelectItem>
               ))}
@@ -75,7 +111,7 @@ export default function ShopPage() {
               <SelectValue placeholder="Select Flavor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Flavors</SelectItem>
+              <SelectItem value="">All Flavors</SelectItem>
               {Object.entries(PouchFlavor).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value}</SelectItem>
               ))}
@@ -90,7 +126,7 @@ export default function ShopPage() {
               <SelectValue placeholder="Select Strength" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Strengths</SelectItem>
+              <SelectItem value="">All Strengths</SelectItem>
               {Object.entries(NicotineStrength).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value}mg</SelectItem>
               ))}
@@ -98,9 +134,28 @@ export default function ShopPage() {
           </Select>
         </div>
 
+        {/* Cart Summary */}
+        <div className="bg-primary/5 p-4 rounded-lg mb-8 flex items-center justify-between">
+          <div>
+            <span className="font-medium">Cart Total:</span> {totalCans} cans
+            {totalCans > 0 && totalCans < 5 && (
+              <p className="text-sm text-muted-foreground">
+                Add {5 - totalCans} more can{5 - totalCans !== 1 ? 's' : ''} to reach the minimum order
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={handleCheckout}
+            disabled={totalCans < 5}
+          >
+            <ShoppingCart className="h-4 w-4 mr-2" />
+            Proceed to Checkout
+          </Button>
+        </div>
+
         {/* Products Grid */}
         {isLoading ? (
-          <div className="flex justify-center p-12">
+          <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
@@ -126,21 +181,35 @@ export default function ShopPage() {
                     <div className="text-sm">
                       <span className="font-medium">Strength:</span> {product.strength}mg
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      Stock: {product.stock} available
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Minimum Order: {product.minRetailOrder} cans
-                    </div>
                   </div>
-                  <Button
-                    className="mt-auto"
-                    onClick={() => setLocation("/checkout")}
-                    disabled={product.stock === 0}
-                  >
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </Button>
+
+                  {cart[product.id] ? (
+                    <div className="flex items-center gap-2 mt-auto">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleRemoveFromCart(product.id)}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <span className="flex-1 text-center">{cart[product.id]} in cart</span>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        onClick={() => handleAddToCart(product.id)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      className="mt-auto"
+                      onClick={() => handleAddToCart(product.id)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add to Cart
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
