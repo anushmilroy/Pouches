@@ -21,12 +21,10 @@ export default function DistributorDashboard() {
   const { toast } = useToast();
   const [processingOrder, setProcessingOrder] = useState<number | null>(null);
 
-  // Fetch orders assigned to the distributor
   const { data: assignedOrders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders/distributor"],
   });
 
-  // Fetch commission data
   const { data: commissionStats } = useQuery<{
     total: number;
     thisMonth: number;
@@ -39,8 +37,7 @@ export default function DistributorDashboard() {
     try {
       setProcessingOrder(orderId);
       await apiRequest("PATCH", `/api/orders/${orderId}/status`, { status: newStatus });
-      
-      // Invalidate queries to refresh data
+
       queryClient.invalidateQueries({ queryKey: ["/api/orders/distributor"] });
       queryClient.invalidateQueries({ queryKey: ["/api/distributor/stats"] });
 
@@ -59,7 +56,7 @@ export default function DistributorDashboard() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: keyof typeof OrderStatus) => {
     switch (status) {
       case OrderStatus.PAID:
         return "bg-yellow-100 text-yellow-800";
@@ -90,7 +87,7 @@ export default function DistributorDashboard() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -153,7 +150,7 @@ export default function DistributorDashboard() {
                     <TableCell>${order.total}</TableCell>
                     <TableCell>${Number(order.total) * 0.05}</TableCell>
                     <TableCell>
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-2">

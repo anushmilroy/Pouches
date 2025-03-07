@@ -12,9 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Order, OrderStatus } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AdminDashboard() {
   const { toast } = useToast();

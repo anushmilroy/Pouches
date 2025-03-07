@@ -1,4 +1,4 @@
-import { InsertUser, User, Product, Order, OrderItem } from "@shared/schema";
+import { InsertUser, User, Product, Order, OrderItem, OrderStatus } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -10,22 +10,22 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserCommission(id: number, commission: number): Promise<User>;
-  
+
   // Product operations
   getProducts(): Promise<Product[]>;
   getProduct(id: number): Promise<Product | undefined>;
-  
+
   // Order operations
   createOrder(order: Order): Promise<Order>;
   getOrder(id: number): Promise<Order | undefined>;
   getUserOrders(userId: number): Promise<Order[]>;
   getDistributorOrders(distributorId: number): Promise<Order[]>;
-  updateOrderStatus(id: number, status: string): Promise<Order>;
-  
+  updateOrderStatus(id: number, status: keyof typeof OrderStatus): Promise<Order>;
+
   // Order items
   createOrderItem(item: OrderItem): Promise<OrderItem>;
   getOrderItems(orderId: number): Promise<OrderItem[]>;
-  
+
   sessionStore: session.Store;
 }
 
@@ -60,7 +60,7 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentId.users++;
-    const user: User = { ...insertUser, id, commission: "0" };
+    const user = { id, commission: "0", ...insertUser };
     this.users.set(id, user);
     return user;
   }
@@ -104,7 +104,7 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async updateOrderStatus(id: number, status: string): Promise<Order> {
+  async updateOrderStatus(id: number, status: keyof typeof OrderStatus): Promise<Order> {
     const order = await this.getOrder(id);
     if (!order) throw new Error("Order not found");
     const updatedOrder = { ...order, status };
