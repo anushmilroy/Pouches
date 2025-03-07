@@ -1,24 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Product, Order } from "@shared/schema";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Product, Order, PaymentMethod } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Loader2, Package } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { Loader2, Package, ShoppingCart } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import CryptoForm from "@/components/payment/crypto-form";
+import BankTransferForm from "@/components/payment/bank-transfer-form";
 
 export default function RetailDashboard() {
   const { toast } = useToast();
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<keyof typeof PaymentMethod | null>(null);
 
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -28,20 +27,38 @@ export default function RetailDashboard() {
     queryKey: ["/api/orders"],
   });
 
-  const handleOrder = async (productId: number) => {
+  const handleOrder = async (product: Product) => {
+    setSelectedProduct(product);
+  };
+
+  const handlePaymentComplete = () => {
+    setSelectedProduct(null);
+    setSelectedPaymentMethod(null);
+    queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+  };
+
+  const confirmOrder = async () => {
+    if (!selectedProduct || !selectedPaymentMethod) return;
+
     try {
       setIsOrdering(true);
       const res = await apiRequest("POST", "/api/orders", {
-        productId,
+        productId: selectedProduct.id,
         quantity: 1,
+        paymentMethod: selectedPaymentMethod,
       });
-      
+
       if (!res.ok) throw new Error("Failed to create order");
 
+      const order = await res.json();
       toast({
         title: "Order Created",
         description: "Your order has been placed successfully",
       });
+
+      if (selectedPaymentMethod === PaymentMethod.COD) {
+        handlePaymentComplete();
+      }
     } catch (error) {
       toast({
         title: "Order Failed",
@@ -55,78 +72,105 @@ export default function RetailDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{orders?.length || 0}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Available Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {products?.length || 0}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Welcome to Pouches Worldwide</h1>
+        <p className="text-muted-foreground">Browse and purchase quality pouches at competitive prices</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Products</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {productsLoading ? (
-            <div className="flex justify-center p-4">
-              <Loader2 className="h-6 w-6 animate-spin" />
+      {productsLoading ? (
+        <div className="flex justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products?.map((product) => (
+            <Card key={product.id} className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  {product.name}
+                </CardTitle>
+                <CardDescription>{product.description}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col">
+                <div className="text-2xl font-bold mb-4">${product.price}</div>
+                <div className="text-sm text-muted-foreground mb-4">
+                  Stock: {product.stock} available
+                </div>
+                <Button
+                  className="mt-auto"
+                  onClick={() => handleOrder(product)}
+                  disabled={product.stock === 0}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Order Now
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete Your Order</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div>
+              <h3 className="font-medium mb-2">Select Payment Method</h3>
+              <RadioGroup
+                value={selectedPaymentMethod || ""}
+                onValueChange={(value) => setSelectedPaymentMethod(value as keyof typeof PaymentMethod)}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value={PaymentMethod.CRYPTO} id="crypto" />
+                    <Label htmlFor="crypto">Cryptocurrency</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value={PaymentMethod.BANK_TRANSFER} id="bank" />
+                    <Label htmlFor="bank">Bank Transfer</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value={PaymentMethod.COD} id="cod" />
+                    <Label htmlFor="cod">Cash on Delivery</Label>
+                  </div>
+                </div>
+              </RadioGroup>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {products?.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center">
-                        <Package className="h-4 w-4 mr-2" />
-                        {product.name}
-                      </div>
-                    </TableCell>
-                    <TableCell>{product.description}</TableCell>
-                    <TableCell>${product.price}</TableCell>
-                    <TableCell>{product.stock}</TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        onClick={() => handleOrder(product.id)}
-                        disabled={isOrdering || product.stock === 0}
-                      >
-                        {isOrdering && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Order Now
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+
+            {selectedPaymentMethod && selectedProduct && (
+              <div>
+                {selectedPaymentMethod === PaymentMethod.CRYPTO && (
+                  <CryptoForm
+                    orderId={selectedProduct.id}
+                    amount={selectedProduct.price}
+                    onPaymentComplete={handlePaymentComplete}
+                  />
+                )}
+                {selectedPaymentMethod === PaymentMethod.BANK_TRANSFER && (
+                  <BankTransferForm
+                    orderId={selectedProduct.id}
+                    amount={selectedProduct.price}
+                    onPaymentComplete={handlePaymentComplete}
+                  />
+                )}
+                {selectedPaymentMethod === PaymentMethod.COD && (
+                  <Button
+                    className="w-full"
+                    onClick={confirmOrder}
+                    disabled={isOrdering}
+                  >
+                    {isOrdering && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Confirm Order
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
