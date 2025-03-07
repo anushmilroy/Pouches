@@ -3,25 +3,73 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const UserRole = {
-  ADMIN: 'admin',
-  RETAIL: 'retail',
-  WHOLESALE: 'wholesale',
-  DISTRIBUTOR: 'distributor'
+  ADMIN: 'ADMIN',
+  RETAIL: 'RETAIL',
+  WHOLESALE: 'WHOLESALE',
+  DISTRIBUTOR: 'DISTRIBUTOR'
 } as const;
 
 export const PaymentMethod = {
-  CRYPTO: 'crypto',
-  BANK_TRANSFER: 'bank_transfer',
-  COD: 'cod'
+  CRYPTO: 'CRYPTO',
+  BANK_TRANSFER: 'BANK_TRANSFER',
+  COD: 'COD'
 } as const;
 
 export const OrderStatus = {
-  PENDING: 'pending',
-  PAID: 'paid',
-  PROCESSING: 'processing',
-  SHIPPED: 'shipped',
-  DELIVERED: 'delivered',
-  CANCELLED: 'cancelled'
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  PROCESSING: 'PROCESSING',
+  SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED'
+} as const;
+
+export const PouchCategory = {
+  DRY: 'DRY',
+  WET: 'WET'
+} as const;
+
+export const PouchFlavor = {
+  PEPPERMINT: 'Peppermint',
+  APPLE_MINT: 'Apple Mint',
+  GOD_MINT: 'God Mint',
+  MINT: 'Mint',
+  COOL_MINT: 'Cool Mint',
+  BLUEBERRY: 'Blueberry',
+  MANGO: 'Mango',
+  COLA: 'Cola',
+  SPEARMINT: 'Spearmint',
+  WATERMELON: 'Watermelon',
+  CHERRY: 'Cherry',
+  WINTERGREEN: 'Wintergreen',
+  CITRUS: 'Citrus',
+  CINNAMON: 'Cinnamon',
+  COFFEE: 'Coffee',
+  SMOOTH: 'Smooth',
+  COOL_FROST: 'Cool Frost',
+  FRESH_MINT: 'Fresh Mint',
+  LEMON_SPRITZ: 'Lemon Spritz',
+  CUCUMBER_LIME: 'Cucumber Lime',
+  ICY_BLACKCURRANT: 'Icy Blackcurrant',
+  ICY_MINT: 'Icy Mint'
+} as const;
+
+export const NicotineStrength = {
+  MG_6: '6',
+  MG_8: '8',
+  MG_12: '12',
+  MG_16: '16',
+  MG_22: '22'
+} as const;
+
+export const WholesalePricingTier = {
+  TIER_1: { min: 100, max: 249, price: 8.00 },
+  TIER_2: { min: 250, max: 499, price: 7.50 },
+  TIER_3: { min: 500, max: 999, price: 7.00 },
+  TIER_4: { min: 1000, max: 4999, price: 6.50 },
+  TIER_5: { min: 5000, max: 9999, price: 6.00 },
+  TIER_6: { min: 10000, max: 24999, price: 5.50 },
+  TIER_7: { min: 25000, max: null, price: 5.00 }
 } as const;
 
 export const users = pgTable("users", {
@@ -30,16 +78,21 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").notNull().$type<keyof typeof UserRole>(),
   referrerId: integer("referrer_id").references(() => users.id),
-  commission: numeric("commission").default("0"),
+  commission: numeric("commission"),
 });
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
+  category: text("category").notNull().$type<keyof typeof PouchCategory>(),
+  flavor: text("flavor").notNull().$type<keyof typeof PouchFlavor>(),
+  strength: text("strength").notNull().$type<keyof typeof NicotineStrength>(),
   price: numeric("price").notNull(),
   wholesalePrice: numeric("wholesale_price").notNull(),
-  stock: integer("stock").notNull()
+  stock: integer("stock").notNull(),
+  minRetailOrder: integer("min_retail_order").notNull().default(5),
+  minWholesaleOrder: integer("min_wholesale_order").notNull().default(100)
 });
 
 export const orders = pgTable("orders", {
@@ -61,13 +114,7 @@ export const orderItems = pgTable("order_items", {
   price: numeric("price").notNull()
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  role: true,
-  referrerId: true
-});
-
+export const insertUserSchema = createInsertSchema(users);
 export const insertProductSchema = createInsertSchema(products);
 export const insertOrderSchema = createInsertSchema(orders);
 export const insertOrderItemSchema = createInsertSchema(orderItems);

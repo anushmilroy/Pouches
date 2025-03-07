@@ -5,30 +5,32 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Product } from "@shared/schema";
+import { Product, PouchCategory, PouchFlavor, NicotineStrength } from "@shared/schema";
 import { Loader2, Package, ShoppingBag } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function ShopPage() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "price">("name");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedFlavor, setSelectedFlavor] = useState<string>("");
+  const [selectedStrength, setSelectedStrength] = useState<string>("");
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
   const filteredProducts = products
-    ?.filter((product) => 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
-      } else {
-        return Number(a.price) - Number(b.price);
-      }
+    ?.filter((product) => {
+      const matchesSearch = 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesCategory = !selectedCategory || product.category === selectedCategory;
+      const matchesFlavor = !selectedFlavor || product.flavor === selectedFlavor;
+      const matchesStrength = !selectedStrength || product.strength === selectedStrength;
+
+      return matchesSearch && matchesCategory && matchesFlavor && matchesStrength;
     });
 
   return (
@@ -38,29 +40,60 @@ export default function ShopPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-4">Shop Our Products</h1>
           <p className="text-muted-foreground">
-            Browse our collection of quality pouches
+            Browse our collection of quality nicotine pouches
           </p>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
-          <div className="flex-1">
-            <Input
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+
           <Select
-            value={sortBy}
-            onValueChange={(value) => setSortBy(value as "name" | "price")}
+            value={selectedCategory}
+            onValueChange={setSelectedCategory}
           >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Sort by" />
+            <SelectTrigger>
+              <SelectValue placeholder="Select Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Sort by name</SelectItem>
-              <SelectItem value="price">Sort by price</SelectItem>
+              <SelectItem value="">All Categories</SelectItem>
+              {Object.entries(PouchCategory).map(([key, value]) => (
+                <SelectItem key={key} value={value}>{value} Nicotine Pouches</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={selectedFlavor}
+            onValueChange={setSelectedFlavor}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Flavor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Flavors</SelectItem>
+              {Object.entries(PouchFlavor).map(([key, value]) => (
+                <SelectItem key={key} value={value}>{value}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={selectedStrength}
+            onValueChange={setSelectedStrength}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Strength" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Strengths</SelectItem>
+              {Object.entries(NicotineStrength).map(([key, value]) => (
+                <SelectItem key={key} value={value}>{value}mg</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -82,9 +115,23 @@ export default function ShopPage() {
                   <CardDescription>{product.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-1 flex flex-col">
-                  <div className="text-2xl font-bold mb-4">${product.price}</div>
-                  <div className="text-sm text-muted-foreground mb-4">
-                    Stock: {product.stock} available
+                  <div className="space-y-2 mb-4">
+                    <div className="text-2xl font-bold">${product.price}</div>
+                    <div className="text-sm">
+                      <span className="font-medium">Category:</span> {product.category}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Flavor:</span> {product.flavor}
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Strength:</span> {product.strength}mg
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Stock: {product.stock} available
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Minimum Order: {product.minRetailOrder} cans
+                    </div>
                   </div>
                   <Button
                     className="mt-auto"
