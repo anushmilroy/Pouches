@@ -1,8 +1,51 @@
-import { InsertUser, User, Product, Order, OrderItem, OrderStatus } from "@shared/schema";
+import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
 const MemoryStore = createMemoryStore(session);
+
+// Initial product data
+const initialProducts: Product[] = [
+  {
+    id: 1,
+    name: "Fresh Mint Pouch",
+    description: "Refreshing mint nicotine pouch with long-lasting flavor",
+    category: PouchCategory.DRY,
+    flavor: PouchFlavor.FRESH_MINT,
+    strength: NicotineStrength.MG_6,
+    price: "12.99",
+    wholesalePrice: "8.00",
+    stock: 1000,
+    minRetailOrder: 5,
+    minWholesaleOrder: 100
+  },
+  {
+    id: 2,
+    name: "Blueberry Blast",
+    description: "Sweet and fruity blueberry nicotine pouch",
+    category: PouchCategory.WET,
+    flavor: PouchFlavor.BLUEBERRY,
+    strength: NicotineStrength.MG_8,
+    price: "12.99",
+    wholesalePrice: "8.00",
+    stock: 1000,
+    minRetailOrder: 5,
+    minWholesaleOrder: 100
+  },
+  {
+    id: 3,
+    name: "Strong Mint",
+    description: "Extra strong mint flavor with maximum satisfaction",
+    category: PouchCategory.DRY,
+    flavor: PouchFlavor.GOD_MINT,
+    strength: NicotineStrength.MG_22,
+    price: "13.99",
+    wholesalePrice: "8.00",
+    stock: 1000,
+    minRetailOrder: 5,
+    minWholesaleOrder: 100
+  }
+];
 
 export interface IStorage {
   // User operations
@@ -42,9 +85,14 @@ export class MemStorage implements IStorage {
     this.products = new Map();
     this.orders = new Map();
     this.orderItems = new Map();
-    this.currentId = { users: 1, products: 1, orders: 1, orderItems: 1 };
+    this.currentId = { users: 1, products: 4, orders: 1, orderItems: 1 };
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
+    });
+
+    // Initialize products
+    initialProducts.forEach(product => {
+      this.products.set(product.id, product);
     });
   }
 

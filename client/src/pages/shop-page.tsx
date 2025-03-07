@@ -12,9 +12,9 @@ import { useLocation } from "wouter";
 export default function ShopPage() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedFlavor, setSelectedFlavor] = useState<string>("");
-  const [selectedStrength, setSelectedStrength] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | "">("");
+  const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | "">("");
+  const [selectedStrength, setSelectedStrength] = useState<keyof typeof NicotineStrength | "">("");
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -54,13 +54,13 @@ export default function ShopPage() {
 
           <Select
             value={selectedCategory}
-            onValueChange={setSelectedCategory}
+            onValueChange={(value) => setSelectedCategory(value as keyof typeof PouchCategory | "")}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Categories</SelectItem>
+              <SelectItem value="ALL">All Categories</SelectItem>
               {Object.entries(PouchCategory).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value} Nicotine Pouches</SelectItem>
               ))}
@@ -69,13 +69,13 @@ export default function ShopPage() {
 
           <Select
             value={selectedFlavor}
-            onValueChange={setSelectedFlavor}
+            onValueChange={(value) => setSelectedFlavor(value as keyof typeof PouchFlavor | "")}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Flavor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Flavors</SelectItem>
+              <SelectItem value="ALL">All Flavors</SelectItem>
               {Object.entries(PouchFlavor).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value}</SelectItem>
               ))}
@@ -84,13 +84,13 @@ export default function ShopPage() {
 
           <Select
             value={selectedStrength}
-            onValueChange={setSelectedStrength}
+            onValueChange={(value) => setSelectedStrength(value as keyof typeof NicotineStrength | "")}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select Strength" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Strengths</SelectItem>
+              <SelectItem value="ALL">All Strengths</SelectItem>
               {Object.entries(NicotineStrength).map(([key, value]) => (
                 <SelectItem key={key} value={value}>{value}mg</SelectItem>
               ))}
@@ -144,6 +144,11 @@ export default function ShopPage() {
                 </CardContent>
               </Card>
             ))}
+            {(!filteredProducts || filteredProducts.length === 0) && (
+              <div className="col-span-full text-center py-12 text-muted-foreground">
+                No products found. Try adjusting your filters.
+              </div>
+            )}
           </div>
         )}
       </div>
