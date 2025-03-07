@@ -6,20 +6,27 @@ import { AuthProvider } from "./hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
+import HomePage from "@/pages/home-page";
+import ShopPage from "@/pages/shop-page";
+import CheckoutPage from "@/pages/checkout-page";
 import AdminDashboard from "@/pages/dashboard/admin";
-import RetailDashboard from "@/pages/dashboard/retail";
 import WholesaleDashboard from "@/pages/dashboard/wholesale";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 
 function Router() {
   return (
     <Switch>
+      {/* Public Routes */}
+      <Route path="/" component={HomePage} />
+      <Route path="/shop" component={ShopPage} />
       <Route path="/auth" component={AuthPage} />
+
+      {/* Protected Routes */}
+      <ProtectedRoute path="/checkout" component={CheckoutPage} />
       <ProtectedRoute path="/admin" component={AdminDashboard} />
-      <ProtectedRoute path="/retail" component={RetailDashboard} />
       <ProtectedRoute path="/wholesale" component={WholesaleDashboard} />
       <ProtectedRoute path="/distributor" component={DistributorDashboard} />
-      <Route path="/" component={AuthPage} />
+
       <Route component={NotFound} />
     </Switch>
   );
