@@ -94,6 +94,8 @@ export class MemStorage implements IStorage {
     initialProducts.forEach(product => {
       this.products.set(product.id, product);
     });
+
+    console.log("Storage initialized with products:", this.getProducts());
   }
 
   async getUser(id: number): Promise<User | undefined> {

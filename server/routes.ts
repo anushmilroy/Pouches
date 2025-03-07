@@ -9,7 +9,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Products
   app.get("/api/products", async (_req, res) => {
+    console.log("GET /api/products request received");
     const products = await storage.getProducts();
+    console.log("Sending products:", products);
     res.json(products);
   });
 
