@@ -1,4 +1,4 @@
-import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength } from "@shared/schema";
+import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -141,8 +141,10 @@ export interface IStorage {
 
   // Wholesale management
   getWholesaleUsers(): Promise<User[]>;
-  updateWholesaleStatus(id: number, status: string): Promise<User>;
+  updateWholesaleStatus(id: number, status: keyof typeof WholesaleStatus): Promise<User>;
   updateCustomPricing(id: number, customPricing: Record<string, number>): Promise<User>;
+  blockWholesaleUser(id: number): Promise<User>;
+  unblockWholesaleUser(id: number): Promise<User>;
 
   sessionStore: session.Store;
 }
@@ -203,10 +205,10 @@ export class MemStorage implements IStorage {
       referralCode: null,
       commission: null,
       createdAt: new Date(),
-      wholesaleStatus: null, // Added for wholesale status
-      customPricing: null // Added for custom pricing
+      wholesaleStatus: null, 
+      customPricing: null 
     };
-    console.log("Creating user:", { ...user, password: '***' }); // Log user creation
+    console.log("Creating user:", { ...user, password: '***' }); 
     this.users.set(id, user);
     return user;
   }
@@ -333,11 +335,11 @@ export class MemStorage implements IStorage {
 
   async getWholesaleUsers(): Promise<User[]> {
     return Array.from(this.users.values()).filter(
-      (user) => user.role === "WHOLESALE" // Assuming UserRole.WHOLESALE is equivalent to string "WHOLESALE"
+      (user) => user.role === "WHOLESALE" 
     );
   }
 
-  async updateWholesaleStatus(id: number, status: string): Promise<User> {
+  async updateWholesaleStatus(id: number, status: keyof typeof WholesaleStatus): Promise<User> {
     const user = await this.getUser(id);
     if (!user) throw new Error("User not found");
 
@@ -351,6 +353,26 @@ export class MemStorage implements IStorage {
     if (!user) throw new Error("User not found");
 
     user.customPricing = customPricing;
+    this.users.set(id, user);
+    return user;
+  }
+
+  async blockWholesaleUser(id: number): Promise<User> {
+    const user = await this.getUser(id);
+    if (!user) throw new Error("User not found");
+    if (user.role !== "WHOLESALE") throw new Error("User is not a wholesale account");
+
+    user.wholesaleStatus = "BLOCKED";
+    this.users.set(id, user);
+    return user;
+  }
+
+  async unblockWholesaleUser(id: number): Promise<User> {
+    const user = await this.getUser(id);
+    if (!user) throw new Error("User not found");
+    if (user.role !== "WHOLESALE") throw new Error("User is not a wholesale account");
+
+    user.wholesaleStatus = "APPROVED";
     this.users.set(id, user);
     return user;
   }

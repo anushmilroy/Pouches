@@ -12,7 +12,8 @@ export const UserRole = {
 export const WholesaleStatus = {
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED'
+  REJECTED: 'REJECTED',
+  BLOCKED: 'BLOCKED'
 } as const;
 
 export const PaymentMethod = {

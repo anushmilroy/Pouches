@@ -252,6 +252,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Block wholesale user
+  app.post("/api/users/:id/block", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const user = await storage.blockWholesaleUser(parseInt(req.params.id));
+      res.json(user);
+    } catch (error) {
+      console.error("Error blocking wholesale user:", error);
+      res.status(500).json({ error: "Failed to block wholesale user" });
+    }
+  });
+
+  // Unblock wholesale user
+  app.post("/api/users/:id/unblock", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const user = await storage.unblockWholesaleUser(parseInt(req.params.id));
+      res.json(user);
+    } catch (error) {
+      console.error("Error unblocking wholesale user:", error);
+      res.status(500).json({ error: "Failed to unblock wholesale user" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
