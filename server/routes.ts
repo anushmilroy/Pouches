@@ -208,6 +208,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // Wholesale Account Management
+  app.get("/api/users/wholesale", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const users = await storage.getWholesaleUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching wholesale users:", error);
+      res.status(500).json({ error: "Failed to fetch wholesale users" });
+    }
+  });
+
+  app.patch("/api/users/:id/wholesale-status", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const user = await storage.updateWholesaleStatus(parseInt(req.params.id), req.body.status);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating wholesale status:", error);
+      res.status(500).json({ error: "Failed to update wholesale status" });
+    }
+  });
+
+  app.patch("/api/users/:id/pricing", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const user = await storage.updateCustomPricing(parseInt(req.params.id), req.body.customPricing);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating custom pricing:", error);
+      res.status(500).json({ error: "Failed to update custom pricing" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

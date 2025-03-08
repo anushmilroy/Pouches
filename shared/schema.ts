@@ -9,6 +9,12 @@ export const UserRole = {
   DISTRIBUTOR: 'DISTRIBUTOR'
 } as const;
 
+export const WholesaleStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+} as const;
+
 export const PaymentMethod = {
   CRYPTO: 'CRYPTO',
   BANK_TRANSFER: 'BANK_TRANSFER',
@@ -80,6 +86,8 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().$type<keyof typeof UserRole>(),
+  wholesaleStatus: text("wholesale_status").$type<keyof typeof WholesaleStatus>(),
+  customPricing: jsonb("custom_pricing"),
   referrerId: integer("referrer_id").references(() => users.id),
   referralCode: text("referral_code").unique(),
   commission: numeric("commission").default("0.00"),
@@ -120,7 +128,6 @@ export const orders = pgTable("orders", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Add promotions table
 export const promotions = pgTable("promotions", {
   id: serial("id").primaryKey(),
   code: text("code").notNull().unique(),

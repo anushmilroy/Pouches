@@ -139,6 +139,11 @@ export interface IStorage {
   createPromotion(promotion: Omit<Promotion, "id">): Promise<Promotion>;
   updatePromotion(id: number, data: Partial<Promotion>): Promise<Promotion>;
 
+  // Wholesale management
+  getWholesaleUsers(): Promise<User[]>;
+  updateWholesaleStatus(id: number, status: string): Promise<User>;
+  updateCustomPricing(id: number, customPricing: Record<string, number>): Promise<User>;
+
   sessionStore: session.Store;
 }
 
@@ -198,6 +203,8 @@ export class MemStorage implements IStorage {
       referralCode: null,
       commission: null,
       createdAt: new Date(),
+      wholesaleStatus: null, // Added for wholesale status
+      customPricing: null // Added for custom pricing
     };
     console.log("Creating user:", { ...user, password: '***' }); // Log user creation
     this.users.set(id, user);
@@ -322,6 +329,30 @@ export class MemStorage implements IStorage {
     const updatedPromotion = { ...promotion, ...data };
     this.promotions.set(id, updatedPromotion);
     return updatedPromotion;
+  }
+
+  async getWholesaleUsers(): Promise<User[]> {
+    return Array.from(this.users.values()).filter(
+      (user) => user.role === "WHOLESALE" // Assuming UserRole.WHOLESALE is equivalent to string "WHOLESALE"
+    );
+  }
+
+  async updateWholesaleStatus(id: number, status: string): Promise<User> {
+    const user = await this.getUser(id);
+    if (!user) throw new Error("User not found");
+
+    user.wholesaleStatus = status;
+    this.users.set(id, user);
+    return user;
+  }
+
+  async updateCustomPricing(id: number, customPricing: Record<string, number>): Promise<User> {
+    const user = await this.getUser(id);
+    if (!user) throw new Error("User not found");
+
+    user.customPricing = customPricing;
+    this.users.set(id, user);
+    return user;
   }
 }
 
