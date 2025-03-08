@@ -2,6 +2,10 @@ import { pgTable, text, serial, integer, numeric, timestamp, jsonb, boolean } fr
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export type UserRole = keyof typeof UserRole;
+export type PayoutStatus = keyof typeof PayoutStatus;
+export type CommissionType = keyof typeof CommissionType;
+
 export const UserRole = {
   ADMIN: 'ADMIN',
   RETAIL: 'RETAIL',
@@ -111,7 +115,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().$type<keyof typeof UserRole>(),
+  role: text("role").notNull().$type<UserRole>(),
   wholesaleStatus: text("wholesale_status").$type<keyof typeof WholesaleStatus>(),
   companyName: text("company_name"),
   companyAddress: text("company_address"),
@@ -195,8 +199,8 @@ export const commissionTransactions = pgTable("commission_transactions", {
   userId: integer("user_id").notNull().references(() => users.id),
   orderId: integer("order_id").notNull().references(() => orders.id),
   amount: numeric("amount").notNull(),
-  type: text("type").notNull().$type<keyof typeof CommissionType>(),
-  status: text("status").notNull().$type<keyof typeof PayoutStatus>(),
+  type: text("type").notNull().$type<CommissionType>(),
+  status: text("status").notNull().$type<PayoutStatus>(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

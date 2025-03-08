@@ -624,6 +624,22 @@ function AdminDashboard() {
     );
   }
 
+  // Add these queries in the AdminDashboard component
+  const { data: referralStats, isLoading: referralStatsLoading } = useQuery({
+    queryKey: ["/api/admin/referral-stats"],
+  });
+
+  const { 
+    data: { 
+      totalCommissionPaid,
+      totalCommissionPending,
+      activeReferrers 
+    } = {}, 
+    isLoading: summaryLoading 
+  } = useQuery({
+    queryKey: ["/api/admin/referral-summary"],
+  });
+
   return (
     <DashboardLayout>
       <Tabs defaultValue="overview" className="space-y-8">
@@ -634,6 +650,7 @@ function AdminDashboard() {
           <TabsTrigger value="promotions">Promotions</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="consignments">Consignments</TabsTrigger>
+          <TabsTrigger value="referrals">Referrals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -949,10 +966,10 @@ function AdminDashboard() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="bg-green-50 hover:bg-green-100 text-green-700"
+                                className="bg-green-50 hover:bggreen-100 text-green-700"
                                 onClick={async () => {
                                   try {
-                                    await apiRequest("PATCH", `/api/orders/${order.id}/consignment-status`, {
+                                    await apiRequest("PATCH", `/api/api/orders/${order.id}/consignment-status`, {
                                       status: ConsignmentStatus.APPROVED
                                     });
                                     queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -1013,6 +1030,10 @@ function AdminDashboard() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="referrals">
+          <AdminReferralStats />
         </TabsContent>
 
       </Tabs>

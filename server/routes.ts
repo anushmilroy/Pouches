@@ -531,6 +531,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add these new routes for admin referral management
+  app.get("/api/admin/referral-stats", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const users = await storage.getUsersWithReferrals();
+      console.log('Found users with referrals:', users.length);
+
+      const stats = await Promise.all(users.map(async (user) => {
+        try {
+          const referralStats = await storage.getReferralsByUserId(user.id);
+          console.log(`Found ${referralStats.length} referrals for user ${user.id}`);
+
+          const earnings = await storage.getCommissionTransactions(user.id);
+          console.log(`Found ${earnings.length} commission transactions for user ${user.id}`);
+
+          const totalEarnings = earnings
+            .filter(e => e.status === 'PAID')
+            .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+
+          const pendingEarnings = earnings
+            .filter(e => e.status === 'PENDING')
+            .reduce((sum, e) => sum + parseFloat(e.amount.toString()), 0);
+
+          const lastReferral = referralStats[0]?.createdAt || null;
+
+          return {
+            userId: user.id,
+            username: user.username,
+            role: user.role,
+            totalReferrals: user.totalReferrals || 0,
+            totalEarnings,
+            pendingEarnings,
+            lastReferralDate: lastReferral
+          };
+        } catch (error) {
+          console.error(`Error processing stats for user ${user.id}:`, error);
+          return null;
+        }
+      }));
+
+      // Filter out any failed stats
+      const validStats = stats.filter(stat => stat !== null);
+      console.log('Successfully processed stats for', validStats.length, 'users');
+
+      res.json(validStats);
+    } catch (error) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({ error: "Failed to fetch referral statistics" });
+    }
+  });
+
+  app.get("/api/admin/referral-summary", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const allTransactions = await storage.getAllCommissionTransactions();
+      console.log('Found total commission transactions:', allTransactions.length);
+
+      const totalCommissionPaid = allTransactions
+        .filter(t => t.status === 'PAID')
+        .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+
+      const totalCommissionPending = allTransactions
+        .filter(t => t.status === 'PENDING')
+        .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+
+      const activeReferrers = await storage.getActiveReferrersCount();
+      console.log('Active referrers count:', activeReferrers);
+
+      res.json({
+        totalCommissionPaid,
+        totalCommissionPending,
+        activeReferrers
+      });
+    } catch (error) {
+      console.error("Error fetching referral summary:", error);
+      res.status(500).json({ error: "Failed to fetch referral summary" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

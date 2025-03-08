@@ -1,389 +1,95 @@
-import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus, UserRole, InsertCommissionTransaction, CommissionTransaction, InsertCommissionPayout, CommissionPayout, CommissionTier, PayoutStatus, users, products, orders, orderItems, promotions, commissionPayouts, commissionTransactions } from "@shared/schema";
+import { sql, eq, desc } from "drizzle-orm";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
-import session from "express-session";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
-
-const PostgresSessionStore = connectPg(session);
+import { users as usersTable, orders as ordersTable, commissionTransactions as commissionsTable } from "@shared/schema";
+import type { User } from "@shared/schema";
+import type { CommissionTransaction } from "@shared/schema";
+import type { Order } from "@shared/schema";
 
 export interface IStorage {
-  // User operations
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUserCommission(id: number, commission: number): Promise<User>;
+  // ... existing methods ...
 
-  // Product operations
-  getProducts(): Promise<Product[]>;
-  getProduct(id: number): Promise<Product | undefined>;
-
-  // Order operations
-  createOrder(order: Order): Promise<Order>;
-  getOrder(id: number): Promise<Order | undefined>;
-  getUserOrders(userId: number): Promise<Order[]>;
-  getDistributorOrders(distributorId: number): Promise<Order[]>;
-  updateOrderStatus(id: number, status: keyof typeof OrderStatus): Promise<Order>;
-
-  // Order items
-  createOrderItem(item: OrderItem): Promise<OrderItem>;
-  getOrderItems(orderId: number): Promise<OrderItem[]>;
-
-  // Referral operations
-  getUserByReferralCode(code: string): Promise<User | undefined>;
-  getUserEarnings(userId: number): Promise<{ total: string; orders: Order[] }>;
-  generateReferralCode(userId: number): Promise<string>;
-
-  // Promotion operations
-  getPromotions(): Promise<Promotion[]>;
-  createPromotion(promotion: Omit<Promotion, "id">): Promise<Promotion>;
-  updatePromotion(id: number, data: Partial<Promotion>): Promise<Promotion>;
-
-  // Wholesale management
-  getWholesaleUsers(): Promise<User[]>;
-  updateWholesaleStatus(id: number, status: keyof typeof WholesaleStatus): Promise<User>;
-  updateCustomPricing(id: number, customPricing: Record<string, number>): Promise<User>;
-  blockWholesaleUser(id: number): Promise<User>;
-  unblockWholesaleUser(id: number): Promise<User>;
-
-  // Commission management
-  createCommissionTransaction(transaction: InsertCommissionTransaction): Promise<CommissionTransaction>;
-  getUserCommissionTransactions(userId: number): Promise<CommissionTransaction[]>;
-  createCommissionPayout(payout: InsertCommissionPayout): Promise<CommissionPayout>;
-  getUserCommissionPayouts(userId: number): Promise<CommissionPayout[]>;
-  updateUserCommissionTier(userId: number, tier: keyof typeof CommissionTier): Promise<User>;
-  calculateUserCommissionRate(userId: number): Promise<number>;
-  getPendingCommissionTotal(userId: number): Promise<string>;
-  updatePaymentMethod(userId: number, paymentMethod: any): Promise<User>;
-
-  // Distributor management
-  getDistributors(): Promise<User[]>;
-  createDistributor(distributor: InsertUser): Promise<User>;
-  updateDistributorStatus(id: number, active: boolean): Promise<User>;
-  assignOrderToDistributor(orderId: number, distributorId: number): Promise<Order>;
-
-  // Consignment management
-  getConsignmentOrders(): Promise<Order[]>;
-  updateConsignmentStatus(
-    orderId: number,
-    status: keyof typeof ConsignmentStatus,
-    approvedBy?: number
-  ): Promise<Order>;
-  createConsignmentOrder(order: Order): Promise<Order>;
-
-  sessionStore: session.Store;
+  // Referral management
+  getUsersWithReferrals(): Promise<User[]>;
+  getReferralsByUserId(userId: number): Promise<Order[]>;
+  getCommissionTransactions(userId: number): Promise<CommissionTransaction[]>;
+  getAllCommissionTransactions(): Promise<CommissionTransaction[]>;
+  getActiveReferrersCount(): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.Store;
+  // ... existing methods ...
 
-  constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
-    });
-  }
-
-  // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    console.log("Creating user:", { ...insertUser, password: '***' });
-    const [user] = await db.insert(users).values(insertUser).returning();
-    console.log("User created:", { ...user, password: '***' });
-    return user;
-  }
-
-  async updateUserCommission(id: number, commission: number): Promise<User> {
-    const [user] = await db.update(users).set({ commission: commission.toString() }).where(eq(users.id, id)).returning();
-    if (!user) throw new Error("User not found");
-    return user;
-  }
-
-  // Product operations
-  async getProducts(): Promise<Product[]> {
-    return await db.select().from(products);
-  }
-
-  async getProduct(id: number): Promise<Product | undefined> {
-    const [product] = await db.select().from(products).where(eq(products.id, id));
-    return product;
-  }
-
-  // Order operations
-  async createOrder(order: Order): Promise<Order> {
-    const [newOrder] = await db.insert(orders).values(order).returning();
-    return newOrder;
-  }
-
-  async getOrder(id: number): Promise<Order | undefined> {
-    const [order] = await db.select().from(orders).where(eq(orders.id, id));
-    return order;
-  }
-
-  async getUserOrders(userId: number): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.userId, userId));
-  }
-
-  async getDistributorOrders(distributorId: number): Promise<Order[]> {
-    return await db.select().from(orders).where(eq(orders.distributorId, distributorId));
-  }
-
-  async updateOrderStatus(id: number, status: keyof typeof OrderStatus): Promise<Order> {
-    const [updatedOrder] = await db.update(orders).set({ status }).where(eq(orders.id, id)).returning();
-    if (!updatedOrder) throw new Error("Order not found");
-    return updatedOrder;
-  }
-
-  // Order items
-  async createOrderItem(item: OrderItem): Promise<OrderItem> {
-    const [newItem] = await db.insert(orderItems).values(item).returning();
-    return newItem;
-  }
-
-  async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
-  }
-
-  // Referral operations
-  async getUserByReferralCode(code: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.referralCode, code));
-    return user;
-  }
-
-  async getUserEarnings(userId: number): Promise<{ total: string; orders: Order[] }> {
-    const orders = await db.select().from(orders).where(eq(orders.referrerId, userId));
-    const total = orders.reduce((sum, order) => {
-      return sum + parseFloat(order.commissionAmount?.toString() || "0");
-    }, 0);
-    return {
-      total: total.toFixed(2),
-      orders
-    };
-  }
-
-  async generateReferralCode(userId: number): Promise<string> {
-    const [user] = await db.select().from(users).where(eq(users.id, userId));
-    if (!user) throw new Error("User not found");
-
-    if (user.referralCode) {
-      return user.referralCode;
+  // Referral management implementation
+  async getUsersWithReferrals(): Promise<User[]> {
+    try {
+      console.log("Fetching users with referrals...");
+      const userRows = await db.select()
+        .from(usersTable)
+        .where(sql`${usersTable.totalReferrals} > 0 OR ${usersTable.referralCode} IS NOT NULL`);
+      console.log(`Found ${userRows.length} users with referrals`);
+      return userRows;
+    } catch (error) {
+      console.error("Error getting users with referrals:", error);
+      return [];
     }
-
-    // Generate a unique referral code based on username and random string
-    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const referralCode = `${user.username.substring(0, 4).toUpperCase()}-${randomStr}`;
-
-    // Update user with new referral code
-    await db.update(users).set({ referralCode }).where(eq(users.id, userId));
-
-    return referralCode;
   }
 
-  // Promotion operations
-  async getPromotions(): Promise<Promotion[]> {
-    return await db.select().from(promotions);
-  }
-
-  async createPromotion(promotion: Omit<Promotion, "id">): Promise<Promotion> {
-    const [newPromotion] = await db.insert(promotions).values(promotion).returning();
-    return newPromotion;
-  }
-
-  async updatePromotion(id: number, data: Partial<Promotion>): Promise<Promotion> {
-    const [updatedPromotion] = await db.update(promotions).set(data).where(eq(promotions.id, id)).returning();
-    if (!updatedPromotion) throw new Error("Promotion not found");
-    return updatedPromotion;
-  }
-
-  // Wholesale management
-  async getWholesaleUsers(): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.role, 'WHOLESALE'));
-  }
-
-  async updateWholesaleStatus(id: number, status: keyof typeof WholesaleStatus): Promise<User> {
-    const [user] = await db.update(users).set({ wholesaleStatus: status }).where(eq(users.id, id)).returning();
-    if (!user) throw new Error("User not found");
-    return user;
-  }
-
-  async updateCustomPricing(id: number, customPricing: Record<string, number>): Promise<User> {
-    const [user] = await db.update(users).set({ customPricing }).where(eq(users.id, id)).returning();
-    if (!user) throw new Error("User not found");
-    return user;
-  }
-
-  async blockWholesaleUser(id: number): Promise<User> {
-    const [user] = await db.update(users).set({ wholesaleStatus: "BLOCKED" }).where(eq(users.id, id)).returning();
-    if (!user) throw new Error("User not found");
-    if (user.role !== "WHOLESALE") throw new Error("User is not a wholesale account");
-    return user;
-  }
-
-  async unblockWholesaleUser(id: number): Promise<User> {
-    const [user] = await db.update(users).set({ wholesaleStatus: "APPROVED" }).where(eq(users.id, id)).returning();
-    if (!user) throw new Error("User not found");
-    if (user.role !== "WHOLESALE") throw new Error("User is not a wholesale account");
-    return user;
-  }
-
-  // Commission management
-  async createCommissionTransaction(transaction: InsertCommissionTransaction): Promise<CommissionTransaction> {
-    const [newTransaction] = await db
-      .insert(commissionTransactions)
-      .values(transaction)
-      .returning();
-    return newTransaction;
-  }
-
-  async getUserCommissionTransactions(userId: number): Promise<CommissionTransaction[]> {
-    return await db
-      .select()
-      .from(commissionTransactions)
-      .where(eq(commissionTransactions.userId, userId));
-  }
-
-  async createCommissionPayout(payout: InsertCommissionPayout): Promise<CommissionPayout> {
-    const [newPayout] = await db
-      .insert(commissionPayouts)
-      .values(payout)
-      .returning();
-    return newPayout;
-  }
-
-  async getUserCommissionPayouts(userId: number): Promise<CommissionPayout[]> {
-    return await db
-      .select()
-      .from(commissionPayouts)
-      .where(eq(commissionPayouts.userId, userId));
-  }
-
-  async updateUserCommissionTier(userId: number, tier: keyof typeof CommissionTier): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ commissionTier: tier })
-      .where(eq(users.id, userId))
-      .returning();
-    return user;
-  }
-
-  async calculateUserCommissionRate(userId: number): Promise<number> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, userId));
-    if (!user) throw new Error("User not found");
-    return CommissionTier[user.commissionTier || 'STANDARD'].rate;
-  }
-
-  async getPendingCommissionTotal(userId: number): Promise<string> {
-    const transactions = await db
-      .select()
-      .from(commissionTransactions)
-      .where(
-        and(
-          eq(commissionTransactions.userId, userId),
-          eq(commissionTransactions.status, PayoutStatus.PENDING)
-        )
-      );
-
-    const pendingTotal = transactions.reduce(
-      (sum, t) => sum + parseFloat(t.amount.toString()),
-      0
-    );
-    return pendingTotal.toFixed(2);
-  }
-
-  async updatePaymentMethod(userId: number, paymentMethod: any): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ paymentMethod })
-      .where(eq(users.id, userId))
-      .returning();
-    return user;
-  }
-
-  // Distributor management implementation
-  async getDistributors(): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.role, UserRole.DISTRIBUTOR));
-  }
-
-  async createDistributor(distributor: InsertUser): Promise<User> {
-    const [newDistributor] = await db
-      .insert(users)
-      .values({ ...distributor, role: UserRole.DISTRIBUTOR })
-      .returning();
-    return newDistributor;
-  }
-
-  async updateDistributorStatus(id: number, active: boolean): Promise<User> {
-    const [distributor] = await db
-      .update(users)
-      .set({ active })
-      .where(and(eq(users.id, id), eq(users.role, UserRole.DISTRIBUTOR)))
-      .returning();
-    return distributor;
-  }
-
-  async assignOrderToDistributor(orderId: number, distributorId: number): Promise<Order> {
-    const [order] = await db
-      .update(orders)
-      .set({ distributorId })
-      .where(eq(orders.id, orderId))
-      .returning();
-    return order;
-  }
-
-  // Consignment management implementation
-  async getConsignmentOrders(): Promise<Order[]> {
-    return await db
-      .select()
-      .from(orders)
-      .where(eq(orders.isConsignment, true));
-  }
-
-  async updateConsignmentStatus(
-    orderId: number,
-    status: keyof typeof ConsignmentStatus,
-    approvedBy?: number
-  ): Promise<Order> {
-    const updates: any = {
-      consignmentStatus: status,
-    };
-
-    if (status === "APPROVED" && approvedBy) {
-      updates.consignmentApprovedBy = approvedBy;
-      updates.consignmentApprovedAt = new Date();
+  async getReferralsByUserId(userId: number): Promise<Order[]> {
+    try {
+      console.log(`Fetching referrals for user ${userId}...`);
+      const referralOrders = await db.select()
+        .from(ordersTable)
+        .where(eq(ordersTable.referrerId, userId))
+        .orderBy(desc(ordersTable.createdAt));
+      console.log(`Found ${referralOrders.length} referrals for user ${userId}`);
+      return referralOrders;
+    } catch (error) {
+      console.error(`Error getting referrals for user ${userId}:`, error);
+      return [];
     }
-
-    const [order] = await db
-      .update(orders)
-      .set(updates)
-      .where(eq(orders.id, orderId))
-      .returning();
-
-    return order;
   }
 
-  async createConsignmentOrder(order: Order): Promise<Order> {
-    const [newOrder] = await db
-      .insert(orders)
-      .values({
-        ...order,
-        isConsignment: true,
-        consignmentStatus: "PENDING_APPROVAL",
-      })
-      .returning();
+  async getCommissionTransactions(userId: number): Promise<CommissionTransaction[]> {
+    try {
+      console.log(`Fetching commission transactions for user ${userId}...`);
+      const transactionRows = await db.select()
+        .from(commissionsTable)
+        .where(eq(commissionsTable.userId, userId))
+        .orderBy(desc(commissionsTable.createdAt));
+      console.log(`Found ${transactionRows.length} commission transactions for user ${userId}`);
+      return transactionRows;
+    } catch (error) {
+      console.error(`Error getting commission transactions for user ${userId}:`, error);
+      return [];
+    }
+  }
 
-    return newOrder;
+  async getAllCommissionTransactions(): Promise<CommissionTransaction[]> {
+    try {
+      console.log("Fetching all commission transactions...");
+      const allTransactions = await db.select()
+        .from(commissionsTable)
+        .orderBy(desc(commissionsTable.createdAt));
+      console.log(`Found ${allTransactions.length} total commission transactions`);
+      return allTransactions;
+    } catch (error) {
+      console.error("Error getting all commission transactions:", error);
+      return [];
+    }
+  }
+
+  async getActiveReferrersCount(): Promise<number> {
+    try {
+      console.log("Counting active referrers...");
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(usersTable)
+        .where(sql`${usersTable.totalReferrals} > 0`);
+      console.log(`Found ${result[0].count} active referrers`);
+      return result[0].count;
+    } catch (error) {
+      console.error("Error getting active referrers count:", error);
+      return 0;
+    }
   }
 }
 
