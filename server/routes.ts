@@ -149,7 +149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(order);
   });
 
-  // Add route to get user's commission earnings
+  // Add route to get user's commission earnings (from edited snippet)
   app.get("/api/users/earnings", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
@@ -164,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add route to generate referral code for user
+  // Add route to generate referral code for user (from edited snippet)
   app.post("/api/users/referral-code", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
@@ -178,6 +178,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to generate referral code" });
     }
   });
+
+  // Add new route for updating bank details (from edited snippet)
+  app.patch("/api/users/:id/bank-details", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const user = await storage.updateUser(parseInt(req.params.id), {
+        bankDetails: req.body.bankDetails,
+      });
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating bank details:", error);
+      res.status(500).json({ error: "Failed to update bank details" });
+    }
+  });
+
 
   // Promotions Management
   app.get("/api/promotions", async (req, res) => {

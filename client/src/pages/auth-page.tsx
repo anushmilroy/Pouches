@@ -17,6 +17,19 @@ const authSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["RETAIL", "WHOLESALE"]).optional(),
+  // Company details - required only for wholesale accounts
+  companyName: z.string().optional(),
+  companyAddress: z.string().optional(),
+  companyEmail: z.string().email("Invalid email").optional(),
+  companyWebsite: z.string().url("Invalid URL").optional(),
+}).refine((data) => {
+  if (data.role === "WHOLESALE") {
+    return data.companyName && data.companyAddress && data.companyEmail;
+  }
+  return true;
+}, {
+  message: "Company name, address and email are required for wholesale accounts",
+  path: ["companyName"],
 });
 
 export default function AuthPage() {
@@ -49,7 +62,11 @@ export default function AuthPage() {
   const registerForm = useForm({
     resolver: zodResolver(authSchema),
     defaultValues: {
-      role: undefined
+      role: undefined,
+      companyName: "",
+      companyAddress: "",
+      companyEmail: "",
+      companyWebsite: "",
     }
   });
 
@@ -66,6 +83,8 @@ export default function AuthPage() {
       }
     });
   });
+
+  const showCompanyFields = registerForm.watch("role") === "WHOLESALE";
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -198,6 +217,64 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
+
+                      {showCompanyFields && (
+                        <div className="space-y-4">
+                          <FormField
+                            control={registerForm.control}
+                            name="companyName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Company Name*</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={registerForm.control}
+                            name="companyAddress"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Company Address*</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={registerForm.control}
+                            name="companyEmail"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Company Email*</FormLabel>
+                                <FormControl>
+                                  <Input type="email" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={registerForm.control}
+                            name="companyWebsite"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Company Website (Optional)</FormLabel>
+                                <FormControl>
+                                  <Input {...field} placeholder="https://" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+
                       <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
                         Register
                       </Button>
