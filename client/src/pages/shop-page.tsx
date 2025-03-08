@@ -160,29 +160,37 @@ export default function ShopPage() {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
-              <Card key={product.flavor} className="flex flex-col">
+              <Card key={product.flavor} className="flex flex-col overflow-hidden">
+                {/* Product Image */}
+                {product.imagePath ? (
+                  <div className="aspect-square w-full relative bg-background">
+                    <img
+                      src={product.imagePath}
+                      alt={PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
+                      className="object-contain w-full h-full p-4"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-square w-full bg-muted flex items-center justify-center">
+                    <Package className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                )}
+
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
                     {PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
                   </CardTitle>
                   <CardDescription>{product.description}</CardDescription>
                 </CardHeader>
+
                 <CardContent className="flex-1 flex flex-col">
                   <div className="space-y-2 mb-4">
                     <div className="text-2xl font-bold">${product.price}</div>
-                    <div className="text-sm">
-                      <span className="font-medium">Category:</span> {product.category}
-                    </div>
-                    <div className="text-sm">
-                      <span className="font-medium">Flavor:</span> {PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
-                    </div>
-                    <div className="text-sm mt-4">
-                      <span className="font-medium">Available Strengths:</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
+
+                    {/* Strength Selection */}
+                    <div className="flex flex-wrap gap-1 mt-4">
                       {product.strengths.sort().map((strength) => {
                         const cartKey = `${product.flavor}-${strength}`;
                         const cartItem = cart[cartKey];
@@ -190,44 +198,43 @@ export default function ShopPage() {
 
                         return (
                           <div 
-                            key={strength} 
+                            key={strength}
                             className={cn(
-                              "flex-1 min-w-[100px] border rounded-lg p-2",
-                              isSelected && "border-primary bg-primary/5"
+                              "flex flex-col items-center flex-1 min-w-[80px]",
+                              isSelected && "relative"
                             )}
                           >
-                            <div className="text-sm font-medium text-center mb-2">
+                            <Button
+                              size="sm"
+                              variant={isSelected ? "default" : "outline"}
+                              className="w-full mb-1"
+                              onClick={() => !isSelected && handleAddToCart(product.flavor, strength)}
+                            >
                               {NicotineStrength[strength]}
-                            </div>
-                            {cartItem ? (
-                              <div className="flex items-center justify-between gap-2">
+                            </Button>
+
+                            {isSelected && (
+                              <div className="flex items-center gap-2">
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="outline"
+                                  className="h-6 w-6"
                                   onClick={() => handleRemoveFromCart(product.flavor, strength)}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
-                                <span className="text-center font-medium">
+                                <span className="text-center font-medium min-w-[20px]">
                                   {cartItem.quantity}
                                 </span>
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="outline"
+                                  className="h-6 w-6"
                                   onClick={() => handleAddToCart(product.flavor, strength)}
                                 >
                                   <Plus className="h-3 w-3" />
                                 </Button>
                               </div>
-                            ) : (
-                              <Button
-                                size="sm"
-                                className="w-full"
-                                variant="secondary"
-                                onClick={() => handleAddToCart(product.flavor, strength)}
-                              >
-                                Add
-                              </Button>
                             )}
                           </div>
                         );
