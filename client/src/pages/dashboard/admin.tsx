@@ -20,6 +20,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 function CreatePromotionDialog() {
   const { toast } = useToast();
@@ -232,6 +244,146 @@ function CustomPricingDialog({ user }: { user: any }) {
               "Update Pricing"
             )}
           </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function WholesalerDetailsDialog({ user }: { user: any }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm">View Details</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Wholesaler Account Details</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Username</h4>
+              <p className="text-lg">{user.username}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Registration Date</h4>
+              <p className="text-lg">{format(new Date(user.createdAt), 'MMM d, yyyy')}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Account Status</h4>
+              <span className={`inline-block px-2 py-1 mt-1 rounded-full text-xs ${
+                user.wholesaleStatus === WholesaleStatus.APPROVED
+                  ? 'bg-green-100 text-green-800'
+                  : user.wholesaleStatus === WholesaleStatus.REJECTED
+                  ? 'bg-red-100 text-red-800'
+                  : user.wholesaleStatus === WholesaleStatus.BLOCKED
+                    ? 'bg-gray-100 text-gray-800'
+                    : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {user.wholesaleStatus || 'PENDING'}
+              </span>
+            </div>
+          </div>
+
+          {user.wholesaleStatus === WholesaleStatus.PENDING && (
+            <div className="space-y-4 mt-6">
+              <h4 className="font-medium">Approve or Reject Application</h4>
+              <div className="flex space-x-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button>Approve Account</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Approve Wholesale Account</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will grant the user access to wholesale prices and features. Are you sure?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleApproveWholesale(user.id)}>
+                        Approve Account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">Reject Account</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Reject Wholesale Account</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will reject the wholesale application. The user will need to contact support for reconsideration. Are you sure?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleRejectWholesale(user.id)}>
+                        Reject Account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          )}
+
+          {user.wholesaleStatus === WholesaleStatus.APPROVED && (
+            <div className="space-y-4 mt-6">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Custom Pricing Settings</h4>
+                <CustomPricingDialog user={user} />
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">Block Account</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Block Wholesale Account</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will block the wholesale account from accessing the platform. Are you sure?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleBlockWholesale(user.id)}>
+                      Block Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+
+          {user.wholesaleStatus === WholesaleStatus.BLOCKED && (
+            <div className="space-y-4 mt-6">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline">Unblock Account</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Unblock Wholesale Account</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will restore the account's access to wholesale features. Are you sure?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleUnblockWholesale(user.id)}>
+                      Unblock Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -453,41 +605,7 @@ export default function AdminDashboard() {
                           )}
                         </TableCell>
                         <TableCell className="space-x-2">
-                          {user.wholesaleStatus === WholesaleStatus.PENDING && (
-                            <>
-                              <Button
-                                size="sm"
-                                onClick={() => handleApproveWholesale(user.id)}
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleRejectWholesale(user.id)}
-                              >
-                                Reject
-                              </Button>
-                            </>
-                          )}
-                          {user.wholesaleStatus === WholesaleStatus.APPROVED && (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleBlockWholesale(user.id)}
-                            >
-                              Block Account
-                            </Button>
-                          )}
-                          {user.wholesaleStatus === WholesaleStatus.BLOCKED && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleUnblockWholesale(user.id)}
-                            >
-                              Unblock Account
-                            </Button>
-                          )}
+                          <WholesalerDetailsDialog user={user} />
                         </TableCell>
                       </TableRow>
                     ))}
