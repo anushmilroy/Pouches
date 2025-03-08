@@ -216,7 +216,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log("Admin requesting wholesale users");
       const users = await storage.getWholesaleUsers();
+      console.log("Found wholesale users:", users.map(u => ({ ...u, password: '***' })));
       res.json(users);
     } catch (error) {
       console.error("Error fetching wholesale users:", error);

@@ -205,7 +205,7 @@ export class MemStorage implements IStorage {
       referralCode: null,
       commission: null,
       createdAt: new Date(),
-      wholesaleStatus: insertUser.wholesaleStatus || null,
+      wholesaleStatus: insertUser.role === UserRole.WHOLESALE ? WholesaleStatus.PENDING : null,
       customPricing: null
     };
     console.log("Creating user:", { ...user, password: '***' });
