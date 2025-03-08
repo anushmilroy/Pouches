@@ -1,111 +1,11 @@
-import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus, UserRole, InsertCommissionTransaction, CommissionTransaction, InsertCommissionPayout, CommissionPayout, CommissionTier, PayoutStatus } from "@shared/schema";
+import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus, UserRole, InsertCommissionTransaction, CommissionTransaction, InsertCommissionPayout, CommissionPayout, CommissionTier, PayoutStatus, users, products, orders, orderItems, promotions, commissionPayouts, commissionTransactions } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, sql } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
-
-const initialProducts: Product[] = [
-  {
-    id: 1,
-    name: "PUXX Apple Mint",
-    description: "Fresh and crisp apple mint nicotine pouch",
-    category: "DRY",
-    flavor: "APPLE_MINT",
-    strength: "MG_6",
-    price: "15.00",
-    wholesalePrice: "8.00",
-    stock: 10000,
-    minRetailOrder: 5,
-    minWholesaleOrder: 100,
-    imagePath: "attached_assets/apple-mint-6mg.jpg"
-  },
-  {
-    id: 2,
-    name: "PUXX Apple Mint",
-    description: "Fresh and crisp apple mint nicotine pouch",
-    category: "DRY",
-    flavor: "APPLE_MINT",
-    strength: "MG_12",
-    price: "15.00",
-    wholesalePrice: "8.00",
-    stock: 5000,
-    minRetailOrder: 5,
-    minWholesaleOrder: 100,
-    imagePath: "attached_assets/apple-mint-12mg.jpg"
-  },
-  {
-    id: 3,
-    name: "PUXX Cool Mint",
-    description: "Refreshing cool mint nicotine pouch",
-    category: "DRY",
-    flavor: "COOL_MINT",
-    strength: "MG_6",
-    price: "15.00",
-    wholesalePrice: "8.00",
-    stock: 10000,
-    minRetailOrder: 5,
-    minWholesaleOrder: 100,
-    imagePath: "attached_assets/cool-mint-6mg.jpg"
-  },
-  {
-    id: 4,
-    name: "PUXX Cool Mint",
-    description: "Refreshing cool mint nicotine pouch",
-    category: "DRY",
-    flavor: "COOL_MINT",
-    strength: "MG_12",
-    price: "15.00",
-    wholesalePrice: "8.00",
-    stock: 5000,
-    minRetailOrder: 5,
-    minWholesaleOrder: 100,
-    imagePath: "attached_assets/cool-mint-12mg.jpg"
-  },
-  {
-    id: 5,
-    name: "PUXX Cool Mint",
-    description: "Refreshing cool mint nicotine pouch",
-    category: "DRY",
-    flavor: "COOL_MINT",
-    strength: "MG_16",
-    price: "15.00",
-    wholesalePrice: "8.00",
-    stock: 5000,
-    minRetailOrder: 5,
-    minWholesaleOrder: 100,
-    imagePath: "attached_assets/cool-mint-16mg.jpg"
-  },
-  {
-    id: 6,
-    name: "PUXX Cool Mint",
-    description: "Refreshing cool mint nicotine pouch",
-    category: "DRY",
-    flavor: "COOL_MINT",
-    strength: "MG_22",
-    price: "15.00",
-    wholesalePrice: "8.00",
-    stock: 5000,
-    minRetailOrder: 5,
-    minWholesaleOrder: 100,
-    imagePath: "attached_assets/cool-mint-22mg.jpg"
-  }
-];
-
-const defaultAdmin = {
-  username: "admin",
-  password: "72af7034f304259be4f53457166e65040ca15f9018010b53daebe89bb2dd6a103498af96884771efb0268c07805362a6fda9852327174501144d94c9889d787f.9506be6ac397d4f92673f19ab0ae36c7", // This is hashed 'admin123'
-  role: "ADMIN"
-};
-
-interface Promotion {
-  id: number;
-  name: string;
-  description: string;
-  discount: string; //e.g., "10%" or "5.00"
-  startDate: Date;
-  endDate: Date;
-  productIds: number[];
-}
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User operations
@@ -159,151 +59,96 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private products: Map<number, Product>;
-  private orders: Map<number, Order>;
-  private orderItems: Map<number, OrderItem>;
-  private promotions: Map<number, Promotion>;
-  private commissionTransactions: Map<number, CommissionTransaction>;
-  private commissionPayouts: Map<number, CommissionPayout>;
-  private currentId: { [key: string]: number };
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.products = new Map();
-    this.orders = new Map();
-    this.orderItems = new Map();
-    this.promotions = new Map();
-    this.commissionTransactions = new Map();
-    this.commissionPayouts = new Map();
-    this.currentId = { users: 1, products: 7, orders: 1, orderItems: 1, promotions: 1, commissionTransactions: 1, commissionPayouts: 1 };
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
-
-    // Initialize products
-    initialProducts.forEach(product => {
-      this.products.set(product.id, product);
-    });
-
-    // Create default admin user
-    this.createUser({
-      ...defaultAdmin,
-      id: 1
-    });
-
-    console.log("Storage initialized with products:", this.getProducts());
-    console.log("Default admin user created");
   }
 
+  // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId.users++;
-    const user: User = {
-      id,
-      username: insertUser.username,
-      password: insertUser.password,
-      role: insertUser.role,
-      referrerId: null,
-      referralCode: null,
-      commission: null,
-      createdAt: new Date(),
-      wholesaleStatus: insertUser.role === 'WHOLESALE' ? 'PENDING' : null,
-      customPricing: null,
-      commissionTier: null,
-      paymentMethod: null
-    };
-    console.log("Creating user:", { ...user, password: '***' });
-    this.users.set(id, user);
+    console.log("Creating user:", { ...insertUser, password: '***' });
+    const [user] = await db.insert(users).values(insertUser).returning();
+    console.log("User created:", { ...user, password: '***' });
     return user;
   }
 
   async updateUserCommission(id: number, commission: number): Promise<User> {
-    const user = await this.getUser(id);
+    const [user] = await db.update(users).set({ commission: commission.toString() }).where(eq(users.id, id)).returning();
     if (!user) throw new Error("User not found");
-    user.commission = commission.toString();
-    this.users.set(id, user);
     return user;
   }
 
+  // Product operations
   async getProducts(): Promise<Product[]> {
-    return Array.from(this.products.values());
+    return await db.select().from(products);
   }
 
   async getProduct(id: number): Promise<Product | undefined> {
-    return this.products.get(id);
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
   }
 
+  // Order operations
   async createOrder(order: Order): Promise<Order> {
-    const id = this.currentId.orders++;
-    const newOrder = { ...order, id };
-    this.orders.set(id, newOrder);
+    const [newOrder] = await db.insert(orders).values(order).returning();
     return newOrder;
   }
 
   async getOrder(id: number): Promise<Order | undefined> {
-    return this.orders.get(id);
+    const [order] = await db.select().from(orders).where(eq(orders.id, id));
+    return order;
   }
 
   async getUserOrders(userId: number): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(
-      (order) => order.userId === userId,
-    );
+    return await db.select().from(orders).where(eq(orders.userId, userId));
   }
 
   async getDistributorOrders(distributorId: number): Promise<Order[]> {
-    return Array.from(this.orders.values()).filter(
-      (order) => order.distributorId === distributorId,
-    );
+    return await db.select().from(orders).where(eq(orders.distributorId, distributorId));
   }
 
   async updateOrderStatus(id: number, status: keyof typeof OrderStatus): Promise<Order> {
-    const order = await this.getOrder(id);
-    if (!order) throw new Error("Order not found");
-    const updatedOrder = { ...order, status };
-    this.orders.set(id, updatedOrder);
+    const [updatedOrder] = await db.update(orders).set({ status }).where(eq(orders.id, id)).returning();
+    if (!updatedOrder) throw new Error("Order not found");
     return updatedOrder;
   }
 
+  // Order items
   async createOrderItem(item: OrderItem): Promise<OrderItem> {
-    const id = this.currentId.orderItems++;
-    const newItem = { ...item, id };
-    this.orderItems.set(id, newItem);
+    const [newItem] = await db.insert(orderItems).values(item).returning();
     return newItem;
   }
 
   async getOrderItems(orderId: number): Promise<OrderItem[]> {
-    return Array.from(this.orderItems.values()).filter(
-      (item) => item.orderId === orderId,
-    );
+    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
   }
 
+  // Referral operations
   async getUserByReferralCode(code: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.referralCode === code,
-    );
+    const [user] = await db.select().from(users).where(eq(users.referralCode, code));
+    return user;
   }
 
   async getUserEarnings(userId: number): Promise<{ total: string; orders: Order[] }> {
-    const orders = Array.from(this.orders.values()).filter(
-      (order) => order.referrerId === userId,
-    );
-
+    const orders = await db.select().from(orders).where(eq(orders.referrerId, userId));
     const total = orders.reduce((sum, order) => {
       return sum + parseFloat(order.commissionAmount?.toString() || "0");
     }, 0);
-
     return {
       total: total.toFixed(2),
       orders
@@ -311,7 +156,7 @@ export class MemStorage implements IStorage {
   }
 
   async generateReferralCode(userId: number): Promise<string> {
-    const user = await this.getUser(userId);
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new Error("User not found");
 
     if (user.referralCode) {
@@ -323,137 +168,133 @@ export class MemStorage implements IStorage {
     const referralCode = `${user.username.substring(0, 4).toUpperCase()}-${randomStr}`;
 
     // Update user with new referral code
-    user.referralCode = referralCode;
-    this.users.set(userId, user);
+    await db.update(users).set({ referralCode }).where(eq(users.id, userId));
 
     return referralCode;
   }
 
+  // Promotion operations
   async getPromotions(): Promise<Promotion[]> {
-    return Array.from(this.promotions.values());
+    return await db.select().from(promotions);
   }
 
   async createPromotion(promotion: Omit<Promotion, "id">): Promise<Promotion> {
-    const id = this.currentId.promotions++;
-    const newPromotion = { ...promotion, id };
-    this.promotions.set(id, newPromotion);
+    const [newPromotion] = await db.insert(promotions).values(promotion).returning();
     return newPromotion;
   }
 
   async updatePromotion(id: number, data: Partial<Promotion>): Promise<Promotion> {
-    const promotion = this.promotions.get(id);
-    if (!promotion) throw new Error("Promotion not found");
-
-    const updatedPromotion = { ...promotion, ...data };
-    this.promotions.set(id, updatedPromotion);
+    const [updatedPromotion] = await db.update(promotions).set(data).where(eq(promotions.id, id)).returning();
+    if (!updatedPromotion) throw new Error("Promotion not found");
     return updatedPromotion;
   }
 
+  // Wholesale management
   async getWholesaleUsers(): Promise<User[]> {
-    console.log("Fetching wholesale users");
-    const allUsers = Array.from(this.users.values());
-    console.log("All users:", allUsers.map(u => ({ ...u, password: '***', id: u.id, role: u.role, wholesaleStatus: u.wholesaleStatus })));
-
-    const wholesaleUsers = allUsers.filter((user) => {
-      console.log(`Checking user ${user.username}:`, { role: user.role, wholesaleStatus: user.wholesaleStatus });
-      return user.role === 'WHOLESALE';
-    });
-
-    console.log("Found wholesale users:", wholesaleUsers.length);
-    return wholesaleUsers;
+    return await db.select().from(users).where(eq(users.role, 'WHOLESALE'));
   }
 
   async updateWholesaleStatus(id: number, status: keyof typeof WholesaleStatus): Promise<User> {
-    const user = await this.getUser(id);
+    const [user] = await db.update(users).set({ wholesaleStatus: status }).where(eq(users.id, id)).returning();
     if (!user) throw new Error("User not found");
-
-    user.wholesaleStatus = status;
-    this.users.set(id, user);
     return user;
   }
 
   async updateCustomPricing(id: number, customPricing: Record<string, number>): Promise<User> {
-    const user = await this.getUser(id);
+    const [user] = await db.update(users).set({ customPricing }).where(eq(users.id, id)).returning();
     if (!user) throw new Error("User not found");
-
-    user.customPricing = customPricing;
-    this.users.set(id, user);
     return user;
   }
 
   async blockWholesaleUser(id: number): Promise<User> {
-    const user = await this.getUser(id);
+    const [user] = await db.update(users).set({ wholesaleStatus: "BLOCKED" }).where(eq(users.id, id)).returning();
     if (!user) throw new Error("User not found");
     if (user.role !== "WHOLESALE") throw new Error("User is not a wholesale account");
-
-    user.wholesaleStatus = "BLOCKED";
-    this.users.set(id, user);
     return user;
   }
 
   async unblockWholesaleUser(id: number): Promise<User> {
-    const user = await this.getUser(id);
+    const [user] = await db.update(users).set({ wholesaleStatus: "APPROVED" }).where(eq(users.id, id)).returning();
     if (!user) throw new Error("User not found");
     if (user.role !== "WHOLESALE") throw new Error("User is not a wholesale account");
-
-    user.wholesaleStatus = "APPROVED";
-    this.users.set(id, user);
     return user;
   }
 
+  // Commission management
   async createCommissionTransaction(transaction: InsertCommissionTransaction): Promise<CommissionTransaction> {
-    const id = this.currentId.commissionTransactions++;
-    const newTransaction = { ...transaction, id };
-    this.commissionTransactions.set(id, newTransaction);
+    const [newTransaction] = await db
+      .insert(commissionTransactions)
+      .values(transaction)
+      .returning();
     return newTransaction;
   }
 
   async getUserCommissionTransactions(userId: number): Promise<CommissionTransaction[]> {
-    return Array.from(this.commissionTransactions.values())
-      .filter(t => t.userId === userId);
+    return await db
+      .select()
+      .from(commissionTransactions)
+      .where(eq(commissionTransactions.userId, userId));
   }
 
   async createCommissionPayout(payout: InsertCommissionPayout): Promise<CommissionPayout> {
-    const id = this.currentId.commissionPayouts++;
-    const newPayout = { ...payout, id };
-    this.commissionPayouts.set(id, newPayout);
+    const [newPayout] = await db
+      .insert(commissionPayouts)
+      .values(payout)
+      .returning();
     return newPayout;
   }
 
   async getUserCommissionPayouts(userId: number): Promise<CommissionPayout[]> {
-    return Array.from(this.commissionPayouts.values())
-      .filter(p => p.userId === userId);
+    return await db
+      .select()
+      .from(commissionPayouts)
+      .where(eq(commissionPayouts.userId, userId));
   }
 
   async updateUserCommissionTier(userId: number, tier: keyof typeof CommissionTier): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) throw new Error("User not found");
-    user.commissionTier = tier;
-    this.users.set(userId, user);
+    const [user] = await db
+      .update(users)
+      .set({ commissionTier: tier })
+      .where(eq(users.id, userId))
+      .returning();
     return user;
   }
 
   async calculateUserCommissionRate(userId: number): Promise<number> {
-    const user = await this.getUser(userId);
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
     if (!user) throw new Error("User not found");
     return CommissionTier[user.commissionTier || 'STANDARD'].rate;
   }
 
   async getPendingCommissionTotal(userId: number): Promise<string> {
-    const transactions = await this.getUserCommissionTransactions(userId);
-    const pendingTotal = transactions
-      .filter(t => t.status === PayoutStatus.PENDING)
-      .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+    const transactions = await db
+      .select()
+      .from(commissionTransactions)
+      .where(
+        and(
+          eq(commissionTransactions.userId, userId),
+          eq(commissionTransactions.status, PayoutStatus.PENDING)
+        )
+      );
+
+    const pendingTotal = transactions.reduce(
+      (sum, t) => sum + parseFloat(t.amount.toString()),
+      0
+    );
     return pendingTotal.toFixed(2);
   }
 
   async updatePaymentMethod(userId: number, paymentMethod: any): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) throw new Error("User not found");
-    user.paymentMethod = paymentMethod;
-    this.users.set(userId, user);
+    const [user] = await db
+      .update(users)
+      .set({ paymentMethod })
+      .where(eq(users.id, userId))
+      .returning();
     return user;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
