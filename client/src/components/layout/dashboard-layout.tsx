@@ -74,23 +74,24 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <span className="ml-2">{link.label}</span>
             </Button>
           ))}
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-destructive hover:text-destructive"
-            onClick={() => logoutMutation.mutate()}
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="ml-2">Logout</span>
-          </Button>
         </nav>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 bg-background">
-        <div className="h-16 border-b border-border flex items-center px-6">
+        <div className="h-16 border-b border-border flex items-center justify-between px-6">
           <h2 className="text-lg font-semibold">
             {links.find((link) => link.href === location)?.label || "Dashboard"}
           </h2>
+          <Button 
+            variant="ghost" 
+            className="flex items-center text-destructive hover:text-destructive"
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
         <div className="p-6">{children}</div>
       </main>
