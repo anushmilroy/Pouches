@@ -26,18 +26,19 @@ export default function AuthPage() {
     if (user?.role) {
       const getRouteForRole = (role: string) => {
         switch (role) {
-          case "ADMIN":
+          case UserRole.ADMIN:
             return "/admin";
-          case "RETAIL":
+          case UserRole.RETAIL:
             return "/retail";
-          case "WHOLESALE":
+          case UserRole.WHOLESALE:
             return "/wholesale";
-          case "DISTRIBUTOR":
+          case UserRole.DISTRIBUTOR:
             return "/distributor";
           default:
             return "/";
         }
       };
+      console.log("Redirecting user with role:", user.role);
       setLocation(getRouteForRole(user.role));
     }
   }, [user, setLocation]);
@@ -48,6 +49,9 @@ export default function AuthPage() {
 
   const registerForm = useForm({
     resolver: zodResolver(authSchema),
+    defaultValues: {
+      role: undefined
+    }
   });
 
   const onLogin = loginForm.handleSubmit((data) => {
@@ -144,7 +148,10 @@ export default function AuthPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Account Type</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select account type" />
