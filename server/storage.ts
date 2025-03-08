@@ -4,7 +4,7 @@ import createMemoryStore from "memorystore";
 
 const MemoryStore = createMemoryStore(session);
 
-// Initial product data
+// Update the Apple Mint products to include the image path
 const initialProducts: Product[] = [
   {
     id: 1,
@@ -17,7 +17,8 @@ const initialProducts: Product[] = [
     wholesalePrice: "8.00",
     stock: 10000,
     minRetailOrder: 5,
-    minWholesaleOrder: 100
+    minWholesaleOrder: 100,
+    imagePath: "/attached_assets/puxxapplemint12mg.jpg"
   },
   {
     id: 2,
@@ -30,7 +31,8 @@ const initialProducts: Product[] = [
     wholesalePrice: "8.00",
     stock: 5000,
     minRetailOrder: 5,
-    minWholesaleOrder: 100
+    minWholesaleOrder: 100,
+    imagePath: "/attached_assets/puxxapplemint12mg.jpg"
   },
   {
     id: 3,
