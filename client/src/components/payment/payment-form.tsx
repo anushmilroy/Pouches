@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 
 const BANK_DETAILS = {
@@ -29,21 +29,12 @@ const bankTransferSchema = z.object({
 
 type BankTransferFormData = z.infer<typeof bankTransferSchema>;
 
-export default function PaymentForm({ paymentMethod = "card" }: { paymentMethod?: "card" | "bank_transfer" }) {
+// Separate component for Stripe Card Payment
+function CardPaymentForm() {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState("");
-  const { toast } = useToast();
-
-  const form = useForm<BankTransferFormData>({
-    resolver: zodResolver(bankTransferSchema),
-    defaultValues: {
-      transferReference: "",
-      bankName: "",
-      accountHolder: "",
-    },
-  });
 
   const handleCardPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +58,43 @@ export default function PaymentForm({ paymentMethod = "card" }: { paymentMethod?
     }
   };
 
+  return (
+    <form onSubmit={handleCardPayment}>
+      <PaymentElement />
+      {paymentError && (
+        <div className="text-destructive text-sm mt-2">{paymentError}</div>
+      )}
+      <Button
+        type="submit"
+        className="w-full mt-4"
+        disabled={isProcessing || !stripe || !elements}
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          "Pay Now"
+        )}
+      </Button>
+    </form>
+  );
+}
+
+export default function PaymentForm({ paymentMethod = "card" }: { paymentMethod?: "card" | "bank_transfer" }) {
+  const { toast } = useToast();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const form = useForm<BankTransferFormData>({
+    resolver: zodResolver(bankTransferSchema),
+    defaultValues: {
+      transferReference: "",
+      bankName: "",
+      accountHolder: "",
+    },
+  });
+
   const handleBankTransfer = async (data: BankTransferFormData) => {
     try {
       setIsProcessing(true);
@@ -76,7 +104,7 @@ export default function PaymentForm({ paymentMethod = "card" }: { paymentMethod?
 
       toast({
         title: "Bank Transfer Details Submitted",
-        description: "We will verify your transfer and process your order once confirmed.",
+        description: "We will verify your transfer and process your order status.",
       });
     } catch (error) {
       toast({
@@ -163,26 +191,5 @@ export default function PaymentForm({ paymentMethod = "card" }: { paymentMethod?
     );
   }
 
-  return (
-    <form onSubmit={handleCardPayment}>
-      <PaymentElement />
-      {paymentError && (
-        <div className="text-destructive text-sm mt-2">{paymentError}</div>
-      )}
-      <Button
-        type="submit"
-        className="w-full mt-4"
-        disabled={isProcessing || !stripe || !elements}
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          "Pay Now"
-        )}
-      </Button>
-    </form>
-  );
+  return <CardPaymentForm />;
 }

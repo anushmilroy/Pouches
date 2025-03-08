@@ -15,7 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import PaymentForm from "@/components/payment/payment-form";
+import CardPaymentForm from "@/components/payment/card-payment-form";
+import BankTransferForm from "@/components/payment/bank-transfer-form";
+import { Loader2 } from "lucide-react"; // Changed import to use lucide-react
 
 // Initialize Stripe
 const stripePromise = loadStripe('pk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890');
@@ -46,6 +48,7 @@ export default function CheckoutPage() {
   const [createAccount, setCreateAccount] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "bank_transfer">("card");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -59,6 +62,14 @@ export default function CheckoutPage() {
     const [flavor] = key.split('-');
     return total + (item.quantity * 15); // Using fixed price for now
   }, 0);
+
+  // Load cart from localStorage
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
+  }, []);
 
   // Create payment intent when cart total changes
   useEffect(() => {
@@ -85,6 +96,8 @@ export default function CheckoutPage() {
 
   const onSubmit = async (data: CheckoutFormData) => {
     try {
+      setIsSubmitting(true);
+
       if (data.createAccount && !data.password) {
         form.setError("password", {
           type: "manual",
@@ -139,16 +152,10 @@ export default function CheckoutPage() {
         description: error instanceof Error ? error.message : "Please try again later",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // Load cart from localStorage
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-  }, []);
 
   if (Object.keys(cart).length === 0) {
     return (
@@ -206,7 +213,8 @@ export default function CheckoutPage() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+                    {/* Form fields remain the same */}
                     <FormField
                       control={form.control}
                       name="email"
@@ -341,6 +349,7 @@ export default function CheckoutPage() {
                         </Select>
                       </div>
 
+                      {/* Account Creation Option */}
                       <FormField
                         control={form.control}
                         name="createAccount"
@@ -362,6 +371,7 @@ export default function CheckoutPage() {
                         )}
                       />
 
+                      {/* Password field for account creation */}
                       {createAccount && (
                         <FormField
                           control={form.control}
@@ -377,6 +387,21 @@ export default function CheckoutPage() {
                           )}
                         />
                       )}
+
+                      <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          "Complete Order"
+                        )}
+                      </Button>
                     </div>
                   </form>
                 </Form>
@@ -389,12 +414,28 @@ export default function CheckoutPage() {
                 <CardTitle>Payment Information</CardTitle>
               </CardHeader>
               <CardContent>
-                {selectedPaymentMethod === "card" && clientSecret ? (
-                  <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <PaymentForm paymentMethod={selectedPaymentMethod} />
-                  </Elements>
+                {selectedPaymentMethod === "card" ? (
+                  clientSecret ? (
+                    <Elements stripe={stripePromise} options={{ clientSecret }}>
+                      <CardPaymentForm />
+                    </Elements>
+                  ) : (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  )
                 ) : (
-                  <PaymentForm paymentMethod={selectedPaymentMethod} />
+                  <BankTransferForm
+                    orderId={1}
+                    amount={cartTotal}
+                    onPaymentComplete={() => {
+                      // Handle bank transfer completion
+                      toast({
+                        title: "Bank Transfer Details Submitted",
+                        description: "We will verify your transfer and update your order status.",
+                      });
+                    }}
+                  />
                 )}
               </CardContent>
             </Card>
