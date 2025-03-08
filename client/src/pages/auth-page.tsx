@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserRole } from "@shared/schema";
+import { useEffect } from "react";
 
 const authSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
@@ -21,10 +22,12 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
 
-  if (user) {
-    setLocation(`/${user.role.toLowerCase()}`);
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      const route = user.role === "ADMIN" ? "/admin" : `/${user.role.toLowerCase()}`;
+      setLocation(route);
+    }
+  }, [user, setLocation]);
 
   const loginForm = useForm({
     resolver: zodResolver(authSchema.omit({ role: true })),
