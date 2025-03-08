@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PaymentMethod, NicotineStrength, PouchFlavor, ShippingMethod } from "@shared/schema";
+import { PaymentMethod, NicotineStrength, PouchFlavor, ShippingMethod, UserRole } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import BankTransferForm from "@/components/payment/bank-transfer-form";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 // Form schema
 const checkoutSchema = z.object({
@@ -59,11 +60,22 @@ function ManualPaymentInfo() {
 export default function CheckoutPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [cart, setCart] = useState<Record<string, { quantity: number; strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"bank_transfer" | "manual">("bank_transfer");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<keyof typeof ShippingMethod>('STANDARD');
+
+  const isWholesale = user?.role === UserRole.WHOLESALE;
+
+  // Get available shipping methods based on user role
+  const availableShippingMethods = Object.entries(ShippingMethod).filter(([key]) => {
+    if (key === 'WHOLESALE') {
+      return isWholesale;
+    }
+    return true;
+  });
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -125,11 +137,13 @@ export default function CheckoutPage() {
       });
 
       const orderResponse = await apiRequest("POST", "/api/orders", {
-        userId: userId || null,
+        userId: userId || user?.id || null,
         status: "PENDING",
         total: cartTotal.toString(),
-        paymentMethod: selectedPaymentMethod,
+        subtotal: subtotal.toString(),
         shippingMethod: data.shippingMethod,
+        shippingCost: shippingCost.toString(),
+        paymentMethod: selectedPaymentMethod,
         items: orderItems,
         customerDetails: {
           email: data.email,
@@ -262,7 +276,7 @@ export default function CheckoutPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {Object.entries(ShippingMethod).map(([key, method]) => (
+                  {availableShippingMethods.map(([key, method]) => (
                     <div
                       key={key}
                       className={cn(
@@ -461,7 +475,7 @@ export default function CheckoutPage() {
                                 <SelectValue placeholder="Select shipping method" />
                               </SelectTrigger>
                               <SelectContent>
-                                {Object.entries(ShippingMethod).map(([key, value]) => (
+                                {availableShippingMethods.map(([key, value]) => (
                                   <SelectItem key={key} value={key}>{value.name}</SelectItem>
                                 ))}
                               </SelectContent>
@@ -472,60 +486,61 @@ export default function CheckoutPage() {
                       )}
                     />
 
-
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="createAccount"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value}
-                                onCheckedChange={(checked) => {
-                                  field.onChange(checked);
-                                  setCreateAccount(checked as boolean);
-                                }}
-                              />
-                            </FormControl>
-                            <div className="space-y-1 leading-none">
-                              <FormLabel>Create an account for faster checkout</FormLabel>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-
-                      {createAccount && (
+                    {!user && (
+                      <div className="space-y-4">
                         <FormField
                           control={form.control}
-                          name="password"
+                          name="createAccount"
                           render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Password</FormLabel>
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                               <FormControl>
-                                <Input {...field} type="password" />
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    setCreateAccount(checked as boolean);
+                                  }}
+                                />
                               </FormControl>
-                              <FormMessage />
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Create an account for faster checkout</FormLabel>
+                              </div>
                             </FormItem>
                           )}
                         />
-                      )}
 
-                      <Button
-                        type="submit"
-                        className="w-full"
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          "Place Order"
+                        {createAccount && (
+                          <FormField
+                            control={form.control}
+                            name="password"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Password</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="password" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
                         )}
-                      </Button>
-                    </div>
+                      </div>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        "Place Order"
+                      )}
+                    </Button>
                   </form>
                 </Form>
               </CardContent>
