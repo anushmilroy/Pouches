@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -12,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Checkbox } from "@/components/ui/checkbox";
 import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 // Form schema
 const checkoutSchema = z.object({
@@ -25,7 +25,7 @@ const checkoutSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
   createAccount: z.boolean().default(false),
   password: z.string().optional().refine((val) => {
-    if (val === undefined) return true;
+    if (!val) return true;
     return val.length >= 6;
   }, "Password must be at least 6 characters"),
 });
@@ -54,11 +54,47 @@ export default function CheckoutPage() {
 
   const onSubmit = async (data: CheckoutFormData) => {
     try {
-      // Here we would typically:
-      // 1. Create user account if requested
-      // 2. Create order
-      // 3. Process payment
-      // 4. Redirect to confirmation page
+      if (data.createAccount && !data.password) {
+        form.setError("password", {
+          type: "manual",
+          message: "Password is required when creating an account",
+        });
+        return;
+      }
+
+      // Create user account if requested
+      let userId: number | undefined;
+      if (data.createAccount) {
+        const userResponse = await apiRequest("POST", "/api/register", {
+          username: data.email,
+          password: data.password,
+          role: "RETAIL"
+        });
+        const user = await userResponse.json();
+        userId = user.id;
+      }
+
+      // Create order
+      const orderItems = Object.entries(cart).map(([key, item]) => {
+        const [flavor, strength] = key.split('-');
+        return {
+          productId: 1, // We'll need to get this from the actual product data
+          quantity: item.quantity,
+          price: "15.00" // This should come from the product data
+        };
+      });
+
+      const orderResponse = await apiRequest("POST", "/api/orders", {
+        userId: userId || null,
+        status: "PENDING",
+        total: cartTotal.toString(),
+        paymentMethod: "COD",
+        items: orderItems
+      });
+
+      // Clear cart after successful order
+      localStorage.removeItem('cart');
+      setCart({});
 
       toast({
         title: "Order placed successfully!",
