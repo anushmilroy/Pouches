@@ -134,9 +134,11 @@ export default function CheckoutPage() {
         }
       });
 
+      const order = await orderResponse.json();
+
       // Store order details for confirmation page
       localStorage.setItem('lastOrder', JSON.stringify({
-        orderNumber: orderResponse.data.id,
+        orderNumber: order.id,
         paymentMethod: selectedPaymentMethod,
         items: Object.entries(cart).map(([key, item]) => {
           const [flavor, strength] = key.split('-');
