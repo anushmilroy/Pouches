@@ -59,7 +59,14 @@ export default function AuthPage() {
   });
 
   const onRegister = registerForm.handleSubmit((data) => {
-    registerMutation.mutate(data);
+    registerMutation.mutate(data, {
+      onSuccess: (response) => {
+        // If wholesale registration, redirect to success page
+        if (data.role === UserRole.WHOLESALE) {
+          setLocation("/auth/registration-success");
+        }
+      }
+    });
   });
 
   return (
