@@ -16,7 +16,7 @@ import { useEffect } from "react";
 const authSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["RETAIL", "WHOLESALE", "DISTRIBUTOR"]).optional(),
+  role: z.enum(["RETAIL", "WHOLESALE"]).optional(),
 });
 
 export default function AuthPage() {
@@ -33,8 +33,6 @@ export default function AuthPage() {
             return "/retail";
           case UserRole.WHOLESALE:
             return "/wholesale";
-          case UserRole.DISTRIBUTOR:
-            return "/distributor";
           default:
             return "/";
         }
@@ -194,7 +192,6 @@ export default function AuthPage() {
                               <SelectContent>
                                 <SelectItem value={UserRole.RETAIL}>Retail Customer</SelectItem>
                                 <SelectItem value={UserRole.WHOLESALE}>Wholesale Buyer</SelectItem>
-                                <SelectItem value={UserRole.DISTRIBUTOR}>Distributor</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
