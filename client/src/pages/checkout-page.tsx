@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PaymentMethod, NicotineStrength } from "@shared/schema";
+import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import CardPaymentForm from "@/components/payment/card-payment-form";
@@ -66,7 +66,7 @@ function ManualPaymentInfo() {
 export default function CheckoutPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
+  const [cart, setCart] = useState<Record<string, { quantity: number; strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "bank_transfer" | "manual">("card");
@@ -283,7 +283,7 @@ export default function CheckoutPage() {
                           <span className="ml-2">Setting up payment...</span>
                         </div>
                       ) : clientSecret ? (
-                        <Elements stripe={stripePromise} options={{ 
+                        <Elements stripe={stripePromise} options={{
                           clientSecret,
                           appearance: {
                             theme: 'stripe',
