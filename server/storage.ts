@@ -336,16 +336,14 @@ export class MemStorage implements IStorage {
   async getWholesaleUsers(): Promise<User[]> {
     console.log("Fetching wholesale users");
     const allUsers = Array.from(this.users.values());
-    console.log("All users:", allUsers.map(u => ({ ...u, password: '***' })));
+    console.log("All users:", allUsers.map(u => ({ ...u, password: '***', id: u.id, role: u.role, wholesaleStatus: u.wholesaleStatus })));
 
-    // Ensure we're using the correct role comparison
     const wholesaleUsers = allUsers.filter((user) => {
-      const isWholesale = user.role === 'WHOLESALE';
-      console.log(`User ${user.username} role: ${user.role}, isWholesale: ${isWholesale}`);
-      return isWholesale;
+      console.log(`Checking user ${user.username}:`, { role: user.role, wholesaleStatus: user.wholesaleStatus });
+      return user.role === 'WHOLESALE';
     });
 
-    console.log("Filtered wholesale users:", wholesaleUsers.map(u => ({ ...u, password: '***' })));
+    console.log("Found wholesale users:", wholesaleUsers.length);
     return wholesaleUsers;
   }
 
