@@ -14,7 +14,7 @@ import { UserRole } from "@shared/schema";
 const authSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["retail", "wholesale", "distributor"]).optional(),
+  role: z.enum(["RETAIL", "WHOLESALE", "DISTRIBUTOR"]).optional(),
 });
 
 export default function AuthPage() {
@@ -22,7 +22,7 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
 
   if (user) {
-    setLocation(`/${user.role}`);
+    setLocation(`/${user.role.toLowerCase()}`);
     return null;
   }
 
