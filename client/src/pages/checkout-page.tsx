@@ -3,8 +3,6 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { loadStripe } from "@stripe/stripe-js";
-import { Elements } from "@stripe/react-stripe-js";
 import StoreLayout from "@/components/layout/store-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,15 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import CardPaymentForm from "@/components/payment/card-payment-form";
 import BankTransferForm from "@/components/payment/bank-transfer-form";
 import { Loader2 } from "lucide-react";
-
-// Initialize Stripe
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error("Missing required environment variable: VITE_STRIPE_PUBLIC_KEY");
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 // Form schema
 const checkoutSchema = z.object({
@@ -68,10 +59,8 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [cart, setCart] = useState<Record<string, { quantity: number; strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "bank_transfer" | "manual">("card");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"bank_transfer" | "manual">("bank_transfer");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingPaymentIntent, setIsLoadingPaymentIntent] = useState(false);
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -93,42 +82,6 @@ export default function CheckoutPage() {
       setCart(JSON.parse(savedCart));
     }
   }, []);
-
-  // Create payment intent when payment method changes
-  useEffect(() => {
-    if (cartTotal > 0 && selectedPaymentMethod === "card") {
-      setIsLoadingPaymentIntent(true);
-      setClientSecret(null);
-
-      console.log("Creating payment intent for amount:", cartTotal);
-
-      apiRequest("POST", "/api/create-payment-intent", {
-        amount: cartTotal
-      })
-        .then(async (res) => {
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || 'Failed to create payment intent');
-          }
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Payment intent created successfully");
-          setClientSecret(data.clientSecret);
-        })
-        .catch((error) => {
-          console.error("Payment intent error:", error);
-          toast({
-            title: "Payment Setup Failed",
-            description: "Unable to initialize payment. Please try again or choose a different payment method.",
-            variant: "destructive",
-          });
-        })
-        .finally(() => {
-          setIsLoadingPaymentIntent(false);
-        });
-    }
-  }, [cartTotal, selectedPaymentMethod, toast]);
 
   const onSubmit = async (data: CheckoutFormData) => {
     try {
@@ -263,37 +216,18 @@ export default function CheckoutPage() {
                 <div className="space-y-6">
                   <Select
                     value={selectedPaymentMethod}
-                    onValueChange={(value: "card" | "bank_transfer" | "manual") => setSelectedPaymentMethod(value)}
+                    onValueChange={(value: "bank_transfer" | "manual") => setSelectedPaymentMethod(value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select payment method" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="card">Card Payment</SelectItem>
                       <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                       <SelectItem value="manual">Invoice Payment</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <div className="mt-6">
-                    {selectedPaymentMethod === "card" && (
-                      isLoadingPaymentIntent ? (
-                        <div className="flex items-center justify-center p-8">
-                          <Loader2 className="h-8 w-8 animate-spin" />
-                          <span className="ml-2">Setting up payment...</span>
-                        </div>
-                      ) : clientSecret ? (
-                        <Elements stripe={stripePromise} options={{
-                          clientSecret,
-                          appearance: {
-                            theme: 'stripe',
-                          },
-                        }}>
-                          <CardPaymentForm />
-                        </Elements>
-                      ) : null
-                    )}
-
                     {selectedPaymentMethod === "bank_transfer" && (
                       <BankTransferForm
                         orderId={1}
