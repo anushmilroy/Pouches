@@ -165,11 +165,11 @@ export default function ShopPage() {
               <Card key={product.flavor} className="flex flex-col overflow-hidden">
                 {/* Product Image */}
                 {product.imagePath ? (
-                  <div className="aspect-square w-full relative bg-background">
+                  <div className="aspect-square w-full relative bg-background border-b">
                     <img
                       src={product.imagePath}
                       alt={PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
-                      className="object-contain w-full h-full p-4"
+                      className="object-contain w-full h-full p-8"
                     />
                   </div>
                 ) : (
@@ -179,7 +179,7 @@ export default function ShopPage() {
                 )}
 
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle>
                     {PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
                   </CardTitle>
                   <CardDescription>{product.description}</CardDescription>
