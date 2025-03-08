@@ -7,7 +7,7 @@ import path from "path";
 import express from "express";
 import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema"; // Import PayoutStatus
-
+import fs from 'fs'; //Import fs module
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -20,7 +20,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   // Serve static files from attached_assets
-  app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets')));
+  app.use('/attached_assets', (req, res, next) => {
+    console.log('Static file request:', {
+      url: req.url,
+      path: path.join(process.cwd(), 'attached_assets', req.url),
+      method: req.method
+    });
+
+    // Check if file exists before serving
+    const filePath = path.join(process.cwd(), 'attached_assets', req.url);
+    if (!fs.existsSync(filePath)) {
+      console.error('File not found:', filePath);
+      return res.status(404).send('File not found');
+    }
+
+    express.static(path.join(process.cwd(), 'attached_assets'))(req, res, next);
+  });
 
   // Payment Intent
   app.post("/api/create-payment-intent", async (req, res) => {
