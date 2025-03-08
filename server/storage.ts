@@ -113,6 +113,11 @@ export interface IStorage {
   createOrderItem(item: OrderItem): Promise<OrderItem>;
   getOrderItems(orderId: number): Promise<OrderItem[]>;
 
+  // Referral operations
+  getUserByReferralCode(code: string): Promise<User | undefined>;
+  getUserEarnings(userId: number): Promise<{ total: string; orders: Order[] }>;
+  generateReferralCode(userId: number): Promise<string>;
+
   sessionStore: session.Store;
 }
 
@@ -217,6 +222,46 @@ export class MemStorage implements IStorage {
     return Array.from(this.orderItems.values()).filter(
       (item) => item.orderId === orderId,
     );
+  }
+
+  async getUserByReferralCode(code: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.referralCode === code,
+    );
+  }
+
+  async getUserEarnings(userId: number): Promise<{ total: string; orders: Order[] }> {
+    const orders = Array.from(this.orders.values()).filter(
+      (order) => order.referrerId === userId,
+    );
+
+    const total = orders.reduce((sum, order) => {
+      return sum + parseFloat(order.commissionAmount?.toString() || "0");
+    }, 0);
+
+    return {
+      total: total.toFixed(2),
+      orders
+    };
+  }
+
+  async generateReferralCode(userId: number): Promise<string> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    if (user.referralCode) {
+      return user.referralCode;
+    }
+
+    // Generate a unique referral code based on username and random string
+    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const referralCode = `${user.username.substring(0, 4).toUpperCase()}-${randomStr}`;
+
+    // Update user with new referral code
+    user.referralCode = referralCode;
+    this.users.set(userId, user);
+
+    return referralCode;
   }
 }
 

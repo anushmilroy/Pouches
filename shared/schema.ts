@@ -81,7 +81,9 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: text("role").notNull().$type<keyof typeof UserRole>(),
   referrerId: integer("referrer_id").references(() => users.id),
-  commission: numeric("commission"),
+  referralCode: text("referral_code").unique(),
+  commission: numeric("commission").default("0.00"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const products = pgTable("products", {
@@ -103,6 +105,9 @@ export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   distributorId: integer("distributor_id").references(() => users.id),
+  referrerId: integer("referrer_id").references(() => users.id),
+  referralCode: text("referral_code"),
+  commissionAmount: numeric("commission_amount"),
   status: text("status").notNull().$type<keyof typeof OrderStatus>(),
   total: numeric("total").notNull(),
   subtotal: numeric("subtotal").notNull(),

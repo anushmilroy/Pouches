@@ -55,8 +55,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Orders
   app.post("/api/orders", async (req, res) => {
     try {
+      const orderData = req.body;
+      let referrerId = null;
+
+      // If a referral code is provided, look up the referrer
+      if (orderData.referralCode) {
+        const referrer = await storage.getUserByReferralCode(orderData.referralCode);
+        if (referrer) {
+          referrerId = referrer.id;
+          // Calculate 5% commission
+          const commissionAmount = parseFloat(orderData.subtotal) * 0.05;
+          orderData.referrerId = referrerId;
+          orderData.commissionAmount = commissionAmount.toFixed(2);
+        }
+      }
+
       const order = await storage.createOrder({
-        ...req.body,
+        ...orderData,
         userId: req.user?.id || null,
         status: OrderStatus.PENDING
       });
@@ -115,6 +130,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { status } = req.body;
     const order = await storage.updateOrderStatus(parseInt(req.params.id), status);
     res.json(order);
+  });
+
+  // Add route to get user's commission earnings
+  app.get("/api/users/earnings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const earnings = await storage.getUserEarnings(req.user.id);
+      res.json(earnings);
+    } catch (error) {
+      console.error("Error fetching earnings:", error);
+      res.status(500).json({ error: "Failed to fetch earnings" });
+    }
+  });
+
+  // Add route to generate referral code for user
+  app.post("/api/users/referral-code", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const referralCode = await storage.generateReferralCode(req.user.id);
+      res.json({ referralCode });
+    } catch (error) {
+      console.error("Error generating referral code:", error);
+      res.status(500).json({ error: "Failed to generate referral code" });
+    }
   });
 
   const httpServer = createServer(app);

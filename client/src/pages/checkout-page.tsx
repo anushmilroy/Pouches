@@ -29,6 +29,7 @@ const checkoutSchema = z.object({
   country: z.string().min(1, "Country is required"),
   phone: z.string().min(1, "Phone number is required"),
   shippingMethod: z.enum(['STANDARD', 'EXPRESS', 'WHOLESALE'] as const),
+  referralCode: z.string().optional(),
   createAccount: z.boolean().default(false),
   password: z.string().optional().refine((val) => {
     if (!val) return true;
@@ -144,6 +145,7 @@ export default function CheckoutPage() {
         shippingMethod: data.shippingMethod,
         shippingCost: shippingCost.toString(),
         paymentMethod: selectedPaymentMethod,
+        referralCode: data.referralCode,
         items: orderItems,
         customerDetails: {
           email: data.email,
@@ -297,6 +299,28 @@ export default function CheckoutPage() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Referral Code</CardTitle>
+                <CardDescription>If you have a referral code, enter it here</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="referralCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Referral Code</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter referral code (optional)" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
