@@ -40,11 +40,11 @@ export const PouchFlavor = {
 } as const;
 
 export const NicotineStrength = {
-  MG_6: 'MG_6',
-  MG_8: 'MG_8',
-  MG_12: 'MG_12',
-  MG_16: 'MG_16',
-  MG_22: 'MG_22'
+  MG_6: '6mg',
+  MG_8: '8mg',
+  MG_12: '12mg',
+  MG_16: '16mg',
+  MG_22: '22mg'
 } as const;
 
 export const WholesalePricingTier = {

@@ -37,9 +37,9 @@ export default function ShopPage() {
     return acc;
   }, {} as Record<string, Product & { strengths: (keyof typeof NicotineStrength)[] }>);
 
-  const filteredProducts = uniqueProducts ? 
+  const filteredProducts = uniqueProducts ?
     Object.values(uniqueProducts).filter((product) => {
-      const matchesSearch = 
+      const matchesSearch =
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -188,7 +188,7 @@ export default function ShopPage() {
 
                         return (
                           <div key={strength} className="border rounded p-2">
-                            <div className="text-sm font-medium mb-1">{strength}mg</div>
+                            <div className="text-sm font-medium mb-1">{NicotineStrength[strength]}</div>
                             {cartItem ? (
                               <div className="flex items-center gap-1">
                                 <Button
