@@ -13,11 +13,16 @@ import { UserRole } from "@shared/schema";
 import { Home, ShoppingBag } from "lucide-react";
 import { useEffect } from "react";
 
-const authSchema = z.object({
+// Separate schemas for login and registration
+const loginSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const registrationSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["RETAIL", "WHOLESALE"]).optional(),
-  // Company details - required only for wholesale accounts
   companyName: z.string().optional(),
   companyAddress: z.string().optional(),
   companyEmail: z.string().email("Invalid email").optional(),
@@ -46,6 +51,8 @@ export default function AuthPage() {
             return "/retail";
           case UserRole.WHOLESALE:
             return "/wholesale";
+          case UserRole.DISTRIBUTOR:
+            return "/distributor";
           default:
             return "/";
         }
@@ -56,12 +63,18 @@ export default function AuthPage() {
   }, [user, setLocation]);
 
   const loginForm = useForm({
-    resolver: zodResolver(authSchema.omit({ role: true })),
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    }
   });
 
   const registerForm = useForm({
-    resolver: zodResolver(authSchema),
+    resolver: zodResolver(registrationSchema),
     defaultValues: {
+      username: "",
+      password: "",
       role: undefined,
       companyName: "",
       companyAddress: "",
