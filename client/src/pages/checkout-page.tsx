@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -171,7 +171,7 @@ export default function CheckoutPage() {
 
       toast({
         title: "Order placed successfully!",
-        description: selectedPaymentMethod === "manual" 
+        description: selectedPaymentMethod === "manual"
           ? "You will receive a payment invoice via email shortly."
           : "Thank you for your order.",
       });
