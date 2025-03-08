@@ -402,7 +402,7 @@ function WholesalerDetailsDialog({
   );
 }
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const { toast } = useToast();
   const [processingOrder, setProcessingOrder] = useState<number | null>(null);
 
@@ -417,10 +417,10 @@ export default function AdminDashboard() {
   const { data: wholesaleUsers, isLoading: wholesaleLoading, error: wholesaleError } = useQuery({
     queryKey: ["/api/users/wholesale"],
     onSuccess: (data) => {
-      console.log("Fetched wholesale users:", data);
+      console.log("Admin dashboard - Fetched wholesale users:", data);
     },
     onError: (error) => {
-      console.error("Error fetching wholesale users:", error);
+      console.error("Admin dashboard - Error fetching wholesale users:", error);
       toast({
         title: "Error",
         description: "Failed to fetch wholesale users",
@@ -764,3 +764,5 @@ const WholesalePricingTier = {
   TIER_2: { min: 11, max: 100, price: 9 },
   TIER_3: { min: 101, price: 8 },
 };
+
+export default AdminDashboard;

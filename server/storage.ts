@@ -205,7 +205,7 @@ export class MemStorage implements IStorage {
       referralCode: null,
       commission: null,
       createdAt: new Date(),
-      wholesaleStatus: insertUser.role === UserRole.WHOLESALE ? WholesaleStatus.PENDING : null,
+      wholesaleStatus: insertUser.role === 'WHOLESALE' ? 'PENDING' : null,
       customPricing: null
     };
     console.log("Creating user:", { ...user, password: '***' });
@@ -337,9 +337,14 @@ export class MemStorage implements IStorage {
     console.log("Fetching wholesale users");
     const allUsers = Array.from(this.users.values());
     console.log("All users:", allUsers.map(u => ({ ...u, password: '***' })));
-    const wholesaleUsers = allUsers.filter(
-      (user) => user.role === UserRole.WHOLESALE
-    );
+
+    // Ensure we're using the correct role comparison
+    const wholesaleUsers = allUsers.filter((user) => {
+      const isWholesale = user.role === 'WHOLESALE';
+      console.log(`User ${user.username} role: ${user.role}, isWholesale: ${isWholesale}`);
+      return isWholesale;
+    });
+
     console.log("Filtered wholesale users:", wholesaleUsers.map(u => ({ ...u, password: '***' })));
     return wholesaleUsers;
   }
