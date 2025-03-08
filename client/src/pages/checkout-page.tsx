@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import PaymentForm from "@/components/payment/payment-form";
 
 // Initialize Stripe
-const stripePromise = loadStripe('pk_test_51OXRxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxY');
+const stripePromise = loadStripe('pk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890');
 
 // Form schema
 const checkoutSchema = z.object({
@@ -44,6 +45,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "bank_transfer">("card");
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -60,11 +62,18 @@ export default function CheckoutPage() {
 
   // Create payment intent when cart total changes
   useEffect(() => {
-    if (cartTotal > 0) {
-      apiRequest("POST", "/api/create-payment-intent", { amount: cartTotal })
+    if (cartTotal > 0 && selectedPaymentMethod === "card") {
+      apiRequest("POST", "/api/create-payment-intent", {
+        amount: cartTotal,
+        payment_method: selectedPaymentMethod
+      })
         .then((res) => res.json())
-        .then((data) => setClientSecret(data.clientSecret))
+        .then((data) => {
+          console.log("Payment intent created");
+          setClientSecret(data.clientSecret);
+        })
         .catch((error) => {
+          console.error("Payment intent error:", error);
           toast({
             title: "Error",
             description: "Failed to initialize payment. Please try again.",
@@ -72,7 +81,7 @@ export default function CheckoutPage() {
           });
         });
     }
-  }, [cartTotal, toast]);
+  }, [cartTotal, selectedPaymentMethod, toast]);
 
   const onSubmit = async (data: CheckoutFormData) => {
     try {
@@ -98,7 +107,7 @@ export default function CheckoutPage() {
 
       // Create order
       const orderItems = Object.entries(cart).map(([key, item]) => {
-        const [flavor, strength] = key.split('-');
+        const [flavor] = key.split('-');
         return {
           productId: 1, // We'll need to get this from the actual product data
           quantity: item.quantity,
@@ -110,7 +119,7 @@ export default function CheckoutPage() {
         userId: userId || null,
         status: "PENDING",
         total: cartTotal.toString(),
-        paymentMethod: "CARD",
+        paymentMethod: selectedPaymentMethod,
         items: orderItems
       });
 
@@ -314,12 +323,29 @@ export default function CheckoutPage() {
                       )}
                     />
 
-                    <div className="border-t pt-4">
+                    <div className="border-t pt-4 space-y-4">
+                      {/* Payment Method Selection */}
+                      <div className="space-y-2">
+                        <FormLabel>Payment Method</FormLabel>
+                        <Select
+                          value={selectedPaymentMethod}
+                          onValueChange={(value: "card" | "bank_transfer") => setSelectedPaymentMethod(value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select payment method" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="card">Card Payment</SelectItem>
+                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
                       <FormField
                         control={form.control}
                         name="createAccount"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                             <FormControl>
                               <Checkbox
                                 checked={field.value}
@@ -363,10 +389,12 @@ export default function CheckoutPage() {
                 <CardTitle>Payment Information</CardTitle>
               </CardHeader>
               <CardContent>
-                {clientSecret && (
+                {selectedPaymentMethod === "card" && clientSecret ? (
                   <Elements stripe={stripePromise} options={{ clientSecret }}>
-                    <PaymentForm />
+                    <PaymentForm paymentMethod={selectedPaymentMethod} />
                   </Elements>
+                ) : (
+                  <PaymentForm paymentMethod={selectedPaymentMethod} />
                 )}
               </CardContent>
             </Card>

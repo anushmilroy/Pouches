@@ -8,7 +8,7 @@ import express from "express";
 import Stripe from "stripe";
 
 // Use test key for development
-const stripe = new Stripe('sk_test_51OXRxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxY', {
+const stripe = new Stripe('sk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890', {
   apiVersion: '2023-10-16'
 });
 
@@ -34,11 +34,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency: 'usd',
+        payment_method_types: ['card', 'bank_transfer'],
         automatic_payment_methods: {
           enabled: true,
         },
       });
 
+      console.log('Payment intent created:', paymentIntent.id);
       res.json({
         clientSecret: paymentIntent.client_secret,
       });
