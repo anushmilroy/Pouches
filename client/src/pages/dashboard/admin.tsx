@@ -510,8 +510,19 @@ export default function AdminDashboard() {
     queryKey: ["/api/promotions"],
   });
 
-  const { data: wholesaleUsers, isLoading: wholesaleLoading } = useQuery({
+  const { data: wholesaleUsers, isLoading: wholesaleLoading, error: wholesaleError } = useQuery({
     queryKey: ["/api/users/wholesale"],
+    onSuccess: (data) => {
+      console.log("Fetched wholesale users:", data);
+    },
+    onError: (error) => {
+      console.error("Error fetching wholesale users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch wholesale users",
+        variant: "destructive",
+      });
+    }
   });
 
 
