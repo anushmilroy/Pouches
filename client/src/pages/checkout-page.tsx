@@ -94,7 +94,7 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Create payment intent when payment method changes or cart total changes
+  // Create payment intent when payment method changes
   useEffect(() => {
     if (cartTotal > 0 && selectedPaymentMethod === "card") {
       setIsLoadingPaymentIntent(true);

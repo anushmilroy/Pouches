@@ -12,7 +12,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -27,6 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { amount } = req.body;
 
       if (!amount || amount <= 0) {
+        console.error('Invalid amount received:', amount);
         return res.status(400).json({ error: 'Invalid amount' });
       }
 
@@ -36,16 +36,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: Math.round(amount * 100), // Convert to cents
         currency: 'usd',
         payment_method_types: ['card'],
+        metadata: {
+          integration_check: 'accept_a_payment',
+        },
       });
 
-      console.log('Payment intent created:', paymentIntent.id);
+      console.log('Payment intent created successfully:', paymentIntent.id);
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
       console.error('Error creating payment intent:', error);
-      res.status(500).json({ error: 'Failed to create payment intent' });
+      res.status(500).json({ 
+        error: 'Failed to create payment intent',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
-
 
   // Orders
   app.post("/api/orders", async (req, res) => {
@@ -60,6 +65,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating order:", error);
       res.status(500).json({ error: "Failed to create order" });
+    }
+  });
+
+  // Get all products
+  app.get("/api/products", async (_req, res) => {
+    try {
+      const products = await storage.getProducts();
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
     }
   });
 
