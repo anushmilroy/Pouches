@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import ShopPage from "@/pages/shop-page";
 import CheckoutPage from "@/pages/checkout-page";
+import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminDashboard from "@/pages/dashboard/admin";
 import WholesaleDashboard from "@/pages/dashboard/wholesale";
 import DistributorDashboard from "@/pages/dashboard/distributor";
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/shop" component={ShopPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/checkout" component={CheckoutPage} />
+      <Route path="/order-confirmation" component={OrderConfirmationPage} />
 
       {/* Protected Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />

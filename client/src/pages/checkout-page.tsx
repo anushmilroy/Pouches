@@ -134,6 +134,31 @@ export default function CheckoutPage() {
         }
       });
 
+      // Store order details for confirmation page
+      localStorage.setItem('lastOrder', JSON.stringify({
+        orderNumber: orderResponse.data.id,
+        paymentMethod: selectedPaymentMethod,
+        items: Object.entries(cart).map(([key, item]) => {
+          const [flavor, strength] = key.split('-');
+          return {
+            flavor,
+            strength,
+            quantity: item.quantity,
+            price: 15.00
+          };
+        }),
+        total: cartTotal,
+        customerDetails: {
+          name: `${data.firstName} ${data.lastName}`,
+          email: data.email,
+          address: data.address,
+          city: data.city,
+          zipCode: data.zipCode,
+          country: data.country,
+          phone: data.phone
+        }
+      }));
+
       // Clear cart after successful order
       localStorage.removeItem('cart');
       setCart({});
@@ -145,7 +170,7 @@ export default function CheckoutPage() {
           : "Thank you for your order.",
       });
 
-      setLocation("/");
+      setLocation("/order-confirmation");
     } catch (error) {
       toast({
         title: "Error placing order",
