@@ -37,9 +37,9 @@ export default function ShopPage() {
     return acc;
   }, {} as Record<string, Product & { strengths: (keyof typeof NicotineStrength)[] }>);
 
-  const filteredProducts = uniqueProducts ?
+  const filteredProducts = uniqueProducts ? 
     Object.values(uniqueProducts).filter((product) => {
-      const matchesSearch =
+      const matchesSearch = 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -113,7 +113,7 @@ export default function ShopPage() {
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {Object.entries(PouchCategory).map(([key, value]) => (
-                <SelectItem key={key} value={value}>{value} Nicotine Pouches</SelectItem>
+                <SelectItem key={key} value={key}>{value} Nicotine Pouches</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -128,7 +128,7 @@ export default function ShopPage() {
             <SelectContent>
               <SelectItem value="all">All Flavors</SelectItem>
               {Object.entries(PouchFlavor).map(([key, value]) => (
-                <SelectItem key={key} value={value}>{value}</SelectItem>
+                <SelectItem key={key} value={key}>{value}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -165,7 +165,7 @@ export default function ShopPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
-                    {product.name}
+                    {PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
                   </CardTitle>
                   <CardDescription>{product.description}</CardDescription>
                 </CardHeader>
@@ -176,7 +176,7 @@ export default function ShopPage() {
                       <span className="font-medium">Category:</span> {product.category}
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">Flavor:</span> {product.flavor}
+                      <span className="font-medium">Flavor:</span> {PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
                     </div>
                     <div className="text-sm">
                       <span className="font-medium">Available Strengths:</span>
