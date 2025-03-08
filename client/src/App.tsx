@@ -20,9 +20,9 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/shop" component={ShopPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/checkout" component={CheckoutPage} />
 
       {/* Protected Routes */}
-      <ProtectedRoute path="/checkout" component={CheckoutPage} />
       <ProtectedRoute path="/admin" component={AdminDashboard} />
       <ProtectedRoute path="/wholesale" component={WholesaleDashboard} />
       <ProtectedRoute path="/distributor" component={DistributorDashboard} />
