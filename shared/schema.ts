@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -30,36 +30,21 @@ export const PouchCategory = {
 } as const;
 
 export const PouchFlavor = {
-  PEPPERMINT: 'Peppermint',
-  APPLE_MINT: 'Apple Mint',
-  GOD_MINT: 'God Mint',
-  MINT: 'Mint',
-  COOL_MINT: 'Cool Mint',
-  BLUEBERRY: 'Blueberry',
-  MANGO: 'Mango',
-  COLA: 'Cola',
-  SPEARMINT: 'Spearmint',
-  WATERMELON: 'Watermelon',
-  CHERRY: 'Cherry',
-  WINTERGREEN: 'Wintergreen',
-  CITRUS: 'Citrus',
-  CINNAMON: 'Cinnamon',
-  COFFEE: 'Coffee',
-  SMOOTH: 'Smooth',
-  COOL_FROST: 'Cool Frost',
-  FRESH_MINT: 'Fresh Mint',
-  LEMON_SPRITZ: 'Lemon Spritz',
-  CUCUMBER_LIME: 'Cucumber Lime',
-  ICY_BLACKCURRANT: 'Icy Blackcurrant',
-  ICY_MINT: 'Icy Mint'
+  APPLE_MINT: 'APPLE_MINT',
+  COOL_MINT: 'COOL_MINT',
+  PEPPERMINT: 'PEPPERMINT',
+  COLA: 'COLA',
+  SPEARMINT: 'SPEARMINT',
+  WATERMELON: 'WATERMELON',
+  CHERRY: 'CHERRY'
 } as const;
 
 export const NicotineStrength = {
-  MG_6: '6',
-  MG_8: '8',
-  MG_12: '12',
-  MG_16: '16',
-  MG_22: '22'
+  MG_6: 'MG_6',
+  MG_8: 'MG_8',
+  MG_12: 'MG_12',
+  MG_16: 'MG_16',
+  MG_22: 'MG_22'
 } as const;
 
 export const WholesalePricingTier = {

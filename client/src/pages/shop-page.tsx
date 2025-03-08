@@ -16,42 +16,57 @@ export default function ShopPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | null>(null);
   const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | null>(null);
-  const [selectedStrength, setSelectedStrength] = useState<keyof typeof NicotineStrength | null>(null);
-  const [cart, setCart] = useState<Record<number, number>>({});
+  const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
-  const totalCans = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
+  const totalCans = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
 
-  const filteredProducts = products
-    ?.filter((product) => {
+  const uniqueProducts = products?.reduce((acc, product) => {
+    const key = `${product.flavor}`;
+    if (!acc[key]) {
+      acc[key] = {
+        ...product,
+        strengths: [product.strength]
+      };
+    } else {
+      acc[key].strengths.push(product.strength);
+    }
+    return acc;
+  }, {} as Record<string, Product & { strengths: (keyof typeof NicotineStrength)[] }>);
+
+  const filteredProducts = uniqueProducts ? 
+    Object.values(uniqueProducts).filter((product) => {
       const matchesSearch = 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCategory = !selectedCategory || product.category === selectedCategory;
       const matchesFlavor = !selectedFlavor || product.flavor === selectedFlavor;
-      const matchesStrength = !selectedStrength || product.strength === selectedStrength;
 
-      return matchesSearch && matchesCategory && matchesFlavor && matchesStrength;
-    });
+      return matchesSearch && matchesCategory && matchesFlavor;
+    }) : [];
 
-  const handleAddToCart = (productId: number) => {
+  const handleAddToCart = (productId: string, strength: keyof typeof NicotineStrength) => {
     setCart(prev => ({
       ...prev,
-      [productId]: (prev[productId] || 0) + 1
+      [`${productId}-${strength}`]: {
+        quantity: (prev[`${productId}-${strength}`]?.quantity || 0) + 1,
+        strength
+      }
     }));
   };
 
-  const handleRemoveFromCart = (productId: number) => {
+  const handleRemoveFromCart = (productId: string, strength: keyof typeof NicotineStrength) => {
     setCart(prev => {
       const newCart = { ...prev };
-      if (newCart[productId] > 1) {
-        newCart[productId]--;
+      const key = `${productId}-${strength}`;
+      if (newCart[key]?.quantity > 1) {
+        newCart[key].quantity--;
       } else {
-        delete newCart[productId];
+        delete newCart[key];
       }
       return newCart;
     });
@@ -81,7 +96,7 @@ export default function ShopPage() {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <Input
             placeholder="Search products..."
             value={searchTerm}
@@ -117,21 +132,6 @@ export default function ShopPage() {
               ))}
             </SelectContent>
           </Select>
-
-          <Select
-            value={selectedStrength || "all"}
-            onValueChange={(value) => setSelectedStrength(value === "all" ? null : value as keyof typeof NicotineStrength)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Strength" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Strengths</SelectItem>
-              {Object.entries(NicotineStrength).map(([key, value]) => (
-                <SelectItem key={key} value={value}>{value}mg</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Cart Summary */}
@@ -160,8 +160,8 @@ export default function ShopPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredProducts?.map((product) => (
-              <Card key={product.id} className="flex flex-col">
+            {filteredProducts.map((product) => (
+              <Card key={product.flavor} className="flex flex-col">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5" />
@@ -179,37 +179,51 @@ export default function ShopPage() {
                       <span className="font-medium">Flavor:</span> {product.flavor}
                     </div>
                     <div className="text-sm">
-                      <span className="font-medium">Strength:</span> {product.strength}mg
+                      <span className="font-medium">Available Strengths:</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {product.strengths.sort().map((strength) => {
+                        const cartKey = `${product.flavor}-${strength}`;
+                        const cartItem = cart[cartKey];
+
+                        return (
+                          <div key={strength} className="border rounded p-2">
+                            <div className="text-sm font-medium mb-1">{strength}mg</div>
+                            {cartItem ? (
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-6 w-6"
+                                  onClick={() => handleRemoveFromCart(product.flavor, strength)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="flex-1 text-center text-sm">{cartItem.quantity}</span>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  className="h-6 w-6"
+                                  onClick={() => handleAddToCart(product.flavor, strength)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                onClick={() => handleAddToCart(product.flavor, strength)}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add
+                              </Button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-
-                  {cart[product.id] ? (
-                    <div className="flex items-center gap-2 mt-auto">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleRemoveFromCart(product.id)}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </Button>
-                      <span className="flex-1 text-center">{cart[product.id]} in cart</span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleAddToCart(product.id)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      className="mt-auto"
-                      onClick={() => handleAddToCart(product.id)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                  )}
                 </CardContent>
               </Card>
             ))}
