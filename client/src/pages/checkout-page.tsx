@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
 import StoreLayout from "@/components/layout/store-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +14,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import PaymentForm from "@/components/payment/payment-form";
+
+// Initialize Stripe
+const stripePromise = loadStripe('pk_test_51OXRxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxY');
 
 // Form schema
 const checkoutSchema = z.object({
@@ -37,6 +43,7 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
+  const [clientSecret, setClientSecret] = useState("");
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -48,9 +55,24 @@ export default function CheckoutPage() {
   // Calculate cart total
   const cartTotal = Object.entries(cart).reduce((total, [key, item]) => {
     const [flavor] = key.split('-');
-    // In a real app, we would fetch the price from the API
     return total + (item.quantity * 15); // Using fixed price for now
   }, 0);
+
+  // Create payment intent when cart total changes
+  useEffect(() => {
+    if (cartTotal > 0) {
+      apiRequest("POST", "/api/create-payment-intent", { amount: cartTotal })
+        .then((res) => res.json())
+        .then((data) => setClientSecret(data.clientSecret))
+        .catch((error) => {
+          toast({
+            title: "Error",
+            description: "Failed to initialize payment. Please try again.",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [cartTotal, toast]);
 
   const onSubmit = async (data: CheckoutFormData) => {
     try {
@@ -88,7 +110,7 @@ export default function CheckoutPage() {
         userId: userId || null,
         status: "PENDING",
         total: cartTotal.toString(),
-        paymentMethod: "COD",
+        paymentMethod: "CARD",
         items: orderItems
       });
 
@@ -168,175 +190,187 @@ export default function CheckoutPage() {
           </Card>
 
           {/* Checkout Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipping Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="email" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Shipping Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
-                      name="firstName"
+                      name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>First Name</FormLabel>
+                          <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} type="email" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="lastName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Last Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="zipCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>ZIP Code</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="tel" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="border-t pt-4">
-                    <FormField
-                      control={form.control}
-                      name="createAccount"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={(checked) => {
-                                field.onChange(checked);
-                                setCreateAccount(checked as boolean);
-                              }}
-                            />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Create an account for faster checkout</FormLabel>
-                          </div>
-                        </FormItem>
-                      )}
-                    />
-
-                    {createAccount && (
+                    <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name="password"
+                        name="firstName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Password</FormLabel>
+                            <FormLabel>First Name</FormLabel>
                             <FormControl>
-                              <Input {...field} type="password" />
+                              <Input {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    )}
-                  </div>
 
-                  <Button type="submit" className="w-full" size="lg">
-                    Place Order
-                  </Button>
-                </form>
-              </Form>
-            </CardContent>
-          </Card>
+                      <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Address</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>City</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="zipCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>ZIP Code</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="tel" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="border-t pt-4">
+                      <FormField
+                        control={form.control}
+                        name="createAccount"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 mb-4">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={(checked) => {
+                                  field.onChange(checked);
+                                  setCreateAccount(checked as boolean);
+                                }}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>Create an account for faster checkout</FormLabel>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
+                      {createAccount && (
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="password" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+                  </form>
+                </Form>
+              </CardContent>
+            </Card>
+
+            {/* Payment Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {clientSecret && (
+                  <Elements stripe={stripePromise} options={{ clientSecret }}>
+                    <PaymentForm />
+                  </Elements>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </StoreLayout>

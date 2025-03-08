@@ -5,6 +5,12 @@ import { storage } from "./storage";
 import { OrderStatus, UserRole, PaymentMethod } from "@shared/schema";
 import path from "path";
 import express from "express";
+import Stripe from "stripe";
+
+// Use test key for development
+const stripe = new Stripe('sk_test_51OXRxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxY', {
+  apiVersion: '2023-10-16'
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -18,6 +24,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const products = await storage.getProducts();
     console.log("Sending products:", products);
     res.json(products);
+  });
+
+  // Payment Intent
+  app.post("/api/create-payment-intent", async (req, res) => {
+    try {
+      const { amount } = req.body;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+
+      res.json({
+        clientSecret: paymentIntent.client_secret,
+      });
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      res.status(500).json({ error: 'Failed to create payment intent' });
+    }
   });
 
   // Orders
