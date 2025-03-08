@@ -250,7 +250,19 @@ function CustomPricingDialog({ user }: { user: any }) {
   );
 }
 
-function WholesalerDetailsDialog({ user }: { user: any }) {
+function WholesalerDetailsDialog({ 
+  user,
+  onApprove,
+  onReject,
+  onBlock,
+  onUnblock 
+}: { 
+  user: any,
+  onApprove: (id: number) => Promise<void>,
+  onReject: (id: number) => Promise<void>,
+  onBlock: (id: number) => Promise<void>,
+  onUnblock: (id: number) => Promise<void>
+}) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -303,7 +315,7 @@ function WholesalerDetailsDialog({ user }: { user: any }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleApproveWholesale(user.id)}>
+                      <AlertDialogAction onClick={() => onApprove(user.id)}>
                         Approve Account
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -323,7 +335,7 @@ function WholesalerDetailsDialog({ user }: { user: any }) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleRejectWholesale(user.id)}>
+                      <AlertDialogAction onClick={() => onReject(user.id)}>
                         Reject Account
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -352,7 +364,7 @@ function WholesalerDetailsDialog({ user }: { user: any }) {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleBlockWholesale(user.id)}>
+                    <AlertDialogAction onClick={() => onBlock(user.id)}>
                       Block Account
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -376,7 +388,7 @@ function WholesalerDetailsDialog({ user }: { user: any }) {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleUnblockWholesale(user.id)}>
+                    <AlertDialogAction onClick={() => onUnblock(user.id)}>
                       Unblock Account
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -389,114 +401,6 @@ function WholesalerDetailsDialog({ user }: { user: any }) {
     </Dialog>
   );
 }
-
-const handleApproveWholesale = async (userId: number) => {
-  try {
-    await apiRequest("PATCH", `/api/users/${userId}/wholesale-status`, {
-      status: WholesaleStatus.APPROVED,
-    });
-    queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
-    toast({
-      title: "Account Approved",
-      description: "The wholesale account has been approved.",
-    });
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to approve account",
-      variant: "destructive",
-    });
-  }
-};
-
-const handleRejectWholesale = async (userId: number) => {
-  try {
-    await apiRequest("PATCH", `/api/users/${userId}/wholesale-status`, {
-      status: WholesaleStatus.REJECTED,
-    });
-    queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
-    toast({
-      title: "Account Rejected",
-      description: "The wholesale account has been rejected.",
-    });
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to reject account",
-      variant: "destructive",
-    });
-  }
-};
-
-const handleBlockWholesale = async (userId: number) => {
-  try {
-    await apiRequest("POST", `/api/users/${userId}/block`);
-    queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
-    toast({
-      title: "Account Blocked",
-      description: "The wholesale account has been blocked.",
-    });
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to block account",
-      variant: "destructive",
-    });
-  }
-};
-
-const handleUnblockWholesale = async (userId: number) => {
-  try {
-    await apiRequest("POST", `/api/users/${userId}/unblock`);
-    queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
-    toast({
-      title: "Account Unblocked",
-      description: "The wholesale account has been unblocked.",
-    });
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to unblock account",
-      variant: "destructive",
-    });
-  }
-};
-
-const handleTogglePromotion = async (id: number, isActive: boolean) => {
-  try {
-    await apiRequest("PATCH", `/api/promotions/${id}`, { isActive });
-    queryClient.invalidateQueries({ queryKey: ["/api/promotions"] });
-    toast({
-      title: `Promotion ${isActive ? 'Activated' : 'Deactivated'}`,
-      description: `The promotional code has been ${isActive ? 'activated' : 'deactivated'} successfully.`,
-    });
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: `Failed to ${isActive ? 'activate' : 'deactivate'} promotion`,
-      variant: "destructive",
-    });
-  }
-};
-
-const handleVerifyPayment = async (orderId: number) => {
-  try {
-    setProcessingOrder(orderId);
-    await apiRequest("POST", `/api/orders/${orderId}/verify`);
-    toast({
-      title: "Payment Verified",
-      description: "Order has been marked as paid",
-    });
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Failed to verify payment",
-      variant: "destructive",
-    });
-  } finally {
-    setProcessingOrder(null);
-  }
-};
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -525,6 +429,113 @@ export default function AdminDashboard() {
     }
   });
 
+  const handleApproveWholesale = async (userId: number) => {
+    try {
+      await apiRequest("PATCH", `/api/users/${userId}/wholesale-status`, {
+        status: WholesaleStatus.APPROVED,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
+      toast({
+        title: "Account Approved",
+        description: "The wholesale account has been approved.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve account",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectWholesale = async (userId: number) => {
+    try {
+      await apiRequest("PATCH", `/api/users/${userId}/wholesale-status`, {
+        status: WholesaleStatus.REJECTED,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
+      toast({
+        title: "Account Rejected",
+        description: "The wholesale account has been rejected.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject account",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBlockWholesale = async (userId: number) => {
+    try {
+      await apiRequest("POST", `/api/users/${userId}/block`);
+      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
+      toast({
+        title: "Account Blocked",
+        description: "The wholesale account has been blocked.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to block account",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUnblockWholesale = async (userId: number) => {
+    try {
+      await apiRequest("POST", `/api/users/${userId}/unblock`);
+      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
+      toast({
+        title: "Account Unblocked",
+        description: "The wholesale account has been unblocked.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to unblock account",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTogglePromotion = async (id: number, isActive: boolean) => {
+    try {
+      await apiRequest("PATCH", `/api/promotions/${id}`, { isActive });
+      queryClient.invalidateQueries({ queryKey: ["/api/promotions"] });
+      toast({
+        title: `Promotion ${isActive ? 'Activated' : 'Deactivated'}`,
+        description: `The promotional code has been ${isActive ? 'activated' : 'deactivated'} successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${isActive ? 'activate' : 'deactivate'} promotion`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleVerifyPayment = async (orderId: number) => {
+    try {
+      setProcessingOrder(orderId);
+      await apiRequest("POST", `/api/orders/${orderId}/verify`);
+      toast({
+        title: "Payment Verified",
+        description: "Order has been marked as paid",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify payment",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingOrder(null);
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -616,7 +627,13 @@ export default function AdminDashboard() {
                           )}
                         </TableCell>
                         <TableCell className="space-x-2">
-                          <WholesalerDetailsDialog user={user} />
+                          <WholesalerDetailsDialog
+                            user={user}
+                            onApprove={handleApproveWholesale}
+                            onReject={handleRejectWholesale}
+                            onBlock={handleBlockWholesale}
+                            onUnblock={handleUnblockWholesale}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
