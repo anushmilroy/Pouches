@@ -7,6 +7,8 @@ import type { Order } from "@shared/schema";
 
 export interface IStorage {
   // ... existing methods ...
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
 
   // Referral management
   getUsersWithReferrals(): Promise<User[]>;
@@ -17,7 +19,31 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // ... existing methods ...
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      console.log(`Looking up user by username: ${username}`);
+      const [user] = await db.select()
+        .from(usersTable)
+        .where(eq(usersTable.username, username));
+      return user;
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      return undefined;
+    }
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    try {
+      console.log(`Looking up user by ID: ${id}`);
+      const [user] = await db.select()
+        .from(usersTable)
+        .where(eq(usersTable.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error getting user by ID:", error);
+      return undefined;
+    }
+  }
 
   // Referral management implementation
   async getUsersWithReferrals(): Promise<User[]> {
