@@ -64,7 +64,7 @@ export default function CheckoutPage() {
   const { user } = useAuth();
   const [cart, setCart] = useState<Record<string, { quantity: number; strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"bank_transfer" | "manual">("bank_transfer");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"bank_transfer" | "manual">("manual");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<keyof typeof ShippingMethod>('STANDARD');
 
@@ -354,8 +354,8 @@ export default function CheckoutPage() {
                         <SelectValue placeholder="Select payment method" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                         <SelectItem value="manual">Invoice Payment</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                       </SelectContent>
                     </Select>
 
