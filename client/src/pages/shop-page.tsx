@@ -9,6 +9,7 @@ import { Product, PouchCategory, PouchFlavor, NicotineStrength } from "@shared/s
 import { Loader2, Package, ShoppingCart, Plus, Minus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 export default function ShopPage() {
   const [, setLocation] = useLocation();
@@ -37,9 +38,9 @@ export default function ShopPage() {
     return acc;
   }, {} as Record<string, Product & { strengths: (keyof typeof NicotineStrength)[] }>);
 
-  const filteredProducts = uniqueProducts ? 
+  const filteredProducts = uniqueProducts ?
     Object.values(uniqueProducts).filter((product) => {
-      const matchesSearch = 
+      const matchesSearch =
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
@@ -178,32 +179,41 @@ export default function ShopPage() {
                     <div className="text-sm">
                       <span className="font-medium">Flavor:</span> {PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
                     </div>
-                    <div className="text-sm">
+                    <div className="text-sm mt-4">
                       <span className="font-medium">Available Strengths:</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-wrap gap-2 mt-2">
                       {product.strengths.sort().map((strength) => {
                         const cartKey = `${product.flavor}-${strength}`;
                         const cartItem = cart[cartKey];
+                        const isSelected = !!cartItem;
 
                         return (
-                          <div key={strength} className="border rounded p-2">
-                            <div className="text-sm font-medium mb-1">{NicotineStrength[strength]}</div>
+                          <div 
+                            key={strength} 
+                            className={cn(
+                              "flex-1 min-w-[100px] border rounded-lg p-2",
+                              isSelected && "border-primary bg-primary/5"
+                            )}
+                          >
+                            <div className="text-sm font-medium text-center mb-2">
+                              {NicotineStrength[strength]}
+                            </div>
                             {cartItem ? (
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center justify-between gap-2">
                                 <Button
-                                  size="icon"
+                                  size="sm"
                                   variant="outline"
-                                  className="h-6 w-6"
                                   onClick={() => handleRemoveFromCart(product.flavor, strength)}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
-                                <span className="flex-1 text-center text-sm">{cartItem.quantity}</span>
+                                <span className="text-center font-medium">
+                                  {cartItem.quantity}
+                                </span>
                                 <Button
-                                  size="icon"
+                                  size="sm"
                                   variant="outline"
-                                  className="h-6 w-6"
                                   onClick={() => handleAddToCart(product.flavor, strength)}
                                 >
                                   <Plus className="h-3 w-3" />
@@ -213,9 +223,9 @@ export default function ShopPage() {
                               <Button
                                 size="sm"
                                 className="w-full"
+                                variant="secondary"
                                 onClick={() => handleAddToCart(product.flavor, strength)}
                               >
-                                <Plus className="h-3 w-3 mr-1" />
                                 Add
                               </Button>
                             )}
