@@ -8,6 +8,7 @@ import express from "express";
 import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema"; // Import PayoutStatus
 import fs from 'fs'; //Import fs module
+import { ReferralGuideService } from "./services/referral-guide";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -242,7 +243,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update promotion" });
     }
   });
-
 
   // Wholesale Account Management
   app.get("/api/users/wholesale", async (req, res) => {
@@ -514,6 +514,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating consignment status:", error);
       res.status(500).json({ error: "Failed to update consignment status" });
+    }
+  });
+
+  app.get("/api/referral-guide", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const guide = await ReferralGuideService.generatePersonalizedGuide(req.user.id);
+      res.json(guide);
+    } catch (error) {
+      console.error("Error generating referral guide:", error);
+      res.status(500).json({ error: "Failed to generate referral guide" });
     }
   });
 

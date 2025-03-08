@@ -23,6 +23,7 @@ const registrationSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["RETAIL", "WHOLESALE"]).optional(),
+  referralCode: z.string().optional(),
   companyName: z.string().optional(),
   companyAddress: z.string().optional(),
   companyEmail: z.string().email("Invalid email").optional(),
@@ -76,6 +77,7 @@ export default function AuthPage() {
       username: "",
       password: "",
       role: undefined,
+      referralCode: "",
       companyName: "",
       companyAddress: "",
       companyEmail: "",
@@ -106,15 +108,15 @@ export default function AuthPage() {
           <div className="h-16 flex items-center justify-between">
             <h1 className="text-xl font-bold">Pouches Worldwide</h1>
             <nav className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="flex items-center"
                 onClick={() => setLocation("/")}
               >
                 <Home className="h-4 w-4 mr-2" />
                 Home
               </Button>
-              <Button 
+              <Button
                 variant="ghost"
                 className="flex items-center"
                 onClick={() => setLocation("/shop")}
@@ -230,7 +232,19 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-
+                      <FormField
+                        control={registerForm.control}
+                        name="referralCode"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Referral Code (Optional)</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter referral code if you have one" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       {showCompanyFields && (
                         <div className="space-y-4">
                           <FormField

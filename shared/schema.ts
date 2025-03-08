@@ -102,6 +102,11 @@ export const ConsignmentStatus = {
   REJECTED: 'REJECTED'
 } as const;
 
+export const CommissionType = {
+  RETAIL_REFERRAL: 'RETAIL_REFERRAL',
+  WHOLESALE_REFERRAL: 'WHOLESALE_REFERRAL'
+} as const;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -117,7 +122,7 @@ export const users = pgTable("users", {
   referralCode: text("referral_code").unique(),
   commission: numeric("commission").default("0.00"),
   commissionTier: text("commission_tier").$type<keyof typeof CommissionTier>().default("STANDARD"),
-  paymentMethod: jsonb("payment_method"),
+  totalReferrals: integer("total_referrals").default(0),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -139,24 +144,16 @@ export const products = pgTable("products", {
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  distributorId: integer("distributor_id").references(() => users.id),
-  referrerId: integer("referrer_id").references(() => users.id),
-  referralCode: text("referral_code"),
-  commissionAmount: numeric("commission_amount"),
   status: text("status").notNull().$type<keyof typeof OrderStatus>(),
   total: numeric("total").notNull(),
   subtotal: numeric("subtotal").notNull(),
-  shippingMethod: text("shipping_method").notNull().$type<keyof typeof ShippingMethod>(),
-  shippingCost: numeric("shipping_cost").notNull(),
-  discountCode: text("discount_code"),
-  discountAmount: numeric("discount_amount"),
+  referrerId: integer("referrer_id").references(() => users.id),
+  referralCode: text("referral_code"),
+  commissionAmount: numeric("commission_amount"),
+  commissionType: text("commission_type").$type<keyof typeof CommissionType>(),
+  commissionPaid: boolean("commission_paid").default(false),
   paymentMethod: text("payment_method").notNull().$type<keyof typeof PaymentMethod>(),
   paymentDetails: jsonb("payment_details"),
-  isConsignment: boolean("is_consignment").default(false),
-  consignmentStatus: text("consignment_status").$type<keyof typeof ConsignmentStatus>(),
-  consignmentTerms: jsonb("consignment_terms"),
-  consignmentApprovedBy: integer("consignment_approved_by").references(() => users.id),
-  consignmentApprovedAt: timestamp("consignment_approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -198,9 +195,8 @@ export const commissionTransactions = pgTable("commission_transactions", {
   userId: integer("user_id").notNull().references(() => users.id),
   orderId: integer("order_id").notNull().references(() => orders.id),
   amount: numeric("amount").notNull(),
-  rate: numeric("rate").notNull(),
+  type: text("type").notNull().$type<keyof typeof CommissionType>(),
   status: text("status").notNull().$type<keyof typeof PayoutStatus>(),
-  payoutId: integer("payout_id").references(() => commissionPayouts.id),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
