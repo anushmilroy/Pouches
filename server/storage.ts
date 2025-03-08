@@ -4,7 +4,6 @@ import createMemoryStore from "memorystore";
 
 const MemoryStore = createMemoryStore(session);
 
-// Update the Apple Mint products to include the image path
 const initialProducts: Product[] = [
   {
     id: 1,
@@ -45,7 +44,8 @@ const initialProducts: Product[] = [
     wholesalePrice: "8.00",
     stock: 10000,
     minRetailOrder: 5,
-    minWholesaleOrder: 100
+    minWholesaleOrder: 100,
+    imagePath: "/attached_assets/puxcoolmint12mg.jpg"
   },
   {
     id: 4,
@@ -58,7 +58,8 @@ const initialProducts: Product[] = [
     wholesalePrice: "8.00",
     stock: 5000,
     minRetailOrder: 5,
-    minWholesaleOrder: 100
+    minWholesaleOrder: 100,
+    imagePath: "/attached_assets/puxcoolmint12mg.jpg"
   },
   {
     id: 5,
@@ -71,7 +72,8 @@ const initialProducts: Product[] = [
     wholesalePrice: "8.00",
     stock: 5000,
     minRetailOrder: 5,
-    minWholesaleOrder: 100
+    minWholesaleOrder: 100,
+    imagePath: "/attached_assets/puxcoolmint12mg.jpg"
   },
   {
     id: 6,
@@ -84,7 +86,8 @@ const initialProducts: Product[] = [
     wholesalePrice: "8.00",
     stock: 5000,
     minRetailOrder: 5,
-    minWholesaleOrder: 100
+    minWholesaleOrder: 100,
+    imagePath: "/attached_assets/puxcoolmint12mg.jpg"
   }
 ];
 
