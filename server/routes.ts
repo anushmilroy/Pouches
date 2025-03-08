@@ -162,6 +162,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Promotions Management
+  app.get("/api/promotions", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const promotions = await storage.getPromotions();
+      res.json(promotions);
+    } catch (error) {
+      console.error("Error fetching promotions:", error);
+      res.status(500).json({ error: "Failed to fetch promotions" });
+    }
+  });
+
+  app.post("/api/promotions", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const promotion = await storage.createPromotion({
+        ...req.body,
+        createdBy: req.user.id
+      });
+      res.status(201).json(promotion);
+    } catch (error) {
+      console.error("Error creating promotion:", error);
+      res.status(500).json({ error: "Failed to create promotion" });
+    }
+  });
+
+  app.patch("/api/promotions/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const promotion = await storage.updatePromotion(parseInt(req.params.id), req.body);
+      res.json(promotion);
+    } catch (error) {
+      console.error("Error updating promotion:", error);
+      res.status(500).json({ error: "Failed to update promotion" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

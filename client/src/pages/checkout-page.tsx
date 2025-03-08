@@ -35,6 +35,7 @@ const checkoutSchema = z.object({
     if (!val) return true;
     return val.length >= 6;
   }, "Password must be at least 6 characters"),
+  discountCode: z.string().optional(),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -146,6 +147,7 @@ export default function CheckoutPage() {
         shippingCost: shippingCost.toString(),
         paymentMethod: selectedPaymentMethod,
         referralCode: data.referralCode,
+        discountCode: data.discountCode, // Added discount code
         items: orderItems,
         customerDetails: {
           email: data.email,
@@ -330,6 +332,29 @@ export default function CheckoutPage() {
                         <FormLabel>Referral Code</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="Enter referral code (optional)" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Promotional Code */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Promotional Code</CardTitle>
+                  <CardDescription>Enter a promotional code to get a discount</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="discountCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Promotional Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter promotional code (optional)" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

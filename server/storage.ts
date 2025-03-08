@@ -91,6 +91,16 @@ const initialProducts: Product[] = [
   }
 ];
 
+interface Promotion {
+  id: number;
+  name: string;
+  description: string;
+  discount: string; //e.g., "10%" or "5.00"
+  startDate: Date;
+  endDate: Date;
+  productIds: number[];
+}
+
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
@@ -118,6 +128,11 @@ export interface IStorage {
   getUserEarnings(userId: number): Promise<{ total: string; orders: Order[] }>;
   generateReferralCode(userId: number): Promise<string>;
 
+  // Promotion operations
+  getPromotions(): Promise<Promotion[]>;
+  createPromotion(promotion: Omit<Promotion, "id">): Promise<Promotion>;
+  updatePromotion(id: number, data: Partial<Promotion>): Promise<Promotion>;
+
   sessionStore: session.Store;
 }
 
@@ -126,6 +141,7 @@ export class MemStorage implements IStorage {
   private products: Map<number, Product>;
   private orders: Map<number, Order>;
   private orderItems: Map<number, OrderItem>;
+  private promotions: Map<number, Promotion>;
   private currentId: { [key: string]: number };
   sessionStore: session.Store;
 
@@ -134,7 +150,8 @@ export class MemStorage implements IStorage {
     this.products = new Map();
     this.orders = new Map();
     this.orderItems = new Map();
-    this.currentId = { users: 1, products: 7, orders: 1, orderItems: 1 };
+    this.promotions = new Map();
+    this.currentId = { users: 1, products: 7, orders: 1, orderItems: 1, promotions: 1 };
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -262,6 +279,26 @@ export class MemStorage implements IStorage {
     this.users.set(userId, user);
 
     return referralCode;
+  }
+
+  async getPromotions(): Promise<Promotion[]> {
+    return Array.from(this.promotions.values());
+  }
+
+  async createPromotion(promotion: Omit<Promotion, "id">): Promise<Promotion> {
+    const id = this.currentId.promotions++;
+    const newPromotion = { ...promotion, id };
+    this.promotions.set(id, newPromotion);
+    return newPromotion;
+  }
+
+  async updatePromotion(id: number, data: Partial<Promotion>): Promise<Promotion> {
+    const promotion = this.promotions.get(id);
+    if (!promotion) throw new Error("Promotion not found");
+
+    const updatedPromotion = { ...promotion, ...data };
+    this.promotions.set(id, updatedPromotion);
+    return updatedPromotion;
   }
 }
 
