@@ -11,6 +11,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserOrders(userId: number): Promise<Order[]>;
   getConsignmentOrders(): Promise<Order[]>;
+  updateCustomPricing(userId: number, customPricing: Record<string, number>): Promise<User>;
 
   // Referral management
   getUsersWithReferrals(): Promise<User[]>;
@@ -147,6 +148,25 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error getting active referrers count:", error);
       return 0;
+    }
+  }
+  async updateCustomPricing(userId: number, customPricing: Record<string, number>): Promise<User> {
+    try {
+      console.log(`Updating custom pricing for user ${userId}`);
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set({ customPricing })
+        .where(eq(usersTable.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User ${userId} not found`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error updating custom pricing for user ${userId}:`, error);
+      throw error;
     }
   }
 }

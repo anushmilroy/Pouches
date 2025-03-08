@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { CustomPricingDialog } from "@/components/admin/custom-pricing-dialog";
 
 function CreatePromotionDialog() {
   const { toast } = useToast();
@@ -150,82 +151,6 @@ function CreatePromotionDialog() {
               </>
             ) : (
               "Create Promotion"
-            )}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function CustomPricingDialog({ user }: { user: any }) {
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [customPricing, setCustomPricing] = useState<Record<string, number>>(
-    user.customPricing || {}
-  );
-
-  const handleSubmit = async () => {
-    try {
-      setIsSubmitting(true);
-      await apiRequest("PATCH", `/api/users/${user.id}/pricing`, {
-        customPricing,
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
-      toast({
-        title: "Custom Pricing Updated",
-        description: "The wholesale pricing has been updated successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update custom pricing",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">Set Custom Prices</Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Set Custom Wholesale Prices</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          {Object.entries(WholesalePricingTier).map(([tier, { min, max, price }]) => (
-            <div key={tier}>
-              <label className="text-sm font-medium">
-                Tier {tier.split('_')[1]} ({min}-{max || '∞'} units)
-              </label>
-              <Input
-                type="number"
-                value={customPricing[tier] || price}
-                onChange={(e) =>
-                  setCustomPricing((prev) => ({
-                    ...prev,
-                    [tier]: parseFloat(e.target.value),
-                  }))
-                }
-              />
-            </div>
-          ))}
-          <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              "Update Pricing"
             )}
           </Button>
         </div>
@@ -954,7 +879,7 @@ function AdminDashboard() {
                                 onClick={async () => {
                                   try {
                                     await apiRequest("PATCH", `/api/api/orders/${order.id}/consignment-status`, {
-                                      status: ConsignmentStatus.APPROVED
+                                      status:ConsignmentStatus.APPROVED
                                     });
                                     queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
                                     toast({

@@ -275,6 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add the custom pricing update endpoint
   app.patch("/api/users/:id/pricing", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);

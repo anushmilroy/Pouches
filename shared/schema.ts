@@ -128,6 +128,7 @@ export const users = pgTable("users", {
   commissionTier: text("commission_tier").$type<keyof typeof CommissionTier>().default("STANDARD"),
   totalReferrals: integer("total_referrals").default(0),
   createdAt: timestamp("created_at").defaultNow(),
+  customPricing: jsonb("custom_pricing").$type<Record<string, number>>()
 });
 
 export const products = pgTable("products", {
