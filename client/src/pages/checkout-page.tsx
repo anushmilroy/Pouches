@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
+import { PaymentMethod, NicotineStrength } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import CardPaymentForm from "@/components/payment/card-payment-form";
@@ -20,7 +20,10 @@ import BankTransferForm from "@/components/payment/bank-transfer-form";
 import { Loader2 } from "lucide-react";
 
 // Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890');
+if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+  throw new Error("Missing required environment variable: VITE_STRIPE_PUBLIC_KEY");
+}
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 // Form schema
 const checkoutSchema = z.object({
@@ -65,9 +68,10 @@ export default function CheckoutPage() {
   const { toast } = useToast();
   const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
-  const [clientSecret, setClientSecret] = useState("");
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "bank_transfer" | "manual">("card");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingPaymentIntent, setIsLoadingPaymentIntent] = useState(false);
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -90,18 +94,21 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Create payment intent when cart total changes
+  // Create payment intent when payment method changes or cart total changes
   useEffect(() => {
     if (cartTotal > 0 && selectedPaymentMethod === "card") {
-      setClientSecret(""); // Reset client secret before creating new intent
+      setIsLoadingPaymentIntent(true);
+      setClientSecret(null);
+
       console.log("Creating payment intent for amount:", cartTotal);
 
       apiRequest("POST", "/api/create-payment-intent", {
         amount: cartTotal
       })
-        .then((res) => {
+        .then(async (res) => {
           if (!res.ok) {
-            throw new Error('Failed to create payment intent');
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Failed to create payment intent');
           }
           return res.json();
         })
@@ -116,6 +123,9 @@ export default function CheckoutPage() {
             description: "Unable to initialize payment. Please try again or choose a different payment method.",
             variant: "destructive",
           });
+        })
+        .finally(() => {
+          setIsLoadingPaymentIntent(false);
         });
     }
   }, [cartTotal, selectedPaymentMethod, toast]);
@@ -265,32 +275,35 @@ export default function CheckoutPage() {
                     </SelectContent>
                   </Select>
 
-                  {selectedPaymentMethod === "card" && (
-                    clientSecret ? (
-                      <Elements stripe={stripePromise} options={{ clientSecret }}>
-                        <CardPaymentForm />
-                      </Elements>
-                    ) : (
-                      <div className="flex items-center justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                      </div>
-                    )
-                  )}
+                  <div className="mt-6">
+                    {selectedPaymentMethod === "card" && (
+                      isLoadingPaymentIntent ? (
+                        <div className="flex items-center justify-center p-8">
+                          <Loader2 className="h-8 w-8 animate-spin" />
+                          <span className="ml-2">Setting up payment...</span>
+                        </div>
+                      ) : clientSecret ? (
+                        <Elements stripe={stripePromise} options={{ clientSecret }}>
+                          <CardPaymentForm />
+                        </Elements>
+                      ) : null
+                    )}
 
-                  {selectedPaymentMethod === "bank_transfer" && (
-                    <BankTransferForm
-                      orderId={1}
-                      amount={cartTotal}
-                      onPaymentComplete={() => {
-                        toast({
-                          title: "Bank Transfer Details Submitted",
-                          description: "We will verify your transfer and update your order status.",
-                        });
-                      }}
-                    />
-                  )}
+                    {selectedPaymentMethod === "bank_transfer" && (
+                      <BankTransferForm
+                        orderId={1}
+                        amount={cartTotal}
+                        onPaymentComplete={() => {
+                          toast({
+                            title: "Bank Transfer Details Submitted",
+                            description: "We will verify your transfer and update your order status.",
+                          });
+                        }}
+                      />
+                    )}
 
-                  {selectedPaymentMethod === "manual" && <ManualPaymentInfo />}
+                    {selectedPaymentMethod === "manual" && <ManualPaymentInfo />}
+                  </div>
                 </div>
               </CardContent>
             </Card>

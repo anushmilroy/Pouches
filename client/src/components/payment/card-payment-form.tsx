@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   PaymentElement,
   useStripe,
-  useElements,
+  useElements
 } from "@stripe/react-stripe-js";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -17,6 +17,7 @@ export default function CardPaymentForm() {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      console.error("Stripe not initialized");
       return;
     }
 
@@ -32,8 +33,8 @@ export default function CardPaymentForm() {
       });
 
       if (error) {
-        setPaymentError(error.message ?? "An unexpected error occurred");
         console.error("Payment error:", error);
+        setPaymentError(error.message ?? "An unexpected error occurred");
       }
     } catch (error) {
       console.error("Stripe error:", error);
@@ -42,6 +43,14 @@ export default function CardPaymentForm() {
       setIsProcessing(false);
     }
   };
+
+  if (!stripe || !elements) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -52,7 +61,7 @@ export default function CardPaymentForm() {
       <Button
         type="submit"
         className="w-full"
-        disabled={isProcessing || !stripe || !elements}
+        disabled={isProcessing}
       >
         {isProcessing ? (
           <>
