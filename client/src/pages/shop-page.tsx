@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import StoreLayout from "@/components/layout/store-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,6 +18,14 @@ export default function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | null>(null);
   const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | null>(null);
   const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      setCart(JSON.parse(savedCart));
+    }
+  }, []);
 
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -51,13 +59,17 @@ export default function ShopPage() {
     }) : [];
 
   const handleAddToCart = (productId: string, strength: keyof typeof NicotineStrength) => {
-    setCart(prev => ({
-      ...prev,
-      [`${productId}-${strength}`]: {
-        quantity: (prev[`${productId}-${strength}`]?.quantity || 0) + 1,
-        strength
-      }
-    }));
+    setCart(prev => {
+      const newCart = {
+        ...prev,
+        [`${productId}-${strength}`]: {
+          quantity: (prev[`${productId}-${strength}`]?.quantity || 0) + 1,
+          strength
+        }
+      };
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      return newCart;
+    });
   };
 
   const handleRemoveFromCart = (productId: string, strength: keyof typeof NicotineStrength) => {
@@ -69,6 +81,7 @@ export default function ShopPage() {
       } else {
         delete newCart[key];
       }
+      localStorage.setItem('cart', JSON.stringify(newCart));
       return newCart;
     });
   };
@@ -197,7 +210,7 @@ export default function ShopPage() {
                         const isSelected = !!cartItem;
 
                         return (
-                          <div 
+                          <div
                             key={strength}
                             className={cn(
                               "flex flex-col items-center flex-1 min-w-[80px]",
