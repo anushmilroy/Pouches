@@ -96,6 +96,13 @@ export const CommissionTier = {
   PLATINUM: { rate: 0.12, minOrders: 50 }
 } as const;
 
+// Add ConsignmentStatus enum after existing enums
+export const ConsignmentStatus = {
+  PENDING_APPROVAL: 'PENDING_APPROVAL',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED'
+} as const;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -126,6 +133,7 @@ export const products = pgTable("products", {
   imagePath: text("image_path"),
 });
 
+// Update orders table to include consignment fields
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -142,6 +150,11 @@ export const orders = pgTable("orders", {
   discountAmount: numeric("discount_amount"),
   paymentMethod: text("payment_method").notNull().$type<keyof typeof PaymentMethod>(),
   paymentDetails: jsonb("payment_details"),
+  isConsignment: boolean("is_consignment").default(false),
+  consignmentStatus: text("consignment_status").$type<keyof typeof ConsignmentStatus>(),
+  consignmentTerms: jsonb("consignment_terms"),
+  consignmentApprovedBy: integer("consignment_approved_by").references(() => users.id),
+  consignmentApprovedAt: timestamp("consignment_approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

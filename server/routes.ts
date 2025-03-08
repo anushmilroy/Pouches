@@ -448,6 +448,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add consignment management routes
+  app.get("/api/orders/consignment", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const orders = await storage.getConsignmentOrders();
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching consignment orders:", error);
+      res.status(500).json({ error: "Failed to fetch consignment orders" });
+    }
+  });
+
+  app.post("/api/orders/consignment", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const order = await storage.createConsignmentOrder({
+        ...req.body,
+        userId: req.user.id,
+        status: OrderStatus.PENDING,
+      });
+      res.status(201).json(order);
+    } catch (error) {
+      console.error("Error creating consignment order:", error);
+      res.status(500).json({ error: "Failed to create consignment order" });
+    }
+  });
+
+  app.patch("/api/orders/:id/consignment-status", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const order = await storage.updateConsignmentStatus(
+        parseInt(req.params.id),
+        req.body.status,
+        req.user.id // Admin who approved/rejected
+      );
+      res.json(order);
+    } catch (error) {
+      console.error("Error updating consignment status:", error);
+      res.status(500).json({ error: "Failed to update consignment status" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

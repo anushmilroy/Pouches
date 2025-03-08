@@ -630,10 +630,11 @@ function AdminDashboard() {
           <TabsTrigger value="distributors">Distributors</TabsTrigger>
           <TabsTrigger value="promotions">Promotions</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="consignments">Consignments</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle>Active Promotions</CardTitle>
@@ -656,11 +657,11 @@ function AdminDashboard() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Pending Wholesale Applications</CardTitle>
+                <CardTitle>Pending Consignments</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {wholesaleUsers?.filter(u => u.wholesaleStatus === WholesaleStatus.PENDING).length || 0}
+                  {orders?.filter(o => o.isConsignment && o.consignmentStatus === "PENDING_APPROVAL").length || 0}
                 </div>
               </CardContent>
             </Card>
@@ -898,6 +899,119 @@ function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="consignments">
+            <Card>
+              <CardHeader>
+                <CardTitle>Consignment Orders Management</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {ordersLoading ? (
+                  <div className="flex justify-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Wholesaler</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Submitted</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orders?.filter(order => order.isConsignment).map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell>#{order.id}</TableCell>
+                          <TableCell>{order.userId}</TableCell>
+                          <TableCell>${order.total}</TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              order.consignmentStatus === "APPROVED" ? "success" :
+                              order.consignmentStatus === "REJECTED" ? "destructive" :
+                              "secondary"
+                            }>
+                              {order.consignmentStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(order.createdAt), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell className="space-x-2">
+                            {order.consignmentStatus === "PENDING_APPROVAL" && (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-green-50 hover:bg-green-100 text-green-700"
+                                  onClick={async () => {
+                                    try {
+                                      await apiRequest("PATCH", `/api/orders/${order.id}/consignment-status`, {
+                                        status: "APPROVED"
+                                      });
+                                      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+                                      toast({
+                                        title: "Consignment Approved",
+                                        description: `Order #${order.id} has been approved.`,
+                                      });
+                                    } catch (error) {
+                                      toast({
+                                        title: "Error",
+                                        description: "Failed to approve consignment order",
+                                        variant: "destructive"
+                                      });
+                                    }
+                                  }}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-red-50 hover:bg-red-100 text-red-700"
+                                  onClick={async () => {
+                                    try {
+                                      await apiRequest("PATCH", `/api/orders/${order.id}/consignment-status`, {
+                                        status: "REJECTED"
+                                      });
+                                                                            queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+                                      toast({
+                                        title: "Consignment Rejected",
+                                        description: `Order #${order.id} has been rejected.`,
+                                      });
+                                    } catch (error) {
+                                      toast({
+                                        title: "Error",
+                                        description: "Failed to reject consignment order",
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }}
+                                >
+                                  Reject
+                                </Button>
+                              </>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {(!orders || orders.filter(o => o.isConsignment).length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            No consignment orders found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
       </Tabs>
     </DashboardLayout>
   );

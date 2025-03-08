@@ -62,6 +62,15 @@ export interface IStorage {
   updateDistributorStatus(id: number, active: boolean): Promise<User>;
   assignOrderToDistributor(orderId: number, distributorId: number): Promise<Order>;
 
+  // Consignment management
+  getConsignmentOrders(): Promise<Order[]>;
+  updateConsignmentStatus(
+    orderId: number,
+    status: keyof typeof ConsignmentStatus,
+    approvedBy?: number
+  ): Promise<Order>;
+  createConsignmentOrder(order: Order): Promise<Order>;
+
   sessionStore: session.Store;
 }
 
@@ -331,6 +340,50 @@ export class DatabaseStorage implements IStorage {
       .where(eq(orders.id, orderId))
       .returning();
     return order;
+  }
+
+  // Consignment management implementation
+  async getConsignmentOrders(): Promise<Order[]> {
+    return await db
+      .select()
+      .from(orders)
+      .where(eq(orders.isConsignment, true));
+  }
+
+  async updateConsignmentStatus(
+    orderId: number,
+    status: keyof typeof ConsignmentStatus,
+    approvedBy?: number
+  ): Promise<Order> {
+    const updates: any = {
+      consignmentStatus: status,
+    };
+
+    if (status === "APPROVED" && approvedBy) {
+      updates.consignmentApprovedBy = approvedBy;
+      updates.consignmentApprovedAt = new Date();
+    }
+
+    const [order] = await db
+      .update(orders)
+      .set(updates)
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    return order;
+  }
+
+  async createConsignmentOrder(order: Order): Promise<Order> {
+    const [newOrder] = await db
+      .insert(orders)
+      .values({
+        ...order,
+        isConsignment: true,
+        consignmentStatus: "PENDING_APPROVAL",
+      })
+      .returning();
+
+    return newOrder;
   }
 }
 
