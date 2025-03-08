@@ -31,7 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
+import {Badge} from "@/components/ui/badge"
 
 function CreatePromotionDialog() {
   const { toast } = useToast();
@@ -250,18 +250,18 @@ function CustomPricingDialog({ user }: { user: any }) {
   );
 }
 
-function WholesalerDetailsDialog({ 
+function WholesalerDetailsDialog({
   user,
   onApprove,
   onReject,
   onBlock,
-  onUnblock 
-}: { 
-  user: any,
-  onApprove: (id: number) => Promise<void>,
-  onReject: (id: number) => Promise<void>,
-  onBlock: (id: number) => Promise<void>,
-  onUnblock: (id: number) => Promise<void>
+  onUnblock
+}: {
+  user: any;
+  onApprove: (id: number) => Promise<void>;
+  onReject: (id: number) => Promise<void>;
+  onBlock: (id: number) => Promise<void>;
+  onUnblock: (id: number) => Promise<void>;
 }) {
   return (
     <Dialog>
@@ -429,6 +429,11 @@ function AdminDashboard() {
     }
   });
 
+  const { data: distributors, isLoading: distributorsLoading } = useQuery({
+    queryKey: ["/api/users/distributors"],
+  });
+
+
   const handleApproveWholesale = async (userId: number) => {
     try {
       await apiRequest("PATCH", `/api/users/${userId}/wholesale-status`, {
@@ -537,12 +542,92 @@ function AdminDashboard() {
     }
   };
 
+  // Add CreateDistributorDialog component
+  function CreateDistributorDialog() {
+    const { toast } = useToast();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [email, setEmail] = useState("");
+
+    const handleSubmit = async () => {
+      try {
+        setIsSubmitting(true);
+        await apiRequest("POST", "/api/users/distributor", {
+          username,
+          password,
+          email,
+          role: "DISTRIBUTOR"
+        });
+
+        queryClient.invalidateQueries({ queryKey: ["/api/users/distributors"] });
+        toast({
+          title: "Distributor Created",
+          description: "The distributor account has been created successfully.",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create distributor account",
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Distributor
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Distributor Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Username</label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Password</label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Distributor"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   return (
     <DashboardLayout>
       <Tabs defaultValue="overview" className="space-y-8">
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="wholesale">Wholesale Accounts</TabsTrigger>
+          <TabsTrigger value="distributors">Distributors</TabsTrigger>
           <TabsTrigger value="promotions">Promotions</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
         </TabsList>
@@ -637,6 +722,66 @@ function AdminDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="distributors">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Distributor Management</CardTitle>
+              <CreateDistributorDialog />
+            </CardHeader>
+            <CardContent>
+              {distributorsLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Orders Assigned</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {distributors?.map((distributor) => (
+                      <TableRow key={distributor.id}>
+                        <TableCell>{distributor.username}</TableCell>
+                        <TableCell>{distributor.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {distributor.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{distributor.assignedOrders || 0}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              // Handle distributor management
+                            }}
+                          >
+                            Manage
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!distributors || distributors.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No distributors found
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               )}

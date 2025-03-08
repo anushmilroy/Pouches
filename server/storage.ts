@@ -56,6 +56,12 @@ export interface IStorage {
   getPendingCommissionTotal(userId: number): Promise<string>;
   updatePaymentMethod(userId: number, paymentMethod: any): Promise<User>;
 
+  // Distributor management
+  getDistributors(): Promise<User[]>;
+  createDistributor(distributor: InsertUser): Promise<User>;
+  updateDistributorStatus(id: number, active: boolean): Promise<User>;
+  assignOrderToDistributor(orderId: number, distributorId: number): Promise<Order>;
+
   sessionStore: session.Store;
 }
 
@@ -294,6 +300,37 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  // Distributor management implementation
+  async getDistributors(): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, UserRole.DISTRIBUTOR));
+  }
+
+  async createDistributor(distributor: InsertUser): Promise<User> {
+    const [newDistributor] = await db
+      .insert(users)
+      .values({ ...distributor, role: UserRole.DISTRIBUTOR })
+      .returning();
+    return newDistributor;
+  }
+
+  async updateDistributorStatus(id: number, active: boolean): Promise<User> {
+    const [distributor] = await db
+      .update(users)
+      .set({ active })
+      .where(and(eq(users.id, id), eq(users.role, UserRole.DISTRIBUTOR)))
+      .returning();
+    return distributor;
+  }
+
+  async assignOrderToDistributor(orderId: number, distributorId: number): Promise<Order> {
+    const [order] = await db
+      .update(orders)
+      .set({ distributorId })
+      .where(eq(orders.id, orderId))
+      .returning();
+    return order;
   }
 }
 

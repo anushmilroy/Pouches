@@ -385,6 +385,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Distributor Management Routes
+  app.get("/api/users/distributors", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const distributors = await storage.getDistributors();
+      res.json(distributors);
+    } catch (error) {
+      console.error("Error fetching distributors:", error);
+      res.status(500).json({ error: "Failed to fetch distributors" });
+    }
+  });
+
+  app.post("/api/users/distributor", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const distributor = await storage.createDistributor(req.body);
+      res.status(201).json(distributor);
+    } catch (error) {
+      console.error("Error creating distributor:", error);
+      res.status(500).json({ error: "Failed to create distributor" });
+    }
+  });
+
+  app.patch("/api/users/distributor/:id/status", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const distributor = await storage.updateDistributorStatus(
+        parseInt(req.params.id),
+        req.body.active
+      );
+      res.json(distributor);
+    } catch (error) {
+      console.error("Error updating distributor status:", error);
+      res.status(500).json({ error: "Failed to update distributor status" });
+    }
+  });
+
+  app.post("/api/orders/:id/assign", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const order = await storage.assignOrderToDistributor(
+        parseInt(req.params.id),
+        req.body.distributorId
+      );
+      res.json(order);
+    } catch (error) {
+      console.error("Error assigning order:", error);
+      res.status(500).json({ error: "Failed to assign order" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
