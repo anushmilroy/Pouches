@@ -6,9 +6,11 @@ import type { CommissionTransaction } from "@shared/schema";
 import type { Order } from "@shared/schema";
 
 export interface IStorage {
-  // ... existing methods ...
+  // User management
   getUserByUsername(username: string): Promise<User | undefined>;
   getUser(id: number): Promise<User | undefined>;
+  getUserOrders(userId: number): Promise<Order[]>;
+  getConsignmentOrders(): Promise<Order[]>;
 
   // Referral management
   getUsersWithReferrals(): Promise<User[]>;
@@ -42,6 +44,36 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error getting user by ID:", error);
       return undefined;
+    }
+  }
+
+  async getUserOrders(userId: number): Promise<Order[]> {
+    try {
+      console.log(`Fetching orders for user ${userId}...`);
+      const orders = await db.select()
+        .from(ordersTable)
+        .where(eq(ordersTable.userId, userId))
+        .orderBy(desc(ordersTable.createdAt));
+      console.log(`Found ${orders.length} orders for user ${userId}`);
+      return orders;
+    } catch (error) {
+      console.error(`Error getting orders for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async getConsignmentOrders(): Promise<Order[]> {
+    try {
+      console.log('Fetching consignment orders...');
+      const orders = await db.select()
+        .from(ordersTable)
+        .where(sql`${ordersTable.status} = 'PENDING' AND ${ordersTable.paymentMethod} = 'COD'`)
+        .orderBy(desc(ordersTable.createdAt));
+      console.log(`Found ${orders.length} consignment orders`);
+      return orders;
+    } catch (error) {
+      console.error('Error getting consignment orders:', error);
+      return [];
     }
   }
 
