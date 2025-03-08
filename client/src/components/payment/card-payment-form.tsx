@@ -21,29 +21,37 @@ export default function CardPaymentForm() {
     }
 
     setIsProcessing(true);
+    setPaymentError("");
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/order-confirmation`,
-      },
-    });
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/order-confirmation`,
+        },
+      });
 
-    if (error) {
-      setPaymentError(error.message ?? "An unexpected error occurred");
+      if (error) {
+        setPaymentError(error.message ?? "An unexpected error occurred");
+        console.error("Payment error:", error);
+      }
+    } catch (error) {
+      console.error("Stripe error:", error);
+      setPaymentError("An unexpected error occurred while processing your payment");
+    } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-6">
       <PaymentElement />
       {paymentError && (
         <div className="text-destructive text-sm mt-2">{paymentError}</div>
       )}
       <Button
         type="submit"
-        className="w-full mt-4"
+        className="w-full"
         disabled={isProcessing || !stripe || !elements}
       >
         {isProcessing ? (

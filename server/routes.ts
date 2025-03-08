@@ -8,8 +8,8 @@ import express from "express";
 import Stripe from "stripe";
 
 // Use test key for development
-const stripe = new Stripe('sk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890', {
-  apiVersion: '2023-10-16'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890', {
+  apiVersion: "2023-10-16",
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -31,10 +31,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { amount } = req.body;
 
+      console.log('Creating payment intent for amount:', amount);
+
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency: 'usd',
-        payment_method_types: ['card', 'bank_transfer'],
         automatic_payment_methods: {
           enabled: true,
         },
