@@ -4,27 +4,41 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
+
+interface Transaction {
+  id: number;
+  orderId: number;
+  amount: number;
+  status: 'PENDING' | 'PAID';
+  createdAt: string;
+}
+
+interface EarningsData {
+  total: number;
+  pending: number;
+  transactions: Transaction[];
+}
 
 export function EarningsSection() {
   const { toast } = useToast();
-  
-  const { data: earnings, isLoading: earningsLoading } = useQuery({
+
+  const { data: earnings, isLoading: earningsLoading } = useQuery<EarningsData>({
     queryKey: ["/api/users/earnings"],
   });
 
-  const { data: referralCode, isLoading: referralLoading } = useQuery({
+  const { data: referralCode } = useQuery<string>({
     queryKey: ["/api/users/referral-code"],
   });
 
   const generateReferralCode = async () => {
     try {
-      const response = await apiRequest("POST", "/api/users/referral-code");
-      const data = await response.json();
+      await apiRequest("POST", "/api/users/referral-code");
+      queryClient.invalidateQueries({ queryKey: ["/api/users/referral-code"] });
       toast({
-        title: "Referral Code Generated",
-        description: `Your referral code is: ${data.referralCode}`,
+        title: "Success",
+        description: "Your referral code has been generated.",
       });
     } catch (error) {
       toast({
@@ -50,24 +64,38 @@ export function EarningsSection() {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
                 <CardTitle>Total Earnings</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">
-                  ${earnings?.total || "0.00"}
+                <div className="text-3xl font-bold text-primary">
+                  ${earnings?.total.toFixed(2) || "0.00"}
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Earnings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-muted-foreground">
+                  ${earnings?.pending.toFixed(2) || "0.00"}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Referral Code</CardTitle>
               </CardHeader>
               <CardContent>
                 {referralCode ? (
-                  <div className="text-xl font-mono">{referralCode}</div>
+                  <div className="text-xl font-mono bg-muted p-2 rounded">
+                    {referralCode}
+                  </div>
                 ) : (
                   <Button onClick={generateReferralCode}>
                     Generate Referral Code
@@ -89,14 +117,22 @@ export function EarningsSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {earnings?.transactions?.map((transaction) => (
+                {earnings?.transactions.map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>
                       {format(new Date(transaction.createdAt), 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell>#{transaction.orderId}</TableCell>
-                    <TableCell>${transaction.amount}</TableCell>
-                    <TableCell>{transaction.status}</TableCell>
+                    <TableCell>${transaction.amount.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        transaction.status === 'PAID' 
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {transaction.status}
+                      </span>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {(!earnings?.transactions || earnings.transactions.length === 0) && (
