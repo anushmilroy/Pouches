@@ -3,9 +3,14 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { OrderStatus, UserRole, PaymentMethod } from "@shared/schema";
+import path from "path";
+import express from "express";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+
+  // Serve static files from attached_assets
+  app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets')));
 
   // Products
   app.get("/api/products", async (_req, res) => {
