@@ -13,6 +13,7 @@ import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminDashboard from "@/pages/dashboard/admin";
 import WholesaleDashboard from "@/pages/dashboard/wholesale";
 import DistributorDashboard from "@/pages/dashboard/distributor";
+import RegistrationSuccess from "@/pages/auth/registration-success";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/shop" component={ShopPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/auth/registration-success" component={RegistrationSuccess} />
       <Route path="/checkout" component={CheckoutPage} />
       <Route path="/order-confirmation" component={OrderConfirmationPage} />
 
