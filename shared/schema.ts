@@ -30,13 +30,13 @@ export const PouchCategory = {
 } as const;
 
 export const PouchFlavor = {
-  APPLE_MINT: 'APPLE_MINT',
-  COOL_MINT: 'COOL_MINT',
-  PEPPERMINT: 'PEPPERMINT',
-  COLA: 'COLA',
-  SPEARMINT: 'SPEARMINT',
-  WATERMELON: 'WATERMELON',
-  CHERRY: 'CHERRY'
+  APPLE_MINT: 'Apple Mint',
+  COOL_MINT: 'Cool Mint',
+  PEPPERMINT: 'Peppermint',
+  COLA: 'Cola',
+  SPEARMINT: 'Spearmint',
+  WATERMELON: 'Watermelon',
+  CHERRY: 'Cherry'
 } as const;
 
 export const NicotineStrength = {
