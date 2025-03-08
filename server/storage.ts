@@ -91,6 +91,12 @@ const initialProducts: Product[] = [
   }
 ];
 
+const defaultAdmin = {
+  username: "admin",
+  password: "72af7034f304259be4f53457166e65040ca15f9018010b53daebe89bb2dd6a103498af96884771efb0268c07805362a6fda9852327174501144d94c9889d787f.9506be6ac397d4f92673f19ab0ae36c7", // This is hashed 'admin123'
+  role: "ADMIN"
+};
+
 interface Promotion {
   id: number;
   name: string;
@@ -161,7 +167,14 @@ export class MemStorage implements IStorage {
       this.products.set(product.id, product);
     });
 
+    // Create default admin user
+    this.createUser({
+      ...defaultAdmin,
+      id: 1
+    });
+
     console.log("Storage initialized with products:", this.getProducts());
+    console.log("Default admin user created");
   }
 
   async getUser(id: number): Promise<User | undefined> {
