@@ -17,6 +17,7 @@ export default function ShopPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | null>(null);
   const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | null>(null);
+  const [selectedStrength, setSelectedStrength] = useState<keyof typeof NicotineStrength | null>(null);
   const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
 
   // Load cart from localStorage on mount
@@ -54,8 +55,9 @@ export default function ShopPage() {
 
       const matchesCategory = !selectedCategory || product.category === selectedCategory;
       const matchesFlavor = !selectedFlavor || product.flavor === selectedFlavor;
+      const matchesStrength = !selectedStrength || product.strengths.includes(selectedStrength);
 
-      return matchesSearch && matchesCategory && matchesFlavor;
+      return matchesSearch && matchesCategory && matchesFlavor && matchesStrength;
     }) : [];
 
   const handleAddToCart = (productId: string, strength: keyof typeof NicotineStrength) => {
@@ -110,7 +112,7 @@ export default function ShopPage() {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Input
             placeholder="Search products..."
             value={searchTerm}
@@ -142,6 +144,21 @@ export default function ShopPage() {
             <SelectContent>
               <SelectItem value="all">All Flavors</SelectItem>
               {Object.entries(PouchFlavor).map(([key, value]) => (
+                <SelectItem key={key} value={key}>{value}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={selectedStrength || "all"}
+            onValueChange={(value) => setSelectedStrength(value === "all" ? null : value as keyof typeof NicotineStrength)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Strength" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Strengths</SelectItem>
+              {Object.entries(NicotineStrength).map(([key, value]) => (
                 <SelectItem key={key} value={key}>{value}</SelectItem>
               ))}
             </SelectContent>
