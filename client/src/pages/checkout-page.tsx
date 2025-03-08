@@ -283,7 +283,12 @@ export default function CheckoutPage() {
                           <span className="ml-2">Setting up payment...</span>
                         </div>
                       ) : clientSecret ? (
-                        <Elements stripe={stripePromise} options={{ clientSecret }}>
+                        <Elements stripe={stripePromise} options={{ 
+                          clientSecret,
+                          appearance: {
+                            theme: 'stripe',
+                          },
+                        }}>
                           <CardPaymentForm />
                         </Elements>
                       ) : null

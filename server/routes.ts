@@ -35,9 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(amount * 100), // Convert to cents
         currency: 'usd',
-        automatic_payment_methods: {
-          enabled: true,
-        },
+        payment_method_types: ['card'],
       });
 
       console.log('Payment intent created:', paymentIntent.id);
@@ -48,11 +46,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Products
-  app.get("/api/products", async (_req, res) => {
-    const products = await storage.getProducts();
-    res.json(products);
-  });
 
   // Orders
   app.post("/api/orders", async (req, res) => {
