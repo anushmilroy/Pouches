@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, numeric, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -22,6 +22,24 @@ export const OrderStatus = {
   SHIPPED: 'SHIPPED',
   DELIVERED: 'DELIVERED',
   CANCELLED: 'CANCELLED'
+} as const;
+
+export const ShippingMethod = {
+  STANDARD: {
+    name: 'Standard Shipping',
+    price: 10.00,
+    description: 'Standard delivery (5-7 business days)'
+  },
+  EXPRESS: {
+    name: 'Express Shipping',
+    price: 20.00,
+    description: 'Express delivery (2-3 business days)'
+  },
+  WHOLESALE: {
+    name: 'Wholesale Shipping',
+    price: 50.00,
+    description: 'Wholesale bulk shipping'
+  }
 } as const;
 
 export const PouchCategory = {
@@ -87,9 +105,30 @@ export const orders = pgTable("orders", {
   distributorId: integer("distributor_id").references(() => users.id),
   status: text("status").notNull().$type<keyof typeof OrderStatus>(),
   total: numeric("total").notNull(),
+  subtotal: numeric("subtotal").notNull(),
+  shippingMethod: text("shipping_method").notNull().$type<keyof typeof ShippingMethod>(),
+  shippingCost: numeric("shipping_cost").notNull(),
+  discountCode: text("discount_code"),
+  discountAmount: numeric("discount_amount"),
   paymentMethod: text("payment_method").notNull().$type<keyof typeof PaymentMethod>(),
   paymentDetails: jsonb("payment_details"),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Add promotions table
+export const promotions = pgTable("promotions", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  description: text("description").notNull(),
+  discountType: text("discount_type").notNull().$type<'PERCENTAGE' | 'FIXED'>(),
+  discountValue: numeric("discount_value").notNull(),
+  minOrderAmount: numeric("min_order_amount"),
+  maxDiscount: numeric("max_discount"),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id),
 });
 
 export const orderItems = pgTable("order_items", {
@@ -104,9 +143,11 @@ export const insertUserSchema = createInsertSchema(users);
 export const insertProductSchema = createInsertSchema(products);
 export const insertOrderSchema = createInsertSchema(orders);
 export const insertOrderItemSchema = createInsertSchema(orderItems);
+export const insertPromotionSchema = createInsertSchema(promotions);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
+export type Promotion = typeof promotions.$inferSelect;

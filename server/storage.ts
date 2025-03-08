@@ -17,7 +17,7 @@ const initialProducts: Product[] = [
     stock: 10000,
     minRetailOrder: 5,
     minWholesaleOrder: 100,
-    imagePath: "attached_assets/puxxapplemint12mg.jpg"
+    imagePath: "attached_assets/apple-mint-6mg.jpg"
   },
   {
     id: 2,
@@ -31,7 +31,7 @@ const initialProducts: Product[] = [
     stock: 5000,
     minRetailOrder: 5,
     minWholesaleOrder: 100,
-    imagePath: "attached_assets/puxxapplemint12mg.jpg"
+    imagePath: "attached_assets/apple-mint-12mg.jpg"
   },
   {
     id: 3,
@@ -45,7 +45,7 @@ const initialProducts: Product[] = [
     stock: 10000,
     minRetailOrder: 5,
     minWholesaleOrder: 100,
-    imagePath: "attached_assets/puxcoolmint12mg.jpg"
+    imagePath: "attached_assets/cool-mint-6mg.jpg"
   },
   {
     id: 4,
@@ -59,7 +59,7 @@ const initialProducts: Product[] = [
     stock: 5000,
     minRetailOrder: 5,
     minWholesaleOrder: 100,
-    imagePath: "attached_assets/puxcoolmint12mg.jpg"
+    imagePath: "attached_assets/cool-mint-12mg.jpg"
   },
   {
     id: 5,
@@ -73,7 +73,7 @@ const initialProducts: Product[] = [
     stock: 5000,
     minRetailOrder: 5,
     minWholesaleOrder: 100,
-    imagePath: "attached_assets/puxcoolmint12mg.jpg"
+    imagePath: "attached_assets/cool-mint-16mg.jpg"
   },
   {
     id: 6,
@@ -87,7 +87,7 @@ const initialProducts: Product[] = [
     stock: 5000,
     minRetailOrder: 5,
     minWholesaleOrder: 100,
-    imagePath: "attached_assets/puxcoolmint12mg.jpg"
+    imagePath: "attached_assets/cool-mint-22mg.jpg"
   }
 ];
 

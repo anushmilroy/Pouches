@@ -1,0 +1,42 @@
+name,description,category,flavor,strength,price,wholesalePrice,stock,minRetailOrder,minWholesaleOrder,imagePath
+PUXX Apple Mint,Fresh and crisp apple mint nicotine pouch,DRY,APPLE_MINT,MG_6,15.00,8.00,10000,5,100,attached_assets/apple-mint-6mg.jpg
+PUXX Cool Mint,Refreshing cool mint nicotine pouch,DRY,COOL_MINT,MG_12,15.00,8.00,5000,5,100,attached_assets/cool-mint-12mg.jpg
+PUXX Cherry,Sweet cherry flavored nicotine pouch,DRY,CHERRY,MG_16,15.00,8.00,5000,5,100,attached_assets/cherry-16mg.jpg
+
+INSTRUCTIONS:
+------------------
+1. Each product can have multiple variants with different strengths
+2. Image paths should be in attached_assets folder
+3. Price and wholesalePrice should have 2 decimal places
+4. Stock must be a whole number
+
+VALIDATION RULES:
+------------------
+Category (must be one of):
+DRY
+WET
+
+Flavor (must be one of):
+APPLE_MINT
+COOL_MINT
+PEPPERMINT
+COLA
+SPEARMINT
+WATERMELON
+CHERRY
+
+Strength (must be one of):
+MG_6 (6mg)
+MG_8 (8mg)
+MG_12 (12mg)
+MG_16 (16mg)
+MG_22 (22mg)
+
+Default Values:
+------------------
+minRetailOrder: 5 (can be customized)
+minWholesaleOrder: 100 (can be customized)
+
+Example Row:
+------------------
+PUXX Cherry,Sweet cherry flavored nicotine pouch,DRY,CHERRY,MG_16,15.00,8.00,5000,5,100,attached_assets/cherry-16mg.jpg

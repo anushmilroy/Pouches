@@ -10,11 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PaymentMethod, NicotineStrength, PouchFlavor } from "@shared/schema";
+import { PaymentMethod, NicotineStrength, PouchFlavor, ShippingMethod } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import BankTransferForm from "@/components/payment/bank-transfer-form";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Form schema
 const checkoutSchema = z.object({
@@ -26,6 +27,7 @@ const checkoutSchema = z.object({
   zipCode: z.string().min(1, "ZIP code is required"),
   country: z.string().min(1, "Country is required"),
   phone: z.string().min(1, "Phone number is required"),
+  shippingMethod: z.enum(['STANDARD', 'EXPRESS', 'WHOLESALE'] as const),
   createAccount: z.boolean().default(false),
   password: z.string().optional().refine((val) => {
     if (!val) return true;
@@ -61,19 +63,24 @@ export default function CheckoutPage() {
   const [createAccount, setCreateAccount] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"bank_transfer" | "manual">("bank_transfer");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState<keyof typeof ShippingMethod>('STANDARD');
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
       createAccount: false,
+      shippingMethod: 'STANDARD'
     },
   });
 
-  // Calculate cart total
-  const cartTotal = Object.entries(cart).reduce((total, [key, item]) => {
+  // Calculate totals including shipping
+  const subtotal = Object.entries(cart).reduce((total, [key, item]) => {
     const [flavor] = key.split('-');
     return total + (item.quantity * 15);
   }, 0);
+
+  const shippingCost = ShippingMethod[selectedShippingMethod].price;
+  const cartTotal = subtotal + shippingCost;
 
   // Load cart from localStorage
   useEffect(() => {
@@ -122,6 +129,7 @@ export default function CheckoutPage() {
         status: "PENDING",
         total: cartTotal.toString(),
         paymentMethod: selectedPaymentMethod,
+        shippingMethod: data.shippingMethod,
         items: orderItems,
         customerDetails: {
           email: data.email,
@@ -140,6 +148,7 @@ export default function CheckoutPage() {
       localStorage.setItem('lastOrder', JSON.stringify({
         orderNumber: order.id,
         paymentMethod: selectedPaymentMethod,
+        shippingMethod: data.shippingMethod,
         items: Object.entries(cart).map(([key, item]) => {
           const [flavor, strength] = key.split('-');
           return {
@@ -224,9 +233,20 @@ export default function CheckoutPage() {
                     </div>
                   );
                 })}
-                <div className="flex justify-between items-center pt-4 font-bold">
-                  <div>Total</div>
-                  <div>${cartTotal.toFixed(2)}</div>
+
+                <div className="pt-4 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div>Subtotal</div>
+                    <div>${subtotal.toFixed(2)}</div>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div>Shipping</div>
+                    <div>${shippingCost.toFixed(2)}</div>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t font-bold">
+                    <div>Total</div>
+                    <div>${cartTotal.toFixed(2)}</div>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -234,6 +254,38 @@ export default function CheckoutPage() {
 
           {/* Checkout Form */}
           <div className="space-y-6">
+            {/* Shipping Method Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Shipping Method</CardTitle>
+                <CardDescription>Choose your preferred shipping method</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Object.entries(ShippingMethod).map(([key, method]) => (
+                    <div
+                      key={key}
+                      className={cn(
+                        "flex items-center justify-between p-4 rounded-lg border cursor-pointer",
+                        selectedShippingMethod === key
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/50"
+                      )}
+                      onClick={() => setSelectedShippingMethod(key as keyof typeof ShippingMethod)}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-medium">{method.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {method.description}
+                        </div>
+                      </div>
+                      <div className="font-medium">${method.price.toFixed(2)}</div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Payment Information</CardTitle>
@@ -396,6 +448,30 @@ export default function CheckoutPage() {
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={form.control}
+                      name="shippingMethod"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Shipping Method</FormLabel>
+                          <FormControl>
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select shipping method" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(ShippingMethod).map(([key, value]) => (
+                                  <SelectItem key={key} value={key}>{value.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
 
                     <div className="space-y-4">
                       <FormField
