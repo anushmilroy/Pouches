@@ -1,15 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { AdminReferralStats } from "@/components/admin/referral-stats";
 import { Order, OrderStatus, Promotion, UserRole, WholesaleStatus, ConsignmentStatus } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -20,18 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {Badge} from "@/components/ui/badge"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 function CreatePromotionDialog() {
   const { toast } = useToast();
@@ -629,13 +613,13 @@ function AdminDashboard() {
     queryKey: ["/api/admin/referral-stats"],
   });
 
-  const { 
-    data: { 
+  const {
+    data: {
       totalCommissionPaid,
       totalCommissionPending,
-      activeReferrers 
-    } = {}, 
-    isLoading: summaryLoading 
+      activeReferrers
+    } = {},
+    isLoading: summaryLoading
   } = useQuery({
     queryKey: ["/api/admin/referral-summary"],
   });
