@@ -186,6 +186,7 @@ export class MemStorage implements IStorage {
       commission: null,
       createdAt: new Date(),
     };
+    console.log("Creating user:", { ...user, password: '***' }); // Log user creation
     this.users.set(id, user);
     return user;
   }
