@@ -225,152 +225,167 @@ export default function CheckoutPage() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Checkout</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Cart Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {Object.entries(cart).map(([key, item]) => {
-                  const [flavor, strength] = key.split('-');
-                  return (
-                    <div key={key} className="flex justify-between items-center py-2 border-b">
-                      <div>
-                        <div className="font-medium">
-                          {PouchFlavor[flavor as keyof typeof PouchFlavor]}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {NicotineStrength[strength as keyof typeof NicotineStrength]} • {item.quantity} cans
-                        </div>
-                      </div>
-                      <div className="font-medium">${(15 * item.quantity).toFixed(2)}</div>
-                    </div>
-                  );
-                })}
-
-                <div className="pt-4 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <div>Subtotal</div>
-                    <div>${subtotal.toFixed(2)}</div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div>Shipping</div>
-                    <div>${shippingCost.toFixed(2)}</div>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t font-bold">
-                    <div>Total</div>
-                    <div>${cartTotal.toFixed(2)}</div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Checkout Form */}
-          <div className="space-y-6">
-            {/* Shipping Method Selection */}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Cart Summary */}
             <Card>
               <CardHeader>
-                <CardTitle>Shipping Method</CardTitle>
-                <CardDescription>Choose your preferred shipping method</CardDescription>
+                <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {availableShippingMethods.map(([key, method]) => (
-                    <div
-                      key={key}
-                      className={cn(
-                        "flex items-center justify-between p-4 rounded-lg border cursor-pointer",
-                        selectedShippingMethod === key
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      )}
-                      onClick={() => setSelectedShippingMethod(key as keyof typeof ShippingMethod)}
-                    >
-                      <div className="space-y-1">
-                        <div className="font-medium">{method.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {method.description}
+                  {Object.entries(cart).map(([key, item]) => {
+                    const [flavor, strength] = key.split('-');
+                    return (
+                      <div key={key} className="flex justify-between items-center py-2 border-b">
+                        <div>
+                          <div className="font-medium">
+                            {PouchFlavor[flavor as keyof typeof PouchFlavor]}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {NicotineStrength[strength as keyof typeof NicotineStrength]} • {item.quantity} cans
+                          </div>
                         </div>
+                        <div className="font-medium">${(15 * item.quantity).toFixed(2)}</div>
                       </div>
-                      <div className="font-medium">${method.price.toFixed(2)}</div>
+                    );
+                  })}
+
+                  <div className="pt-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div>Subtotal</div>
+                      <div>${subtotal.toFixed(2)}</div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Referral Code</CardTitle>
-                <CardDescription>If you have a referral code, enter it here</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="referralCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Referral Code</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter referral code (optional)" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Information</CardTitle>
-                <CardDescription>Choose your preferred payment method</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <Select
-                    value={selectedPaymentMethod}
-                    onValueChange={(value: "bank_transfer" | "manual") => setSelectedPaymentMethod(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="manual">Invoice Payment</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <div className="mt-6">
-                    {selectedPaymentMethod === "bank_transfer" && (
-                      <BankTransferForm
-                        orderId={1}
-                        amount={cartTotal}
-                        onPaymentComplete={() => {
-                          toast({
-                            title: "Bank Transfer Details Submitted",
-                            description: "We will verify your transfer and update your order status.",
-                          });
-                        }}
-                      />
-                    )}
-
-                    {selectedPaymentMethod === "manual" && <ManualPaymentInfo />}
+                    <div className="flex justify-between items-center">
+                      <div>Shipping</div>
+                      <div>${shippingCost.toFixed(2)}</div>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t font-bold">
+                      <div>Total</div>
+                      <div>${cartTotal.toFixed(2)}</div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Shipping Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Checkout Form */}
+            <div className="space-y-6">
+              {/* Shipping Method Selection */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Shipping Method</CardTitle>
+                  <CardDescription>Choose your preferred shipping method</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="shippingMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="space-y-4">
+                          {availableShippingMethods.map(([key, method]) => (
+                            <div
+                              key={key}
+                              className={cn(
+                                "flex items-center justify-between p-4 rounded-lg border cursor-pointer",
+                                field.value === key
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/50"
+                              )}
+                              onClick={() => {
+                                field.onChange(key);
+                                setSelectedShippingMethod(key as keyof typeof ShippingMethod);
+                              }}
+                            >
+                              <div className="space-y-1">
+                                <div className="font-medium">{method.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {method.description}
+                                </div>
+                              </div>
+                              <div className="font-medium">${method.price.toFixed(2)}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Referral Code */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Referral Code</CardTitle>
+                  <CardDescription>If you have a referral code, enter it here</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="referralCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Referral Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter referral code (optional)" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Payment Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Payment Information</CardTitle>
+                  <CardDescription>Choose your preferred payment method</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <Select
+                      value={selectedPaymentMethod}
+                      onValueChange={(value: "bank_transfer" | "manual") => setSelectedPaymentMethod(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="manual">Invoice Payment</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <div className="mt-6">
+                      {selectedPaymentMethod === "bank_transfer" && (
+                        <BankTransferForm
+                          orderId={1}
+                          amount={cartTotal}
+                          onPaymentComplete={() => {
+                            toast({
+                              title: "Bank Transfer Details Submitted",
+                              description: "We will verify your transfer and update your order status.",
+                            });
+                          }}
+                        />
+                      )}
+
+                      {selectedPaymentMethod === "manual" && <ManualPaymentInfo />}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Shipping Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Shipping Information</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
                     <FormField
                       control={form.control}
                       name="email"
@@ -487,29 +502,6 @@ export default function CheckoutPage() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="shippingMethod"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Shipping Method</FormLabel>
-                          <FormControl>
-                            <Select value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select shipping method" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableShippingMethods.map(([key, value]) => (
-                                  <SelectItem key={key} value={key}>{value.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
                     {!user && (
                       <div className="space-y-4">
                         <FormField
@@ -565,12 +557,12 @@ export default function CheckoutPage() {
                         "Place Order"
                       )}
                     </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </form>
+        </Form>
       </div>
     </StoreLayout>
   );
