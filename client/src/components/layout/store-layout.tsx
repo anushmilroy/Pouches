@@ -1,7 +1,9 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, UserCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { NicotineStrength } from "@shared/schema";
 
 interface StoreLayoutProps {
   children: ReactNode;
@@ -9,6 +11,31 @@ interface StoreLayoutProps {
 
 export default function StoreLayout({ children }: StoreLayoutProps) {
   const [location, setLocation] = useLocation();
+  const [cartItemCount, setCartItemCount] = useState(0);
+
+  // Update cart count whenever localStorage changes
+  useEffect(() => {
+    const updateCartCount = () => {
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        const cart = JSON.parse(savedCart) as Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>;
+        const total = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
+        setCartItemCount(total);
+      } else {
+        setCartItemCount(0);
+      }
+    };
+
+    // Initial count
+    updateCartCount();
+
+    // Listen for storage changes
+    window.addEventListener('storage', updateCartCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCartCount);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -49,13 +76,23 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
               >
                 <UserCircle className="h-5 w-5" />
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setLocation("/checkout")}
-              >
-                <ShoppingBag className="h-5 w-5" />
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLocation("/checkout")}
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  {cartItemCount > 0 && (
+                    <Badge 
+                      variant="default" 
+                      className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                    >
+                      {cartItemCount}
+                    </Badge>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

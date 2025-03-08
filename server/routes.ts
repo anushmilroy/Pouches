@@ -22,15 +22,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Orders
   app.post("/api/orders", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    // Allow guest orders (no authentication required)
+    try {
+      const order = await storage.createOrder({
+        ...req.body,
+        userId: req.user?.id || null,  // Use user ID if authenticated, null otherwise
+        status: OrderStatus.PENDING
+      });
 
-    const order = await storage.createOrder({
-      ...req.body,
-      userId: req.user.id,
-      status: OrderStatus.PENDING
-    });
-
-    res.status(201).json(order);
+      res.status(201).json(order);
+    } catch (error) {
+      console.error("Error creating order:", error);
+      res.status(500).json({ error: "Failed to create order" });
+    }
   });
 
   app.get("/api/orders", async (req, res) => {
