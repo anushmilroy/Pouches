@@ -7,8 +7,11 @@ import path from "path";
 import express from "express";
 import Stripe from "stripe";
 
-// Use test key for development
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890', {
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
 });
 
@@ -18,18 +21,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve static files from attached_assets
   app.use('/attached_assets', express.static(path.join(process.cwd(), 'attached_assets')));
 
-  // Products
-  app.get("/api/products", async (_req, res) => {
-    console.log("GET /api/products request received");
-    const products = await storage.getProducts();
-    console.log("Sending products:", products);
-    res.json(products);
-  });
-
   // Payment Intent
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
       const { amount } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
 
       console.log('Creating payment intent for amount:', amount);
 
@@ -42,22 +41,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       console.log('Payment intent created:', paymentIntent.id);
-      res.json({
-        clientSecret: paymentIntent.client_secret,
-      });
+      res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
       console.error('Error creating payment intent:', error);
       res.status(500).json({ error: 'Failed to create payment intent' });
     }
   });
 
+  // Products
+  app.get("/api/products", async (_req, res) => {
+    const products = await storage.getProducts();
+    res.json(products);
+  });
+
   // Orders
   app.post("/api/orders", async (req, res) => {
-    // Allow guest orders (no authentication required)
     try {
       const order = await storage.createOrder({
         ...req.body,
-        userId: req.user?.id || null,  // Use user ID if authenticated, null otherwise
+        userId: req.user?.id || null,
         status: OrderStatus.PENDING
       });
 

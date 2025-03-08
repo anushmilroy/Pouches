@@ -90,15 +90,21 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Only create payment intent for direct card payments
+  // Create payment intent when cart total changes
   useEffect(() => {
     if (cartTotal > 0 && selectedPaymentMethod === "card") {
-      console.log("Creating payment intent...");
+      setClientSecret(""); // Reset client secret before creating new intent
+      console.log("Creating payment intent for amount:", cartTotal);
+
       apiRequest("POST", "/api/create-payment-intent", {
-        amount: cartTotal,
-        payment_method: selectedPaymentMethod
+        amount: cartTotal
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error('Failed to create payment intent');
+          }
+          return res.json();
+        })
         .then((data) => {
           console.log("Payment intent created successfully");
           setClientSecret(data.clientSecret);
@@ -106,8 +112,8 @@ export default function CheckoutPage() {
         .catch((error) => {
           console.error("Payment intent error:", error);
           toast({
-            title: "Error",
-            description: "Failed to initialize payment. Please try again.",
+            title: "Payment Setup Failed",
+            description: "Unable to initialize payment. Please try again or choose a different payment method.",
             variant: "destructive",
           });
         });
