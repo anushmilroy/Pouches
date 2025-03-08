@@ -72,19 +72,23 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).json({ message: "Username already exists" });
-    }
-
     try {
+      console.log("Registration request received:", { ...req.body, password: '***' });
+
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
       const userData = {
         ...req.body,
         password: await hashPassword(req.body.password),
         wholesaleStatus: req.body.role === UserRole.WHOLESALE ? WholesaleStatus.PENDING : null
       };
 
+      console.log("Creating user with data:", { ...userData, password: '***' });
       const user = await storage.createUser(userData);
+      console.log("User created:", { ...user, password: '***' });
 
       if (user.role === UserRole.WHOLESALE) {
         return res.status(201).json({ 
@@ -99,6 +103,7 @@ export function setupAuth(app: Express) {
         res.status(201).json({ user });
       });
     } catch (error) {
+      console.error("Error during registration:", error);
       next(error);
     }
   });

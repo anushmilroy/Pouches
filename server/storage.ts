@@ -1,4 +1,4 @@
-import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus } from "@shared/schema";
+import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus, UserRole } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -205,10 +205,10 @@ export class MemStorage implements IStorage {
       referralCode: null,
       commission: null,
       createdAt: new Date(),
-      wholesaleStatus: null, 
-      customPricing: null 
+      wholesaleStatus: null,
+      customPricing: null
     };
-    console.log("Creating user:", { ...user, password: '***' }); 
+    console.log("Creating user:", { ...user, password: '***' });
     this.users.set(id, user);
     return user;
   }
@@ -334,9 +334,14 @@ export class MemStorage implements IStorage {
   }
 
   async getWholesaleUsers(): Promise<User[]> {
-    return Array.from(this.users.values()).filter(
-      (user) => user.role === "WHOLESALE" 
+    console.log("Fetching wholesale users");
+    const allUsers = Array.from(this.users.values());
+    console.log("All users:", allUsers.map(u => ({ ...u, password: '***' })));
+    const wholesaleUsers = allUsers.filter(
+      (user) => user.role === UserRole.WHOLESALE
     );
+    console.log("Filtered wholesale users:", wholesaleUsers.map(u => ({ ...u, password: '***' })));
+    return wholesaleUsers;
   }
 
   async updateWholesaleStatus(id: number, status: keyof typeof WholesaleStatus): Promise<User> {
