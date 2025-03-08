@@ -23,9 +23,22 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (user) {
-      const route = user.role === "ADMIN" ? "/admin" : `/${user.role.toLowerCase()}`;
-      setLocation(route);
+    if (user?.role) {
+      const getRouteForRole = (role: string) => {
+        switch (role) {
+          case "ADMIN":
+            return "/admin";
+          case "RETAIL":
+            return "/retail";
+          case "WHOLESALE":
+            return "/wholesale";
+          case "DISTRIBUTOR":
+            return "/distributor";
+          default:
+            return "/";
+        }
+      };
+      setLocation(getRouteForRole(user.role));
     }
   }, [user, setLocation]);
 
