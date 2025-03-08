@@ -6,6 +6,8 @@ import { OrderStatus, UserRole, PaymentMethod } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
+import { PayoutStatus } from "@shared/schema"; // Import PayoutStatus
+
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -281,6 +283,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error unblocking wholesale user:", error);
       res.status(500).json({ error: "Failed to unblock wholesale user" });
+    }
+  });
+
+  // Commission Management Routes
+  app.get("/api/commission/transactions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const transactions = await storage.getUserCommissionTransactions(req.user.id);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching commission transactions:", error);
+      res.status(500).json({ error: "Failed to fetch commission transactions" });
+    }
+  });
+
+  app.get("/api/commission/payouts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const payouts = await storage.getUserCommissionPayouts(req.user.id);
+      res.json(payouts);
+    } catch (error) {
+      console.error("Error fetching commission payouts:", error);
+      res.status(500).json({ error: "Failed to fetch commission payouts" });
+    }
+  });
+
+  app.get("/api/commission/pending-total", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const total = await storage.getPendingCommissionTotal(req.user.id);
+      res.json({ total });
+    } catch (error) {
+      console.error("Error fetching pending commission total:", error);
+      res.status(500).json({ error: "Failed to fetch pending commission total" });
+    }
+  });
+
+  app.post("/api/commission/payment-method", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const user = await storage.updatePaymentMethod(req.user.id, req.body.paymentMethod);
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating payment method:", error);
+      res.status(500).json({ error: "Failed to update payment method" });
+    }
+  });
+
+  // Admin Commission Management Routes
+  app.patch("/api/users/:id/commission-tier", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const user = await storage.updateUserCommissionTier(
+        parseInt(req.params.id),
+        req.body.tier
+      );
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating commission tier:", error);
+      res.status(500).json({ error: "Failed to update commission tier" });
+    }
+  });
+
+  app.post("/api/commission/process-payout", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { userId, amount } = req.body;
+      const payout = await storage.createCommissionPayout({
+        userId,
+        amount,
+        status: PayoutStatus.PROCESSING,
+        paymentDetails: req.body.paymentDetails,
+        processedAt: new Date().toISOString(),
+      });
+      res.json(payout);
+    } catch (error) {
+      console.error("Error processing commission payout:", error);
+      res.status(500).json({ error: "Failed to process commission payout" });
     }
   });
 

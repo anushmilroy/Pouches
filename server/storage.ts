@@ -1,4 +1,4 @@
-import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus, UserRole } from "@shared/schema";
+import { InsertUser, User, Product, Order, OrderItem, OrderStatus, PouchCategory, PouchFlavor, NicotineStrength, WholesaleStatus, UserRole, InsertCommissionTransaction, CommissionTransaction, InsertCommissionPayout, CommissionPayout, CommissionTier, PayoutStatus } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -146,6 +146,16 @@ export interface IStorage {
   blockWholesaleUser(id: number): Promise<User>;
   unblockWholesaleUser(id: number): Promise<User>;
 
+  // Commission management
+  createCommissionTransaction(transaction: InsertCommissionTransaction): Promise<CommissionTransaction>;
+  getUserCommissionTransactions(userId: number): Promise<CommissionTransaction[]>;
+  createCommissionPayout(payout: InsertCommissionPayout): Promise<CommissionPayout>;
+  getUserCommissionPayouts(userId: number): Promise<CommissionPayout[]>;
+  updateUserCommissionTier(userId: number, tier: keyof typeof CommissionTier): Promise<User>;
+  calculateUserCommissionRate(userId: number): Promise<number>;
+  getPendingCommissionTotal(userId: number): Promise<string>;
+  updatePaymentMethod(userId: number, paymentMethod: any): Promise<User>;
+
   sessionStore: session.Store;
 }
 
@@ -155,6 +165,8 @@ export class MemStorage implements IStorage {
   private orders: Map<number, Order>;
   private orderItems: Map<number, OrderItem>;
   private promotions: Map<number, Promotion>;
+  private commissionTransactions: Map<number, CommissionTransaction>;
+  private commissionPayouts: Map<number, CommissionPayout>;
   private currentId: { [key: string]: number };
   sessionStore: session.Store;
 
@@ -164,7 +176,9 @@ export class MemStorage implements IStorage {
     this.orders = new Map();
     this.orderItems = new Map();
     this.promotions = new Map();
-    this.currentId = { users: 1, products: 7, orders: 1, orderItems: 1, promotions: 1 };
+    this.commissionTransactions = new Map();
+    this.commissionPayouts = new Map();
+    this.currentId = { users: 1, products: 7, orders: 1, orderItems: 1, promotions: 1, commissionTransactions: 1, commissionPayouts: 1 };
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -206,7 +220,9 @@ export class MemStorage implements IStorage {
       commission: null,
       createdAt: new Date(),
       wholesaleStatus: insertUser.role === 'WHOLESALE' ? 'PENDING' : null,
-      customPricing: null
+      customPricing: null,
+      commissionTier: null,
+      paymentMethod: null
     };
     console.log("Creating user:", { ...user, password: '***' });
     this.users.set(id, user);
@@ -382,6 +398,60 @@ export class MemStorage implements IStorage {
 
     user.wholesaleStatus = "APPROVED";
     this.users.set(id, user);
+    return user;
+  }
+
+  async createCommissionTransaction(transaction: InsertCommissionTransaction): Promise<CommissionTransaction> {
+    const id = this.currentId.commissionTransactions++;
+    const newTransaction = { ...transaction, id };
+    this.commissionTransactions.set(id, newTransaction);
+    return newTransaction;
+  }
+
+  async getUserCommissionTransactions(userId: number): Promise<CommissionTransaction[]> {
+    return Array.from(this.commissionTransactions.values())
+      .filter(t => t.userId === userId);
+  }
+
+  async createCommissionPayout(payout: InsertCommissionPayout): Promise<CommissionPayout> {
+    const id = this.currentId.commissionPayouts++;
+    const newPayout = { ...payout, id };
+    this.commissionPayouts.set(id, newPayout);
+    return newPayout;
+  }
+
+  async getUserCommissionPayouts(userId: number): Promise<CommissionPayout[]> {
+    return Array.from(this.commissionPayouts.values())
+      .filter(p => p.userId === userId);
+  }
+
+  async updateUserCommissionTier(userId: number, tier: keyof typeof CommissionTier): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    user.commissionTier = tier;
+    this.users.set(userId, user);
+    return user;
+  }
+
+  async calculateUserCommissionRate(userId: number): Promise<number> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    return CommissionTier[user.commissionTier || 'STANDARD'].rate;
+  }
+
+  async getPendingCommissionTotal(userId: number): Promise<string> {
+    const transactions = await this.getUserCommissionTransactions(userId);
+    const pendingTotal = transactions
+      .filter(t => t.status === PayoutStatus.PENDING)
+      .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+    return pendingTotal.toFixed(2);
+  }
+
+  async updatePaymentMethod(userId: number, paymentMethod: any): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    user.paymentMethod = paymentMethod;
+    this.users.set(userId, user);
     return user;
   }
 }

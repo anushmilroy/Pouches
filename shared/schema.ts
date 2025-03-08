@@ -82,6 +82,20 @@ export const WholesalePricingTier = {
   TIER_7: { min: 25000, max: null, price: 5.00 }
 } as const;
 
+export const PayoutStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  PAID: 'PAID',
+  FAILED: 'FAILED'
+} as const;
+
+export const CommissionTier = {
+  STANDARD: { rate: 0.05, minOrders: 0 },
+  SILVER: { rate: 0.07, minOrders: 10 },
+  GOLD: { rate: 0.10, minOrders: 25 },
+  PLATINUM: { rate: 0.12, minOrders: 50 }
+} as const;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -92,6 +106,8 @@ export const users = pgTable("users", {
   referrerId: integer("referrer_id").references(() => users.id),
   referralCode: text("referral_code").unique(),
   commission: numeric("commission").default("0.00"),
+  commissionTier: text("commission_tier").$type<keyof typeof CommissionTier>().default("STANDARD"),
+  paymentMethod: jsonb("payment_method"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -152,11 +168,34 @@ export const orderItems = pgTable("order_items", {
   price: numeric("price").notNull()
 });
 
+export const commissionPayouts = pgTable("commission_payouts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  amount: numeric("amount").notNull(),
+  status: text("status").notNull().$type<keyof typeof PayoutStatus>(),
+  paymentDetails: jsonb("payment_details"),
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const commissionTransactions = pgTable("commission_transactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  amount: numeric("amount").notNull(),
+  rate: numeric("rate").notNull(),
+  status: text("status").notNull().$type<keyof typeof PayoutStatus>(),
+  payoutId: integer("payout_id").references(() => commissionPayouts.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertProductSchema = createInsertSchema(products);
 export const insertOrderSchema = createInsertSchema(orders);
 export const insertOrderItemSchema = createInsertSchema(orderItems);
 export const insertPromotionSchema = createInsertSchema(promotions);
+export const insertCommissionPayoutSchema = createInsertSchema(commissionPayouts);
+export const insertCommissionTransactionSchema = createInsertSchema(commissionTransactions);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -164,3 +203,7 @@ export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Promotion = typeof promotions.$inferSelect;
+export type CommissionPayout = typeof commissionPayouts.$inferSelect;
+export type CommissionTransaction = typeof commissionTransactions.$inferSelect;
+export type InsertCommissionPayout = z.infer<typeof insertCommissionPayoutSchema>;
+export type InsertCommissionTransaction = z.infer<typeof insertCommissionTransactionSchema>;
