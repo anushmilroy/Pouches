@@ -1,12 +1,12 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 import StoreLayout from "@/components/layout/store-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -17,10 +17,10 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import CardPaymentForm from "@/components/payment/card-payment-form";
 import BankTransferForm from "@/components/payment/bank-transfer-form";
-import { Loader2 } from "lucide-react"; // Changed import to use lucide-react
+import { Loader2 } from "lucide-react";
 
 // Initialize Stripe
-const stripePromise = loadStripe('pk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_51OXRxBHWQqHBjacDXgbxPWBfPzwp8GDvE9E8VDY1234567890');
 
 // Form schema
 const checkoutSchema = z.object({
@@ -41,13 +41,32 @@ const checkoutSchema = z.object({
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
+function ManualPaymentInfo() {
+  return (
+    <div className="space-y-4">
+      <p className="text-muted-foreground">
+        After placing your order, our team will review it and send you a Stripe invoice via email.
+        You can then complete the payment securely through the invoice link.
+      </p>
+      <div className="bg-muted p-4 rounded-lg">
+        <h4 className="font-medium mb-2">Important Notes:</h4>
+        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+          <li>Invoice will be sent within 24 hours</li>
+          <li>Order processing begins after payment confirmation</li>
+          <li>Payment link will be valid for 48 hours</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
   const [createAccount, setCreateAccount] = useState(false);
   const [clientSecret, setClientSecret] = useState("");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "bank_transfer">("card");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"card" | "bank_transfer" | "manual">("card");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<CheckoutFormData>({
@@ -60,7 +79,7 @@ export default function CheckoutPage() {
   // Calculate cart total
   const cartTotal = Object.entries(cart).reduce((total, [key, item]) => {
     const [flavor] = key.split('-');
-    return total + (item.quantity * 15); // Using fixed price for now
+    return total + (item.quantity * 15);
   }, 0);
 
   // Load cart from localStorage
@@ -71,16 +90,17 @@ export default function CheckoutPage() {
     }
   }, []);
 
-  // Create payment intent when cart total changes
+  // Only create payment intent for direct card payments
   useEffect(() => {
     if (cartTotal > 0 && selectedPaymentMethod === "card") {
+      console.log("Creating payment intent...");
       apiRequest("POST", "/api/create-payment-intent", {
         amount: cartTotal,
         payment_method: selectedPaymentMethod
       })
         .then((res) => res.json())
         .then((data) => {
-          console.log("Payment intent created");
+          console.log("Payment intent created successfully");
           setClientSecret(data.clientSecret);
         })
         .catch((error) => {
@@ -122,9 +142,9 @@ export default function CheckoutPage() {
       const orderItems = Object.entries(cart).map(([key, item]) => {
         const [flavor] = key.split('-');
         return {
-          productId: 1, // We'll need to get this from the actual product data
+          productId: 1,
           quantity: item.quantity,
-          price: "15.00" // This should come from the product data
+          price: "15.00"
         };
       });
 
@@ -133,7 +153,16 @@ export default function CheckoutPage() {
         status: "PENDING",
         total: cartTotal.toString(),
         paymentMethod: selectedPaymentMethod,
-        items: orderItems
+        items: orderItems,
+        customerDetails: {
+          email: data.email,
+          name: `${data.firstName} ${data.lastName}`,
+          address: data.address,
+          city: data.city,
+          zipCode: data.zipCode,
+          country: data.country,
+          phone: data.phone
+        }
       });
 
       // Clear cart after successful order
@@ -142,7 +171,9 @@ export default function CheckoutPage() {
 
       toast({
         title: "Order placed successfully!",
-        description: "Thank you for your order.",
+        description: selectedPaymentMethod === "manual" 
+          ? "You will receive a payment invoice via email shortly."
+          : "Thank you for your order.",
       });
 
       setLocation("/");
@@ -209,12 +240,62 @@ export default function CheckoutPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
+                <CardTitle>Payment Information</CardTitle>
+                <CardDescription>Choose your preferred payment method</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <Select
+                    value={selectedPaymentMethod}
+                    onValueChange={(value: "card" | "bank_transfer" | "manual") => setSelectedPaymentMethod(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="card">Card Payment</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="manual">Invoice Payment</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {selectedPaymentMethod === "card" && (
+                    clientSecret ? (
+                      <Elements stripe={stripePromise} options={{ clientSecret }}>
+                        <CardPaymentForm />
+                      </Elements>
+                    ) : (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                      </div>
+                    )
+                  )}
+
+                  {selectedPaymentMethod === "bank_transfer" && (
+                    <BankTransferForm
+                      orderId={1}
+                      amount={cartTotal}
+                      onPaymentComplete={() => {
+                        toast({
+                          title: "Bank Transfer Details Submitted",
+                          description: "We will verify your transfer and update your order status.",
+                        });
+                      }}
+                    />
+                  )}
+
+                  {selectedPaymentMethod === "manual" && <ManualPaymentInfo />}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
                 <CardTitle>Shipping Information</CardTitle>
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-                    {/* Form fields remain the same */}
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <FormField
                       control={form.control}
                       name="email"
@@ -331,25 +412,7 @@ export default function CheckoutPage() {
                       )}
                     />
 
-                    <div className="border-t pt-4 space-y-4">
-                      {/* Payment Method Selection */}
-                      <div className="space-y-2">
-                        <FormLabel>Payment Method</FormLabel>
-                        <Select
-                          value={selectedPaymentMethod}
-                          onValueChange={(value: "card" | "bank_transfer") => setSelectedPaymentMethod(value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select payment method" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="card">Card Payment</SelectItem>
-                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Account Creation Option */}
+                    <div className="space-y-4">
                       <FormField
                         control={form.control}
                         name="createAccount"
@@ -371,7 +434,6 @@ export default function CheckoutPage() {
                         )}
                       />
 
-                      {/* Password field for account creation */}
                       {createAccount && (
                         <FormField
                           control={form.control}
@@ -399,44 +461,12 @@ export default function CheckoutPage() {
                             Processing...
                           </>
                         ) : (
-                          "Complete Order"
+                          "Place Order"
                         )}
                       </Button>
                     </div>
                   </form>
                 </Form>
-              </CardContent>
-            </Card>
-
-            {/* Payment Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {selectedPaymentMethod === "card" ? (
-                  clientSecret ? (
-                    <Elements stripe={stripePromise} options={{ clientSecret }}>
-                      <CardPaymentForm />
-                    </Elements>
-                  ) : (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="h-6 w-6 animate-spin" />
-                    </div>
-                  )
-                ) : (
-                  <BankTransferForm
-                    orderId={1}
-                    amount={cartTotal}
-                    onPaymentComplete={() => {
-                      // Handle bank transfer completion
-                      toast({
-                        title: "Bank Transfer Details Submitted",
-                        description: "We will verify your transfer and update your order status.",
-                      });
-                    }}
-                  />
-                )}
               </CardContent>
             </Card>
           </div>
