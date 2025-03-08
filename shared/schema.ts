@@ -92,7 +92,8 @@ export const products = pgTable("products", {
   wholesalePrice: numeric("wholesale_price").notNull(),
   stock: integer("stock").notNull(),
   minRetailOrder: integer("min_retail_order").notNull().default(5),
-  minWholesaleOrder: integer("min_wholesale_order").notNull().default(100)
+  minWholesaleOrder: integer("min_wholesale_order").notNull().default(100),
+  imagePath: text("image_path"),
 });
 
 export const orders = pgTable("orders", {
