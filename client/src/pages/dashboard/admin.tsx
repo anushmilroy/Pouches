@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CustomPricingDialog } from "@/components/admin/custom-pricing-dialog";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 function CreatePromotionDialog() {
   const { toast } = useToast();
@@ -210,17 +211,7 @@ function WholesalerDetailsDialog({
             </div>
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Account Status</h4>
-              <span className={`inline-block px-2 py-1 mt-1 rounded-full text-xs ${
-                user.wholesaleStatus === WholesaleStatus.APPROVED
-                  ? 'bg-green-100 text-green-800'
-                  : user.wholesaleStatus === WholesaleStatus.REJECTED
-                  ? 'bg-red-100 text-red-800'
-                  : user.wholesaleStatus === WholesaleStatus.BLOCKED
-                    ? 'bg-gray-100 text-gray-800'
-                    : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {user.wholesaleStatus || 'PENDING'}
-              </span>
+              <StatusBadge status={user.wholesaleStatus} className="mt-1" />
             </div>
           </div>
 
@@ -641,17 +632,7 @@ function AdminDashboard() {
                         <TableCell>{user.username}</TableCell>
                         <TableCell>{format(new Date(user.createdAt), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            user.wholesaleStatus === WholesaleStatus.APPROVED
-                              ? 'bg-green-100 text-green-800'
-                              : user.wholesaleStatus === WholesaleStatus.REJECTED
-                              ? 'bg-red-100 text-red-800'
-                              : user.wholesaleStatus === WholesaleStatus.BLOCKED
-                                ? 'bg-gray-100 text-gray-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {user.wholesaleStatus || 'PENDING'}
-                          </span>
+                          <StatusBadge status={user.wholesaleStatus} />
                         </TableCell>
                         <TableCell>
                           {user.wholesaleStatus === WholesaleStatus.APPROVED && (
