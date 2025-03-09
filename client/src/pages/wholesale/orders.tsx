@@ -13,6 +13,8 @@ export default function WholesaleOrders() {
     queryKey: ["/api/orders/wholesale"],
   });
 
+  console.log("Fetched wholesale orders:", orders);
+
   return (
     <WholesaleLayout>
       <div className="container mx-auto px-4 py-6">

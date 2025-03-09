@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders } from "@shared/schema";
+// Import with a different name to avoid conflict
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders as ordersTable } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
@@ -108,30 +109,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Orders
-  // Update the order creation endpoint
   app.post("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) {
+      console.log("Unauthorized attempt to create order - user not authenticated");
       return res.sendStatus(401);
     }
 
     try {
       const orderData = req.body;
-      console.log("Creating new order:", {
+      console.log("Creating new order with data:", {
         userId: req.user.id,
-        ...orderData
+        userRole: req.user.role,
+        orderTotal: orderData.total,
+        paymentMethod: orderData.paymentMethod,
+        timestamp: new Date().toISOString()
       });
 
+      // Create the order with the correct schema fields
       const [newOrder] = await db
-        .insert(orders)
+        .insert(ordersTable)
         .values({
-          ...orderData,
           userId: req.user.id,
           status: OrderStatus.PENDING,
+          total: parseFloat(orderData.total),
+          subtotal: parseFloat(orderData.subtotal),
+          paymentMethod: orderData.paymentMethod,
+          shippingMethod: orderData.shippingMethod || null,
+          shippingCost: orderData.shippingCost ? parseFloat(orderData.shippingCost) : 0,
+          discountCode: orderData.discountCode || null,
+          discountAmount: orderData.discountAmount ? parseFloat(orderData.discountAmount) : 0,
+          paymentDetails: orderData.paymentDetails || {},
           createdAt: new Date().toISOString(),
+          referralCode: orderData.referralCode || null,
+          commissionAmount: orderData.commissionAmount ? parseFloat(orderData.commissionAmount) : 0,
         })
         .returning();
 
-      console.log("Order created successfully:", newOrder);
+      console.log("Order created successfully:", {
+        orderId: newOrder.id,
+        status: newOrder.status,
+        userId: newOrder.userId,
+        total: newOrder.total
+      });
+
+      // Verify the order was created by immediately fetching it
+      const [verifiedOrder] = await db
+        .select()
+        .from(ordersTable)
+        .where(eq(ordersTable.id, newOrder.id));
+
+      console.log("Verified order exists:", {
+        verifiedOrderId: verifiedOrder?.id,
+        verifiedUserId: verifiedOrder?.userId,
+        exists: !!verifiedOrder
+      });
+
       res.status(201).json(newOrder);
     } catch (error) {
       console.error("Error creating order:", error);
@@ -139,30 +171,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
-  // Update the wholesale orders endpoint
+  // Update wholesale orders endpoint
   app.get("/api/orders/wholesale", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+      console.log("Unauthorized attempt to fetch wholesale orders:", {
+        isAuthenticated: req.isAuthenticated(),
+        userRole: req.user?.role
+      });
       return res.sendStatus(401);
     }
 
     try {
       console.log(`Fetching orders for wholesaler ${req.user.id}...`);
-      const wholesaleOrders = await db
+      const userOrders = await db
         .select()
-        .from(orders)
-        .where(eq(orders.userId, req.user.id))
-        .orderBy(desc(orders.createdAt));
+        .from(ordersTable)
+        .where(eq(ordersTable.userId, req.user.id))
+        .orderBy(desc(ordersTable.createdAt));
 
-      console.log(`Found ${wholesaleOrders.length} orders for wholesaler ${req.user.id}`);
-      res.json(wholesaleOrders);
+      console.log("Wholesale orders fetch result:", {
+        userId: req.user.id,
+        orderCount: userOrders.length,
+        orderIds: userOrders.map(o => o.id)
+      });
+      res.json(userOrders);
     } catch (error) {
       console.error("Error fetching wholesale orders:", error);
       res.status(500).json({ error: "Failed to fetch wholesale orders" });
     }
   });
 
+
   //removed old order get route
+
 
   // Update getDistributorOrders endpoint with better error handling
   app.get("/api/orders/distributor", async (req, res) => {
@@ -834,8 +875,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
       const totalCommissionPending = allTransactions
-        .filter(t => t.status === 'PENDING')
-        .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+                .filter(t => t.status === 'PENDING')
+        .reduce((sum, t) => sum + parseFloat(t.amount.toString()),0), 0);
 
       const activeReferrers = await storage.getActiveReferrersCount();
       console.log('Active referrers count:', activeReferrers);
@@ -844,8 +885,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalCommissionPaid,
         totalCommissionPending,
         activeReferrers
-      });
-    } catch (error) {
+      });    } catch (error) {
       console.error("Error fetching referral summary:", error);
       res.status(500).json({ error: "Failed to fetch referral summary" });
     }

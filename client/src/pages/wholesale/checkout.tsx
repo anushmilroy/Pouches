@@ -45,7 +45,7 @@ export default function WholesaleCheckout() {
   });
 
   // Check if shipping details are missing
-  const hasShippingDetails = user?.shippingAddress && 
+  const hasShippingDetails = user?.shippingAddress &&
     Object.keys(user.shippingAddress).length > 0 &&
     user.contactPhone &&
     user.contactEmail;
@@ -152,7 +152,7 @@ export default function WholesaleCheckout() {
 
   const totalQuantity = getTotalCartQuantity();
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!hasShippingDetails) {
       toast({
         title: "Shipping Details Required",
@@ -163,12 +163,59 @@ export default function WholesaleCheckout() {
       return;
     }
 
-    // Create the order first (this would be handled by your API)
-    // For now, we'll just redirect to the confirmation page
-    if (paymentMethod === "INVOICE") {
-      setLocation("/wholesale/order-confirmation?payment_method=invoice");
-    } else {
-      setLocation("/wholesale/order-confirmation?payment_method=loan");
+    try {
+      // Create the order
+      const orderData = {
+        total: total,
+        subtotal: subtotal,
+        paymentMethod: paymentMethod,
+        shippingMethod: ShippingMethod.WHOLESALE.name,
+        shippingCost: shippingCost,
+        items: Object.entries(cartItems).map(([itemKey, item]) => {
+          const [productId] = itemKey.split('-');
+          return {
+            productId: parseInt(productId),
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            strength: item.strength,
+            flavor: item.flavor
+          };
+        })
+      };
+
+      console.log("Creating order with data:", orderData);
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const order = await response.json();
+      console.log("Order created successfully:", order);
+
+      // Clear the cart
+      localStorage.removeItem('wholesale_cart');
+
+      // Redirect based on payment method
+      if (paymentMethod === "INVOICE") {
+        setLocation("/wholesale/order-confirmation/invoice");
+      } else {
+        setLocation("/wholesale/order-confirmation/loan");
+      }
+    } catch (error) {
+      console.error("Error creating order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create order. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -178,7 +225,7 @@ export default function WholesaleCheckout() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Profile Settings</h1>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setShowProfileSettings(false)}
               className="flex items-center"
@@ -199,7 +246,7 @@ export default function WholesaleCheckout() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Wholesale Checkout</h1>
           <div className="flex gap-2">
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setShowProfileSettings(true)}
               className="flex items-center"
@@ -207,7 +254,7 @@ export default function WholesaleCheckout() {
               <Settings className="h-4 w-4 mr-2" />
               Profile Settings
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => setLocation("/wholesale")}
               className="flex items-center"
@@ -341,8 +388,8 @@ export default function WholesaleCheckout() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <RadioGroup 
-                  value={paymentMethod} 
+                <RadioGroup
+                  value={paymentMethod}
                   onValueChange={(value: "INVOICE" | "LOAN") => setPaymentMethod(value)}
                   className="space-y-4"
                 >
