@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Redirect } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,24 @@ export default function OnboardingPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  // Admin users should be redirected to admin dashboard immediately
+  if (user?.role === UserRole.ADMIN) {
+    return <Redirect to="/admin" />;
+  }
+
+  // Non-authenticated users should be redirected to auth page
+  if (!user) {
+    return <Redirect to="/auth" />;
+  }
+
+  // Users who completed onboarding should be redirected to their respective pages
+  if (user.onboardingCompletedAt) {
+    if (user.role === UserRole.WHOLESALE) {
+      return <Redirect to="/wholesale" />;
+    }
+    return <Redirect to="/shop" />;
+  }
+
   const form = useForm<OnboardingData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
@@ -64,18 +82,6 @@ export default function OnboardingPage() {
     },
   });
 
-  // Simple redirect for non-authenticated users
-  useEffect(() => {
-    if (!user) {
-      setLocation("/auth");
-    }
-  }, [user, setLocation]);
-
-  // Don't render anything for admin users or if onboarding is complete
-  if (!user || user.role === UserRole.ADMIN || user.onboardingCompletedAt) {
-    return null;
-  }
-
   const onSubmit = async (data: OnboardingData) => {
     try {
       const response = await apiRequest("POST", "/api/user/complete-onboarding", data);
@@ -92,7 +98,7 @@ export default function OnboardingPage() {
         description: "Your information has been saved successfully.",
       });
 
-      // Redirect based on user role
+      // Redirect based on user role after successful onboarding
       if (user.role === UserRole.WHOLESALE) {
         setLocation("/wholesale");
       } else {

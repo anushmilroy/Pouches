@@ -31,8 +31,13 @@ import { UserRole } from "@shared/schema";
 function Router() {
   const { user } = useAuth();
 
-  // If user is logged in but hasn't completed onboarding, redirect to onboarding
-  if (user && !user.onboardingCompletedAt && window.location.pathname !== '/onboarding') {
+  // Admin users should always go to admin dashboard when accessing root
+  if (user?.role === UserRole.ADMIN && window.location.pathname === '/') {
+    return <Redirect to="/admin" />;
+  }
+
+  // For non-admin users who haven't completed onboarding
+  if (user && !user.onboardingCompletedAt && user.role !== UserRole.ADMIN && window.location.pathname !== '/onboarding') {
     return <Redirect to="/onboarding" />;
   }
 
@@ -48,11 +53,15 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/registration-success" component={RegistrationSuccess} />
 
-      {/* Onboarding Route */}
-      <ProtectedRoute path="/onboarding" component={OnboardingPage} />
+      {/* Onboarding Route - Not accessible to admins */}
+      <Route path="/onboarding">
+        {user?.role === UserRole.ADMIN ? <Redirect to="/admin" /> : <OnboardingPage />}
+      </Route>
 
-      {/* Protected Routes */}
+      {/* Admin Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
+
+      {/* Distributor Routes */}
       <ProtectedRoute path="/distributor" component={DistributorDashboard} />
 
       {/* Retail Routes */}
