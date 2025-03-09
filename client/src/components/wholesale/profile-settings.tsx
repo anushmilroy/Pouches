@@ -219,19 +219,23 @@ export function WholesaleProfileSettings() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="same-address"
-          checked={sameAsBilling}
-          onCheckedChange={handleSameAddressChange}
-        />
-        <label
-          htmlFor="same-address"
-          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          Billing address same as shipping address
-        </label>
-      </div>
+      <Card className="bg-muted/50">
+        <CardContent className="pt-6">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="same-address"
+              checked={sameAsBilling}
+              onCheckedChange={handleSameAddressChange}
+            />
+            <label
+              htmlFor="same-address"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Use shipping address as billing address
+            </label>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
