@@ -669,7 +669,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add these new routes for admin referral management
+  // Add these new routes after the distributor routes section
+
+  // Distributor Onboarding Routes
+  app.post("/api/distributor/onboarding/progress", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { step } = req.body;
+      if (typeof step !== 'number' || step < 0) {
+        return res.status(400).json({ error: "Invalid step parameter" });
+      }
+
+      console.log(`Updating onboarding progress for distributor ${req.user.id} to step ${step}`);
+      await storage.updateUser(req.user.id, {
+        onboardingStep: step,
+        onboardingStatus: 'IN_PROGRESS'
+      });
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error updating onboarding progress:", error);
+      res.status(500).json({ error: "Failed to update onboarding progress" });
+    }
+  });
+
+  app.post("/api/distributor/onboarding/complete", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log(`Completing onboarding for distributor ${req.user.id}`);
+      await storage.updateUser(req.user.id, {
+        onboardingStatus: 'COMPLETED',
+        onboardingCompletedAt: new Date()
+      });
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: "Failed to complete onboarding" });
+    }
+  });
+
   app.get("/api/admin/referral-stats", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
@@ -754,43 +798,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add these new routes after the distributor routes section
-
-  // Distributor Onboarding Routes
-  app.post("/api/distributor/onboarding/progress", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
-      return res.sendStatus(401);
-    }
-
-    try {
-      const { step } = req.body;
-      await storage.updateUser(req.user.id, {
-        onboardingStep: step,
-        onboardingStatus: 'IN_PROGRESS'
-      });
-      res.sendStatus(200);
-    } catch (error) {
-      console.error("Error updating onboarding progress:", error);
-      res.status(500).json({ error: "Failed to update onboarding progress" });
-    }
-  });
-
-  app.post("/api/distributor/onboarding/complete", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
-      return res.sendStatus(401);
-    }
-
-    try {
-      await storage.updateUser(req.user.id, {
-        onboardingStatus: 'COMPLETED',
-        onboardingCompletedAt: new Date().toISOString()
-      });
-      res.sendStatus(200);
-    } catch (error) {
-      console.error("Error completing onboarding:", error);
-      res.status(500).json({ error: "Failed to complete onboarding" });
-    }
-  });
 
   const httpServer = createServer(app);
   return httpServer;

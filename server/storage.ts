@@ -57,6 +57,8 @@ export interface IStorage {
   createDistributor(data: InsertUser): Promise<User>;
   getDistributorOrders(distributorId: number): Promise<Order[]>;
   getProducts(): Promise<any[]>;
+  // Add updateUser to the interface
+  updateUser(id: number, data: Partial<InsertUser>): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -547,6 +549,26 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];
+    }
+  }
+  async updateUser(id: number, data: Partial<InsertUser>): Promise<User> {
+    try {
+      console.log(`Updating user ${id} with data:`, { ...data, password: data.password ? '***' : undefined });
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set(data)
+        .where(eq(usersTable.id, id))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User ${id} not found`);
+      }
+
+      console.log(`Successfully updated user ${id}`);
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error updating user ${id}:`, error);
+      throw new Error(`Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }
