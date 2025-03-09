@@ -1,408 +1,192 @@
 import { useState, useEffect } from "react";
 import WholesaleLayout from "@/components/layout/wholesale-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Product } from "@shared/schema";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, Package, ShoppingCart, ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
-import { Input } from "@/components/ui/input";
-import { EarningsSection } from "@/components/earnings-section";
-import { BankDetailsForm } from "@/components/bank-details-form";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useLocation } from "wouter";
-import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
-
-interface CartItem {
-  quantity: number;
-  unitPrice: number;
-  strength: string;
-  flavor: string;
-}
-
-// Function to calculate wholesale price based on total cart quantity
-function calculateWholesalePrice(totalCartQuantity: number): number {
-  if (totalCartQuantity >= 25000) return 5.00; // TIER_7
-  if (totalCartQuantity >= 10000) return 5.50; // TIER_6
-  if (totalCartQuantity >= 5000) return 6.00;  // TIER_5
-  if (totalCartQuantity >= 1000) return 6.50;  // TIER_4
-  if (totalCartQuantity >= 500) return 7.00;   // TIER_3
-  if (totalCartQuantity >= 250) return 7.50;   // TIER_2
-  return 8.00; // TIER_1
-}
+import { Order } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
+import { Loader2, TrendingUp, Package, Coins, ArrowUpRight, ArrowDownRight, ChevronRight } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 export default function WholesaleDashboard() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
-  const [selectedStrength, setSelectedStrength] = useState<string>("");
-  const [selectedFlavor, setSelectedFlavor] = useState<string>("");
   const [, setLocation] = useLocation();
 
-  // Check if user has bank details
-  const needsBankDetails = !user?.bankDetails;
-
-  const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products/wholesale"],
+  // Fetch orders
+  const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
+    queryKey: ["/api/orders/wholesale"],
   });
 
-  // Get unique strengths and flavors
-  const strengths = [...new Set(products?.map(p => p.strength) || [])];
-  const flavors = [...new Set(products?.map(p => p.flavor) || [])];
+  // Calculate metrics
+  const totalOrders = orders?.length || 0;
+  const totalRevenue = orders?.reduce((sum, order) => sum + order.total, 0) || 0;
+  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const recentOrders = orders?.slice(0, 5) || [];
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    const savedCart = localStorage.getItem('wholesale_cart');
-    if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
-    }
-  }, []);
-
-  const handleQuantityChange = (productId: string, value: string) => {
-    const quantity = parseInt(value) || 0;
-    setQuantities({ ...quantities, [productId]: quantity });
-  };
-
-  const getTotalCartQuantity = (newCartItems?: Record<string, CartItem>) => {
-    const items = newCartItems || cartItems;
-    return Object.values(items).reduce((total, item) => total + item.quantity, 0);
-  };
-
-  const getCartItemKey = (productId: number, strength: string, flavor: string) => {
-    return `${productId}-${strength}-${flavor}`;
-  };
-
-  const updateCartItem = (itemKey: string, newQuantity: number) => {
-    const newCart = { ...cartItems };
-
-    if (newQuantity <= 0) {
-      delete newCart[itemKey];
-    } else {
-      const [productId, strength, flavor] = itemKey.split('-');
-      newCart[itemKey] = {
-        quantity: newQuantity,
-        unitPrice: calculateWholesalePrice(getTotalCartQuantity(newCart)),
-        strength,
-        flavor
-      };
-    }
-
-    // Update all items' prices based on new total quantity
-    const totalQuantity = getTotalCartQuantity(newCart);
-    const newPrice = calculateWholesalePrice(totalQuantity);
-    Object.keys(newCart).forEach(id => {
-      newCart[id].unitPrice = newPrice;
-    });
-
-    setCartItems(newCart);
-    localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
-  };
-
-  const removeFromCart = (itemKey: string) => {
-    const newCart = { ...cartItems };
-    delete newCart[itemKey];
-
-    // Update prices for remaining items
-    const totalQuantity = getTotalCartQuantity(newCart);
-    const newPrice = calculateWholesalePrice(totalQuantity);
-    Object.keys(newCart).forEach(id => {
-      newCart[id].unitPrice = newPrice;
-    });
-
-    setCartItems(newCart);
-    localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
-
-    toast({
-      title: "Item Removed",
-      description: "Item has been removed from your cart",
-    });
-  };
-
-  const addToCart = (product: Product) => {
-    if (!selectedStrength || !selectedFlavor) {
-      toast({
-        title: "Selection Required",
-        description: "Please select both strength and flavor",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const quantity = quantities[product.id.toString()] || 0;
-    if (quantity <= 0) {
-      toast({
-        title: "Invalid Quantity",
-        description: "Please enter a valid quantity",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const itemKey = getCartItemKey(product.id, selectedStrength, selectedFlavor);
-
-    try {
-      const newCart = {
-        ...cartItems,
-        [itemKey]: {
-          quantity,
-          unitPrice: calculateWholesalePrice(getTotalCartQuantity() + quantity),
-          strength: selectedStrength,
-          flavor: selectedFlavor
-        }
-      };
-
-      // Update all items to have the same unit price
-      const totalQuantity = getTotalCartQuantity(newCart);
-      const newPrice = calculateWholesalePrice(totalQuantity);
-      Object.keys(newCart).forEach(id => {
-        newCart[id].unitPrice = newPrice;
-      });
-
-      setCartItems(newCart);
-      localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
-
-      toast({
-        title: "Added to Cart",
-        description: `${quantity} units of ${product.name} (${selectedStrength}, ${selectedFlavor}) added`,
-      });
-
-      // Reset inputs
-      setQuantities({ ...quantities, [product.id.toString()]: 0 });
-      setSelectedStrength("");
-      setSelectedFlavor("");
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const cartTotal = Object.entries(cartItems).reduce((total, [, item]) => {
-    return total + (item.quantity * item.unitPrice);
-  }, 0);
-
-  const cartItemCount = getTotalCartQuantity();
-
-  if (needsBankDetails) {
-    return (
-      <WholesaleLayout>
-        <div className="max-w-2xl mx-auto py-8">
-          <h2 className="text-2xl font-bold mb-6">Welcome to Your Wholesale Account</h2>
-          <p className="text-muted-foreground mb-8">
-            To start ordering wholesale products, please set up your bank account details first.
-          </p>
-          <BankDetailsForm />
-        </div>
-      </WholesaleLayout>
-    );
-  }
+  // Monthly comparison (mock data - to be replaced with actual API data)
+  const monthlyGrowth = 15; // percentage
+  const monthlyVolume = 2500; // units
 
   return (
     <WholesaleLayout>
       <div className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="shop" className="space-y-8">
-          <TabsList className="w-full justify-start border-b">
-            <TabsTrigger value="shop">Shop</TabsTrigger>
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="earnings">Earnings & Referrals</TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          {/* Key Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  +{monthlyGrowth}% from last month
+                </p>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="shop">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <div className="lg:col-span-3">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Wholesale Products</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {productsLoading ? (
-                      <div className="flex justify-center p-4">
-                        <Loader2 className="h-6 w-6 animate-spin" />
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {products?.map((product) => (
-                          <Card key={product.id} className="flex flex-col">
-                            <CardHeader>
-                              <CardTitle className="flex items-center">
-                                <Package className="h-5 w-5 mr-2" />
-                                {product.name}
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-1">
-                              <p className="text-sm text-muted-foreground mb-4">
-                                {product.description}
-                              </p>
-                              <div className="space-y-4">
-                                <div>
-                                  <label className="text-sm font-medium">Current Price</label>
-                                  <p className="text-lg font-bold">${calculateWholesalePrice(cartItemCount).toFixed(2)}/unit</p>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium">Strength</label>
-                                  <select
-                                    className="w-full mt-1 p-2 border rounded"
-                                    value={selectedStrength}
-                                    onChange={(e) => setSelectedStrength(e.target.value)}
-                                  >
-                                    <option value="">Select Strength</option>
-                                    {strengths.map(strength => (
-                                      <option key={strength} value={strength}>{strength}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium">Flavor</label>
-                                  <select
-                                    className="w-full mt-1 p-2 border rounded"
-                                    value={selectedFlavor}
-                                    onChange={(e) => setSelectedFlavor(e.target.value)}
-                                  >
-                                    <option value="">Select Flavor</option>
-                                    {flavors.map(flavor => (
-                                      <option key={flavor} value={flavor}>{flavor}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium">Quantity</label>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    value={quantities[product.id.toString()] || 0}
-                                    onChange={(e) => handleQuantityChange(product.id.toString(), e.target.value)}
-                                    className="mt-1"
-                                  />
-                                </div>
-                                <Button
-                                  className="w-full"
-                                  onClick={() => addToCart(product)}
-                                  disabled={!selectedStrength || !selectedFlavor || (quantities[product.id.toString()] || 0) <= 0}
-                                >
-                                  Add to Cart
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Order Volume</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{monthlyVolume} units</div>
+                <p className="text-xs text-muted-foreground">
+                  {totalOrders} orders this month
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Average Order</CardTitle>
+                <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${averageOrderValue.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  Per order average
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Commissions</CardTitle>
+                <Coins className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">${(totalRevenue * 0.05).toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground">
+                  5% commission rate
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Orders Overview */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Recent Orders</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  className="text-sm"
+                  onClick={() => setLocation("/wholesale/orders")}
+                >
+                  View All
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
-
-              <div className="lg:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <ShoppingCart className="h-5 w-5 mr-2" />
-                      Cart ({cartItemCount} items)
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {Object.entries(cartItems).map(([itemKey, item]) => {
-                        const [productId] = itemKey.split('-');
-                        const product = products?.find(p => p.id === parseInt(productId));
-                        return (
-                          <div key={itemKey} className="space-y-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="font-medium">{product?.name}</p>
-                                <p className="text-sm">{item.strength} - {item.flavor}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  ${item.unitPrice.toFixed(2)}/unit
-                                </p>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeFromCart(itemKey)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => updateCartItem(itemKey, item.quantity - 1)}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <Input
-                                type="number"
-                                min="1"
-                                value={item.quantity}
-                                onChange={(e) => updateCartItem(itemKey, parseInt(e.target.value) || 0)}
-                                className="w-20 text-center"
-                              />
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => updateCartItem(itemKey, item.quantity + 1)}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                              <p className="font-medium ml-2">
-                                ${(item.quantity * item.unitPrice).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {cartItemCount > 0 ? (
-                        <>
-                          <Separator />
-                          <div className="flex justify-between items-center">
-                            <p className="font-medium">Total Quantity</p>
-                            <p className="text-lg font-bold">{cartItemCount} units</p>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <p className="font-medium">Total</p>
-                            <p className="text-lg font-bold">${cartTotal.toFixed(2)}</p>
-                          </div>
-                          <Button
-                            className="w-full"
-                            onClick={() => {
-                              if (cartItemCount < 100) {
-                                toast({
-                                  title: "Minimum Order Quantity",
-                                  description: "Total order quantity must be at least 100 units",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-                              setLocation("/wholesale/checkout");
-                            }}
-                          >
-                            Checkout
-                            <ChevronRight className="h-4 w-4 ml-2" />
-                          </Button>
-                        </>
-                      ) : (
-                        <p className="text-center text-muted-foreground">Your cart is empty</p>
-                      )}
+            </CardHeader>
+            <CardContent>
+              {ordersLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : recentOrders.length > 0 ? (
+                <div className="space-y-4">
+                  {recentOrders.map((order) => (
+                    <div key={order.id} className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">Order #{order.id}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(order.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${order.total.toFixed(2)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {order.status}
+                        </p>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-4">
+                  No recent orders found
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
-          <TabsContent value="dashboard">
-            {/* Placeholder for dashboard content */}
-          </TabsContent>
+          {/* Growth Analytics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Monthly Performance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Volume Growth</p>
+                      <p className="text-2xl font-bold text-green-600">+{monthlyGrowth}%</p>
+                    </div>
+                    <ArrowUpRight className="h-8 w-8 text-green-600" />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Revenue Growth</p>
+                      <p className="text-2xl font-bold text-green-600">+12%</p>
+                    </div>
+                    <ArrowUpRight className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <TabsContent value="earnings">
-            <EarningsSection />
-          </TabsContent>
-        </Tabs>
+            <Card>
+              <CardHeader>
+                <CardTitle>Wholesale Benefits</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium">Volume Discount Tier</p>
+                    <p className="text-2xl font-bold">Tier 2</p>
+                    <p className="text-sm text-muted-foreground">
+                      250+ units per order
+                    </p>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-sm font-medium">Next Tier Threshold</p>
+                    <p className="text-2xl font-bold">500 units</p>
+                    <p className="text-sm text-muted-foreground">
+                      Unlock higher discounts
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </WholesaleLayout>
   );

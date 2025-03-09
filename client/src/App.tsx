@@ -15,6 +15,7 @@ import WholesaleDashboard from "@/pages/dashboard/wholesale";
 import WholesaleCheckout from "@/pages/wholesale/checkout";
 import WholesaleProfile from "@/pages/wholesale/profile";
 import WholesaleOrders from "@/pages/wholesale/orders";
+import WholesaleEarnings from "@/pages/wholesale/earnings";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 import RegistrationSuccess from "@/pages/auth/registration-success";
 import { useAuth } from "@/hooks/use-auth";
@@ -25,7 +26,7 @@ function Router() {
 
   // Redirect wholesalers to their dashboard
   if (user?.role === UserRole.WHOLESALE && window.location.pathname === '/') {
-    return <Redirect to="/wholesale" />;
+    return <Redirect to="/wholesale/dashboard" />;
   }
 
   return (
@@ -47,6 +48,7 @@ function Router() {
           <ProtectedRoute path="/wholesale/orders" component={WholesaleOrders} />
           <ProtectedRoute path="/wholesale/profile" component={WholesaleProfile} />
           <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
+          <ProtectedRoute path="/wholesale/earnings" component={WholesaleEarnings} />
           <Route path="/shop">
             <Redirect to="/wholesale" />
           </Route>

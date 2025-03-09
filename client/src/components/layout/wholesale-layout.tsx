@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { LogOut, ShoppingCart, Settings, Store, BookCheck, TrendingUp } from "lucide-react";
+import { LogOut, ShoppingCart, Settings, Store, BookCheck, TrendingUp, Coins } from "lucide-react";
 
 interface WholesaleLayoutProps {
   children: ReactNode;
@@ -27,6 +27,14 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
               </h1>
               <nav className="hidden md:flex items-center space-x-4">
                 <Button
+                  variant={location === "/wholesale/dashboard" ? "secondary" : "ghost"}
+                  className="flex items-center"
+                  onClick={() => setLocation("/wholesale/dashboard")}
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+                <Button
                   variant={location === "/wholesale" ? "secondary" : "ghost"}
                   className="flex items-center"
                   onClick={() => setLocation("/wholesale")}
@@ -43,12 +51,12 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
                   Orders
                 </Button>
                 <Button
-                  variant={location === "/wholesale/dashboard" ? "secondary" : "ghost"}
+                  variant={location === "/wholesale/earnings" ? "secondary" : "ghost"}
                   className="flex items-center"
-                  onClick={() => setLocation("/wholesale/dashboard")}
+                  onClick={() => setLocation("/wholesale/earnings")}
                 >
-                  <TrendingUp className="h-4 w-4 mr-2" />
-                  Dashboard
+                  <Coins className="h-4 w-4 mr-2" />
+                  Earnings
                 </Button>
                 <Button
                   variant={location === "/wholesale/profile" ? "secondary" : "ghost"}
