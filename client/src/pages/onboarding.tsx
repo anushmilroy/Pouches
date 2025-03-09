@@ -64,22 +64,32 @@ export default function OnboardingPage() {
     },
   });
 
-  // Redirect if user is not logged in, is admin, or has already completed onboarding
+  // Handle redirects
   useEffect(() => {
-    if (!user) {
-      setLocation("/auth");
-    } else if (user.role === UserRole.ADMIN) {
-      // Admins don't need to complete onboarding
-      setLocation("/admin");
-    } else if (user.onboardingCompletedAt) {
-      // Redirect based on user role
-      if (user.role === UserRole.WHOLESALE) {
-        setLocation("/wholesale");
-      } else {
-        setLocation("/shop");
+    const handleRedirect = () => {
+      if (!user) {
+        setLocation("/auth");
+        return;
       }
-    }
-  }, [user, setLocation]);
+
+      // Admin users don't need onboarding
+      if (user.role === UserRole.ADMIN) {
+        setLocation("/admin");
+        return;
+      }
+
+      // Users who completed onboarding
+      if (user.onboardingCompletedAt) {
+        if (user.role === UserRole.WHOLESALE) {
+          setLocation("/wholesale");
+        } else {
+          setLocation("/shop");
+        }
+      }
+    };
+
+    handleRedirect();
+  }, [user, setLocation]); // Add proper dependencies
 
   const onSubmit = async (data: OnboardingData) => {
     try {
@@ -90,7 +100,6 @@ export default function OnboardingPage() {
         throw new Error(error.error || "Failed to save onboarding information");
       }
 
-      // Invalidate user query to refresh the data
       await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
 
       toast({
