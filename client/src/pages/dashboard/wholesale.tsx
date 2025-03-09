@@ -4,13 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { Loader2, Package } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Loader2, Package, ShoppingCart, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { EarningsSection } from "@/components/earnings-section";
 import { BankDetailsForm } from "@/components/bank-details-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "wouter";
+import { Separator } from "@/components/ui/separator";
 
 // Function to calculate wholesale price based on quantity
 function calculateWholesalePrice(quantity: number): number | null {
@@ -24,11 +26,18 @@ function calculateWholesalePrice(quantity: number): number | null {
   return 8.00; // TIER_1 (100-249)
 }
 
+interface CartItem {
+  quantity: number;
+  unitPrice: number;
+}
+
 export default function WholesaleDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [isOrdering, setIsOrdering] = useState(false);
+  const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
+  const [, setLocation] = useLocation();
 
   // Check if user has bank details
   const needsBankDetails = !user?.bankDetails;
@@ -36,6 +45,14 @@ export default function WholesaleDashboard() {
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('wholesale_cart');
+    if (savedCart) {
+      setCartItems(JSON.parse(savedCart));
+    }
+  }, []);
 
   const handleQuantityChange = (productId: number, value: string) => {
     const quantity = parseInt(value) || 0;
@@ -64,16 +81,16 @@ export default function WholesaleDashboard() {
     }
 
     try {
-      const cartKey = 'wholesale_cart';
-      const savedCart = localStorage.getItem(cartKey);
-      const cart = savedCart ? JSON.parse(savedCart) : {};
-
-      cart[productId] = {
-        quantity,
-        unitPrice: wholesalePrice,
+      const newCart = {
+        ...cartItems,
+        [productId]: {
+          quantity,
+          unitPrice: wholesalePrice,
+        }
       };
 
-      localStorage.setItem(cartKey, JSON.stringify(cart));
+      setCartItems(newCart);
+      localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
 
       toast({
         title: "Added to Cart",
@@ -90,6 +107,14 @@ export default function WholesaleDashboard() {
       });
     }
   };
+
+  const cartTotal = Object.entries(cartItems).reduce((total, [productId, item]) => {
+    return total + (item.quantity * item.unitPrice);
+  }, 0);
+
+  const cartItemCount = Object.values(cartItems).reduce((total, item) => {
+    return total + item.quantity;
+  }, 0);
 
   if (needsBankDetails) {
     return (
@@ -109,66 +134,130 @@ export default function WholesaleDashboard() {
     <DashboardLayout>
       <Tabs defaultValue="shop" className="space-y-8">
         <TabsList>
-          <TabsTrigger value="shop">Wholesale Shop</TabsTrigger>
+          <TabsTrigger value="shop">Shop</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="earnings">Earnings & Referrals</TabsTrigger>
         </TabsList>
 
         <TabsContent value="shop">
-          <Card>
-            <CardHeader>
-              <CardTitle>Wholesale Products</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {productsLoading ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products?.map((product) => (
-                    <Card key={product.id} className="flex flex-col">
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <Package className="h-5 w-5 mr-2" />
-                          {product.name}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1">
-                        <p className="text-sm text-muted-foreground mb-4">
-                          {product.description}
-                        </p>
-                        <div className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Wholesale Products</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {productsLoading ? (
+                    <div className="flex justify-center p-4">
+                      <Loader2 className="h-6 w-6 animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {products?.map((product) => (
+                        <Card key={product.id} className="flex flex-col">
+                          <CardHeader>
+                            <CardTitle className="flex items-center">
+                              <Package className="h-5 w-5 mr-2" />
+                              {product.name}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="flex-1">
+                            <p className="text-sm text-muted-foreground mb-4">
+                              {product.description}
+                            </p>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="text-sm font-medium">Starting Price (100 units)</label>
+                                <p className="text-lg font-bold">${calculateWholesalePrice(100)?.toFixed(2)}/unit</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium">Quantity (min. 100)</label>
+                                <Input
+                                  type="number"
+                                  min="100"
+                                  value={quantities[product.id] || 100}
+                                  onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">Current Unit Price</p>
+                                <p className="text-lg font-bold">
+                                  ${calculateWholesalePrice(quantities[product.id] || 0)?.toFixed(2) || 'N/A'}
+                                </p>
+                              </div>
+                              <Button
+                                className="w-full"
+                                onClick={() => addToCart(product.id)}
+                                disabled={!calculateWholesalePrice(quantities[product.id] || 0)}
+                              >
+                                Add to Cart
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Cart Section */}
+            <div className="lg:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Cart ({cartItemCount} items)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {Object.entries(cartItems).map(([productId, item]) => {
+                      const product = products?.find(p => p.id === parseInt(productId));
+                      return (
+                        <div key={productId} className="flex justify-between items-start">
                           <div>
-                            <label className="text-sm font-medium">Quantity (min. 100)</label>
-                            <Input
-                              type="number"
-                              min="100"
-                              value={quantities[product.id] || 100}
-                              onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Unit Price</p>
-                            <p className="text-lg font-bold">
-                              {calculateWholesalePrice(quantities[product.id] || 0)?.toFixed(2) || 'N/A'}
+                            <p className="font-medium">{product?.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {item.quantity} units @ ${item.unitPrice.toFixed(2)}
                             </p>
                           </div>
-                          <Button
-                            className="w-full"
-                            onClick={() => addToCart(product.id)}
-                            disabled={!calculateWholesalePrice(quantities[product.id] || 0)}
-                          >
-                            Add to Cart
-                          </Button>
+                          <p className="font-medium">
+                            ${(item.quantity * item.unitPrice).toFixed(2)}
+                          </p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      );
+                    })}
+
+                    {cartItemCount > 0 ? (
+                      <>
+                        <Separator />
+                        <div className="flex justify-between items-center">
+                          <p className="font-medium">Total</p>
+                          <p className="text-lg font-bold">${cartTotal.toFixed(2)}</p>
+                        </div>
+                        <Button 
+                          className="w-full" 
+                          onClick={() => setLocation("/checkout")}
+                        >
+                          Checkout
+                          <ChevronRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-center text-muted-foreground">Your cart is empty</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="dashboard">
+          {/* Placeholder for dashboard content */}
         </TabsContent>
 
         <TabsContent value="earnings">
