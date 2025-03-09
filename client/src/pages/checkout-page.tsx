@@ -17,6 +17,7 @@ import BankTransferForm from "@/components/payment/bank-transfer-form";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import {Loader2} from "lucide-react";
 
 // Form schema
 const checkoutSchema = z.object({
@@ -125,6 +126,16 @@ export default function CheckoutPage() {
   // Update the onSubmit function to properly handle shipping method
   const onSubmit = async (data: CheckoutFormData) => {
     try {
+      const totalCans = Object.values(cart).reduce((total, item) => total + item.quantity, 0);
+      if (totalCans < 5) {
+        toast({
+          title: "Minimum Order Required",
+          description: "Please add at least 5 cans to your cart before checkout",
+          variant: "destructive"
+        });
+        return;
+      }
+
       setIsSubmitting(true);
 
       if (data.createAccount && !data.password) {
@@ -265,10 +276,6 @@ export default function CheckoutPage() {
                 <div className="space-y-4">
                   {Object.entries(cart).map(([key, item]) => {
                     const [flavor, strength] = key.split('-');
-                    const totalCansAfterRemoval = Object.entries(cart).reduce((total, [k, i]) => {
-                      return k === key ? total : total + i.quantity;
-                    }, 0);
-
                     return (
                       <div key={key} className="space-y-2">
                         <div className="flex justify-between items-start">
@@ -284,14 +291,6 @@ export default function CheckoutPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => {
-                              if (totalCansAfterRemoval < 5) {
-                                toast({
-                                  title: "Cannot Remove Item",
-                                  description: "Removing this item would bring your total below the minimum order of 5 cans.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
                               const newCart = { ...cart };
                               delete newCart[key];
                               setCart(newCart);
@@ -311,22 +310,6 @@ export default function CheckoutPage() {
                             size="icon"
                             onClick={() => {
                               const newCart = { ...cart };
-                              const totalCansAfterDecrease = Object.entries(cart).reduce((total, [k, i]) => {
-                                if (k === key) {
-                                  return total + (item.quantity > 1 ? item.quantity - 1 : 0);
-                                }
-                                return total + i.quantity;
-                              }, 0);
-
-                              if (totalCansAfterDecrease < 5) {
-                                toast({
-                                  title: "Cannot Decrease Quantity",
-                                  description: "This would bring your total below the minimum order of 5 cans.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-
                               if (item.quantity > 1) {
                                 newCart[key] = {
                                   ...item,
@@ -345,22 +328,6 @@ export default function CheckoutPage() {
                             value={item.quantity}
                             onChange={(e) => {
                               const newQuantity = parseInt(e.target.value) || 1;
-                              const totalCansAfterChange = Object.entries(cart).reduce((total, [k, i]) => {
-                                if (k === key) {
-                                  return total + newQuantity;
-                                }
-                                return total + i.quantity;
-                              }, 0);
-
-                              if (totalCansAfterChange < 5) {
-                                toast({
-                                  title: "Invalid Quantity",
-                                  description: "Total order must be at least 5 cans.",
-                                  variant: "destructive",
-                                });
-                                return;
-                              }
-
                               if (newQuantity >= 1) {
                                 const newCart = { ...cart };
                                 newCart[key] = {
@@ -731,7 +698,7 @@ export default function CheckoutPage() {
                     <Button
                       type="submit"
                       className="w-full"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || Object.values(cart).reduce((total, item) => total + item.quantity, 0) < 5}
                     >
                       {isSubmitting ? (
                         <>
