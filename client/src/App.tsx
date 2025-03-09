@@ -11,6 +11,9 @@ import ShopPage from "@/pages/shop-page";
 import CheckoutPage from "@/pages/checkout-page";
 import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminDashboard from "@/pages/dashboard/admin";
+import RetailSettings from "@/pages/retail/settings";
+import RetailOrders from "@/pages/retail/orders";
+import RetailEarnings from "@/pages/retail/earnings";
 import WholesaleDashboard from "@/pages/dashboard/wholesale";
 import WholesaleCheckout from "@/pages/wholesale/checkout";
 import WholesaleProfile from "@/pages/wholesale/profile";
@@ -42,6 +45,11 @@ function Router() {
       {/* Protected Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
       <ProtectedRoute path="/distributor" component={DistributorDashboard} />
+
+      {/* Retail Routes */}
+      <ProtectedRoute path="/retail/settings" component={RetailSettings} />
+      <ProtectedRoute path="/retail/orders" component={RetailOrders} />
+      <ProtectedRoute path="/retail/earnings" component={RetailEarnings} />
 
       {/* Wholesale Routes */}
       {user?.role === UserRole.WHOLESALE ? (

@@ -1,11 +1,18 @@
 import { ReactNode, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ShoppingBag, UserCircle } from "lucide-react";
+import { ShoppingBag, UserCircle, Settings, Package, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { NicotineStrength, UserRole } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import Logo from "@/components/logo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface StoreLayoutProps {
   children: ReactNode;
@@ -14,12 +21,11 @@ interface StoreLayoutProps {
 export default function StoreLayout({ children }: StoreLayoutProps) {
   const [location, setLocation] = useLocation();
   const [cartItemCount, setCartItemCount] = useState(0);
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
 
   // Update cart count whenever localStorage changes
   useEffect(() => {
     const updateCartCount = () => {
-      // Check if user is wholesale to determine which cart to look at
       const cartKey = user?.role === UserRole.WHOLESALE ? 'wholesale_cart' : 'cart';
       const savedCart = localStorage.getItem(cartKey);
       if (savedCart) {
@@ -31,15 +37,9 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
       }
     };
 
-    // Initial count
     updateCartCount();
-
-    // Listen for storage changes
     window.addEventListener('storage', updateCartCount);
-
-    return () => {
-      window.removeEventListener('storage', updateCartCount);
-    };
+    return () => window.removeEventListener('storage', updateCartCount);
   }, [user?.role]);
 
   return (
@@ -50,32 +50,16 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
           <div className="h-16 flex items-center justify-between">
             {/* Logo and main navigation */}
             <div className="flex items-center space-x-8">
-              <div 
-                className="cursor-pointer"
-                onClick={() => {
-                  // Redirect wholesale users to their dashboard
-                  if (user?.role === UserRole.WHOLESALE) {
-                    setLocation("/wholesale");
-                  } else {
-                    setLocation("/");
-                  }
-                }}
-              >
+              <div className="cursor-pointer" onClick={() => setLocation("/")}>
                 <Logo />
               </div>
               <nav className="hidden md:flex items-center space-x-4">
                 {user?.role !== UserRole.WHOLESALE && (
                   <>
-                    <Button 
-                      variant="ghost"
-                      onClick={() => setLocation("/")}
-                    >
+                    <Button variant="ghost" onClick={() => setLocation("/")}>
                       Home
                     </Button>
-                    <Button 
-                      variant="ghost"
-                      onClick={() => setLocation("/shop")}
-                    >
+                    <Button variant="ghost" onClick={() => setLocation("/shop")}>
                       Shop
                     </Button>
                   </>
@@ -85,13 +69,45 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
 
             {/* Auth and cart */}
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setLocation("/auth")}
-              >
-                <UserCircle className="h-5 w-5" />
-              </Button>
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <UserCircle className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setLocation("/retail/settings")}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Account Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation("/retail/orders")}>
+                      <Package className="h-4 w-4 mr-2" />
+                      My Orders
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation("/retail/earnings")}>
+                      <Wallet className="h-4 w-4 mr-2" />
+                      My Earnings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-destructive"
+                      onClick={() => logoutMutation.mutate()}
+                    >
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLocation("/auth")}
+                >
+                  <UserCircle className="h-5 w-5" />
+                </Button>
+              )}
+
               {user?.role !== UserRole.WHOLESALE && (
                 <div className="relative">
                   <Button
