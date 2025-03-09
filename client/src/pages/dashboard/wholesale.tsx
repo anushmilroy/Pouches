@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Package, ShoppingCart, ChevronRight } from "lucide-react";
+import { Loader2, Package, ShoppingCart, ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { EarningsSection } from "@/components/earnings-section";
@@ -62,6 +62,49 @@ export default function WholesaleDashboard() {
     return Object.values(items).reduce((total, item) => total + item.quantity, 0);
   };
 
+  const updateCartItem = (productId: string, newQuantity: number) => {
+    const newCart = { ...cartItems };
+
+    if (newQuantity <= 0) {
+      delete newCart[productId];
+    } else {
+      newCart[productId] = {
+        quantity: newQuantity,
+        unitPrice: calculateWholesalePrice(getTotalCartQuantity(newCart)),
+      };
+    }
+
+    // Update all items' prices based on new total quantity
+    const totalQuantity = getTotalCartQuantity(newCart);
+    const newPrice = calculateWholesalePrice(totalQuantity);
+    Object.keys(newCart).forEach(id => {
+      newCart[id].unitPrice = newPrice;
+    });
+
+    setCartItems(newCart);
+    localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
+  };
+
+  const removeFromCart = (productId: string) => {
+    const newCart = { ...cartItems };
+    delete newCart[productId];
+
+    // Update prices for remaining items
+    const totalQuantity = getTotalCartQuantity(newCart);
+    const newPrice = calculateWholesalePrice(totalQuantity);
+    Object.keys(newCart).forEach(id => {
+      newCart[id].unitPrice = newPrice;
+    });
+
+    setCartItems(newCart);
+    localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
+
+    toast({
+      title: "Item Removed",
+      description: "Item has been removed from your cart",
+    });
+  };
+
   const addToCart = (productId: number) => {
     const quantity = quantities[productId] || 0;
     if (quantity <= 0) {
@@ -82,6 +125,13 @@ export default function WholesaleDashboard() {
           unitPrice: calculateWholesalePrice(getTotalCartQuantity() + quantity),
         }
       };
+
+      // Update all items to have the same unit price
+      const totalQuantity = getTotalCartQuantity(newCart);
+      const newPrice = calculateWholesalePrice(totalQuantity);
+      Object.keys(newCart).forEach(id => {
+        newCart[id].unitPrice = newPrice;
+      });
 
       setCartItems(newCart);
       localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
@@ -203,16 +253,48 @@ export default function WholesaleDashboard() {
                     {Object.entries(cartItems).map(([productId, item]) => {
                       const product = products?.find(p => p.id === parseInt(productId));
                       return (
-                        <div key={productId} className="flex justify-between items-start">
-                          <div>
-                            <p className="font-medium">{product?.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.quantity} units @ ${item.unitPrice.toFixed(2)}
+                        <div key={productId} className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">{product?.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                ${item.unitPrice.toFixed(2)}/unit
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFromCart(productId)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => updateCartItem(productId, item.quantity - 1)}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateCartItem(productId, parseInt(e.target.value) || 0)}
+                              className="w-20 text-center"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => updateCartItem(productId, item.quantity + 1)}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                            <p className="font-medium ml-2">
+                              ${(item.quantity * item.unitPrice).toFixed(2)}
                             </p>
                           </div>
-                          <p className="font-medium">
-                            ${(item.quantity * item.unitPrice).toFixed(2)}
-                          </p>
                         </div>
                       );
                     })}
