@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Orders
+  // Order creation endpoint
   app.post("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) {
       console.log("Unauthorized attempt to create order - user not authenticated");
@@ -128,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderTotal: orderData.total,
         paymentMethod: orderData.paymentMethod,
         timestamp: new Date().toISOString(),
-        completeOrderPayload: orderData // Added complete payload logging
+        completeOrderPayload: orderData
       });
 
       // Validate required fields
@@ -146,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           total: parseFloat(orderData.total),
           subtotal: parseFloat(orderData.subtotal),
           paymentMethod: orderData.paymentMethod,
-          shippingMethod: ShippingMethod.WHOLESALE.name, // Explicitly set shipping method for wholesale orders
+          shippingMethod: ShippingMethod.WHOLESALE, // Fix: Use the enum value directly
           shippingCost: parseFloat(orderData.shippingCost),
           discountCode: orderData.discountCode || null,
           discountAmount: orderData.discountAmount ? parseFloat(orderData.discountAmount) : 0,
@@ -859,8 +859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             pendingEarnings,
             lastReferralDate: lastReferral
           };
-        } catch (error) {
-          console.error(`Error processing stats for user ${user.id}:`, error);
+        } catch (error) {          console.error(`Error processing stats for user ${user.id}:`, error);
           return null;
         }
       }));

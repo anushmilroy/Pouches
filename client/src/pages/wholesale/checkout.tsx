@@ -168,8 +168,8 @@ export default function WholesaleCheckout() {
       const orderData = {
         total: total,
         subtotal: subtotal,
-        paymentMethod: paymentMethod,
-        shippingMethod: "WHOLESALE", // Fixed: Use the correct enum value
+        paymentMethod: PaymentMethod.INVOICE,
+        shippingMethod: ShippingMethod.WHOLESALE,
         shippingCost: shippingCost,
         items: Object.entries(cartItems).map(([itemKey, item]) => {
           const [productId] = itemKey.split('-');
