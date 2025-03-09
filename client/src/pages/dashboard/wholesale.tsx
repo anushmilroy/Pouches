@@ -1,10 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
 import { Loader2, Package, ShoppingCart, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
@@ -13,36 +12,34 @@ import { BankDetailsForm } from "@/components/bank-details-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
 import { Separator } from "@/components/ui/separator";
-
-// Function to calculate wholesale price based on quantity
-function calculateWholesalePrice(quantity: number): number | null {
-  if (quantity < 100) return null; // Minimum order quantity
-  if (quantity >= 25000) return 5.00; // TIER_7
-  if (quantity >= 10000) return 5.50; // TIER_6
-  if (quantity >= 5000) return 6.00;  // TIER_5
-  if (quantity >= 1000) return 6.50;  // TIER_4
-  if (quantity >= 500) return 7.00;   // TIER_3
-  if (quantity >= 250) return 7.50;   // TIER_2
-  return 8.00; // TIER_1 (100-249)
-}
+import { useQuery } from "@tanstack/react-query";
 
 interface CartItem {
   quantity: number;
   unitPrice: number;
 }
 
+// Function to calculate wholesale price based on total cart quantity
+function calculateWholesalePrice(totalCartQuantity: number): number {
+  if (totalCartQuantity >= 25000) return 5.00; // TIER_7
+  if (totalCartQuantity >= 10000) return 5.50; // TIER_6
+  if (totalCartQuantity >= 5000) return 6.00;  // TIER_5
+  if (totalCartQuantity >= 1000) return 6.50;  // TIER_4
+  if (totalCartQuantity >= 500) return 7.00;   // TIER_3
+  if (totalCartQuantity >= 250) return 7.50;   // TIER_2
+  return 8.00; // TIER_1
+}
+
 export default function WholesaleDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [quantities, setQuantities] = useState<Record<number, number>>({});
-  const [isOrdering, setIsOrdering] = useState(false);
   const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
   const [, setLocation] = useLocation();
 
   // Check if user has bank details
   const needsBankDetails = !user?.bankDetails;
 
-  // Update the useQuery to filter wholesale products
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products/wholesale"],
   });
@@ -60,33 +57,29 @@ export default function WholesaleDashboard() {
     setQuantities({ ...quantities, [productId]: quantity });
   };
 
+  const getTotalCartQuantity = (newCartItems?: Record<string, CartItem>) => {
+    const items = newCartItems || cartItems;
+    return Object.values(items).reduce((total, item) => total + item.quantity, 0);
+  };
+
   const addToCart = (productId: number) => {
     const quantity = quantities[productId] || 0;
-    if (quantity < 100) {
+    if (quantity <= 0) {
       toast({
         title: "Invalid Quantity",
-        description: "Minimum order quantity is 100 units",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const wholesalePrice = calculateWholesalePrice(quantity);
-    if (!wholesalePrice) {
-      toast({
-        title: "Price Calculation Error",
-        description: "Could not calculate wholesale price for this quantity",
+        description: "Please enter a valid quantity",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      // Calculate new total cart quantity
       const newCart = {
         ...cartItems,
         [productId]: {
           quantity,
-          unitPrice: wholesalePrice,
+          unitPrice: calculateWholesalePrice(getTotalCartQuantity() + quantity),
         }
       };
 
@@ -95,11 +88,11 @@ export default function WholesaleDashboard() {
 
       toast({
         title: "Added to Cart",
-        description: `${quantity} units added at $${wholesalePrice.toFixed(2)} per unit`,
+        description: `${quantity} units added. Total cart quantity: ${getTotalCartQuantity(newCart)} units`,
       });
 
       // Reset quantity input
-      setQuantities({ ...quantities, [productId]: 100 });
+      setQuantities({ ...quantities, [productId]: 0 });
     } catch (error) {
       toast({
         title: "Error",
@@ -113,9 +106,7 @@ export default function WholesaleDashboard() {
     return total + (item.quantity * item.unitPrice);
   }, 0);
 
-  const cartItemCount = Object.values(cartItems).reduce((total, item) => {
-    return total + item.quantity;
-  }, 0);
+  const cartItemCount = getTotalCartQuantity();
 
   if (needsBankDetails) {
     return (
@@ -168,29 +159,23 @@ export default function WholesaleDashboard() {
                             </p>
                             <div className="space-y-4">
                               <div>
-                                <label className="text-sm font-medium">Starting Price (100 units)</label>
-                                <p className="text-lg font-bold">${calculateWholesalePrice(100)?.toFixed(2)}/unit</p>
+                                <label className="text-sm font-medium">Current Price</label>
+                                <p className="text-lg font-bold">${calculateWholesalePrice(cartItemCount).toFixed(2)}/unit</p>
                               </div>
                               <div>
-                                <label className="text-sm font-medium">Quantity (min. 100)</label>
+                                <label className="text-sm font-medium">Quantity</label>
                                 <Input
                                   type="number"
-                                  min="100"
-                                  value={quantities[product.id] || 100}
+                                  min="1"
+                                  value={quantities[product.id] || 0}
                                   onChange={(e) => handleQuantityChange(product.id, e.target.value)}
                                   className="mt-1"
                                 />
                               </div>
-                              <div>
-                                <p className="text-sm font-medium">Current Unit Price</p>
-                                <p className="text-lg font-bold">
-                                  ${calculateWholesalePrice(quantities[product.id] || 0)?.toFixed(2) || 'N/A'}
-                                </p>
-                              </div>
                               <Button
                                 className="w-full"
                                 onClick={() => addToCart(product.id)}
-                                disabled={!calculateWholesalePrice(quantities[product.id] || 0)}
+                                disabled={quantities[product.id] <= 0}
                               >
                                 Add to Cart
                               </Button>
@@ -236,12 +221,26 @@ export default function WholesaleDashboard() {
                       <>
                         <Separator />
                         <div className="flex justify-between items-center">
+                          <p className="font-medium">Total Quantity</p>
+                          <p className="text-lg font-bold">{cartItemCount} units</p>
+                        </div>
+                        <div className="flex justify-between items-center">
                           <p className="font-medium">Total</p>
                           <p className="text-lg font-bold">${cartTotal.toFixed(2)}</p>
                         </div>
                         <Button
                           className="w-full"
-                          onClick={() => setLocation("/wholesale/checkout")}
+                          onClick={() => {
+                            if (cartItemCount < 100) {
+                              toast({
+                                title: "Minimum Order Quantity",
+                                description: "Total order quantity must be at least 100 units",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            setLocation("/wholesale/checkout");
+                          }}
                         >
                           Checkout
                           <ChevronRight className="h-4 w-4 ml-2" />

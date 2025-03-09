@@ -7,6 +7,7 @@ import { ShoppingCart, Package, Truck } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Product, ShippingMethod } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 
 interface CartItem {
   quantity: number;
@@ -16,6 +17,7 @@ interface CartItem {
 export default function WholesaleCheckout() {
   const { toast } = useToast();
   const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
+  const [, setLocation] = useLocation();
 
   const { data: products } = useQuery<Product[]>({
     queryKey: ["/api/products"],
@@ -25,7 +27,21 @@ export default function WholesaleCheckout() {
   useEffect(() => {
     const savedCart = localStorage.getItem('wholesale_cart');
     if (savedCart) {
-      setCartItems(JSON.parse(savedCart));
+      const cart = JSON.parse(savedCart);
+      // Calculate total quantity
+      const totalQuantity = Object.values(cart).reduce((sum: number, item: CartItem) => sum + item.quantity, 0);
+      if (totalQuantity < 100) {
+        toast({
+          title: "Minimum Order Quantity",
+          description: "Total order quantity must be at least 100 units",
+          variant: "destructive",
+        });
+        setLocation("/wholesale");
+        return;
+      }
+      setCartItems(cart);
+    } else {
+      setLocation("/wholesale");
     }
   }, []);
 
@@ -35,6 +51,8 @@ export default function WholesaleCheckout() {
 
   const shippingCost = ShippingMethod.WHOLESALE.price;
   const total = subtotal + shippingCost;
+
+  const totalQuantity = Object.values(cartItems).reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <DashboardLayout>
@@ -71,6 +89,19 @@ export default function WholesaleCheckout() {
                     </div>
                   );
                 })}
+
+                <Separator />
+
+                {/* Total Quantity */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium">Total Quantity</p>
+                    <p className="text-sm text-muted-foreground">
+                      Minimum order: 100 units
+                    </p>
+                  </div>
+                  <p className="font-medium">{totalQuantity} units</p>
+                </div>
 
                 <Separator />
 
