@@ -708,28 +708,44 @@ export class DatabaseStorage implements IStorage {
 
   async createOrder(orderData: InsertOrder): Promise<Order> {
     try {
-      console.log("Creating new order:", { 
-        ...orderData,
+      // Log the incoming order data
+      console.log("Creating new order:", {
         userId: orderData.userId,
-        total: orderData.total
+        total: orderData.total,
+        shippingMethod: orderData.shippingMethod,
+        paymentMethod: orderData.paymentMethod
       });
 
+      // Prepare the order data with proper field mappings
+      const orderValues = {
+        ...orderData,
+        shipping_method: orderData.shippingMethod, // Map camelCase to snake_case
+        shipping_cost: orderData.shippingCost,
+        payment_method: orderData.paymentMethod,
+        referrer_id: orderData.referrerId,
+        referral_code: orderData.referralCode,
+        customer_details: orderData.customerDetails,
+        created_at: new Date(),
+        order_details: orderData.items // Store order items
+      };
+
+      // Insert the order
       const [order] = await db
         .insert(orders)
-        .values(orderData)
+        .values(orderValues)
         .returning();
 
       if (!order) {
         throw new Error("Failed to create order");
       }
 
-      console.log("Order created successfully:", { 
+      console.log("Order created successfully:", {
         id: order.id,
         status: order.status,
-        total: order.total 
+        total: order.total
       });
 
-      // If there's a referral code, update the referrer's stats
+      // Handle referral stats if needed
       if (orderData.referrerId) {
         await this.updateReferralStats(orderData.referrerId, orderData.total);
       }
