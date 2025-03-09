@@ -104,6 +104,24 @@ export default function CheckoutPage() {
     }
   }, []);
 
+  useEffect(() => {
+    // Pre-fill form with user's saved shipping address if available
+    if (user?.shippingAddress) {
+      form.setValue("address", user.shippingAddress.street);
+      form.setValue("city", user.shippingAddress.city);
+      form.setValue("zipCode", user.shippingAddress.zipCode);
+      form.setValue("country", user.shippingAddress.country);
+      form.setValue("phone", user.shippingAddress.phone || "");
+      if (user.firstName && user.lastName) {
+        form.setValue("firstName", user.firstName);
+        form.setValue("lastName", user.lastName);
+      }
+      if (user.email) {
+        form.setValue("email", user.email);
+      }
+    }
+  }, [user, form]);
+
   // Update the onSubmit function to properly handle shipping method
   const onSubmit = async (data: CheckoutFormData) => {
     try {
@@ -282,6 +300,17 @@ export default function CheckoutPage() {
 
             {/* Checkout Form */}
             <div className="space-y-6">
+              {user && (
+                <div className="bg-muted/30 p-4 rounded-lg mb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm">
+                      <p className="font-medium">Using your saved shipping address</p>
+                      <p className="text-muted-foreground">You can modify it for this order if needed</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Shipping Method Selection */}
               <Card>
                 <CardHeader>

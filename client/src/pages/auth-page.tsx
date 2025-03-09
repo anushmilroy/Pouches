@@ -11,7 +11,7 @@ import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserRole } from "@shared/schema";
 import { Home, ShoppingBag } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Logo from "@/components/logo";
 import { Redirect } from "wouter";
 
@@ -29,11 +29,28 @@ const registrationSchema = z.object({
   companyName: z.string().optional(),
   companyAddress: z.string().optional(),
   companyWebsite: z.string().optional(),
+  // Add shipping address fields
+  shippingAddress: z.object({
+    street: z.string().min(1, "Street address is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(1, "State is required"),
+    zipCode: z.string().min(1, "ZIP code is required"),
+    country: z.string().min(1, "Country is required"),
+  }).optional(),
+  // Add bank details
+  bankDetails: z.object({
+    accountName: z.string().min(1, "Account name is required"),
+    accountNumber: z.string().min(1, "Account number is required"),
+    bankName: z.string().min(1, "Bank name is required"),
+    routingNumber: z.string().min(1, "Routing number is required"),
+  }).optional(),
 });
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const [showBankFields, setShowBankFields] = useState(false);
+  const [showShippingFields, setShowShippingFields] = useState(false);
 
   useEffect(() => {
     if (user?.role) {
@@ -42,13 +59,13 @@ export default function AuthPage() {
           case UserRole.ADMIN:
             return "/admin";
           case UserRole.RETAIL:
-            return "/shop"; // Changed from "/retail" to "/shop"
+            return "/shop"; 
           case UserRole.WHOLESALE:
             return "/wholesale";
           case UserRole.DISTRIBUTOR:
             return "/distributor";
           default:
-            return "/shop"; // Default to shop page
+            return "/shop"; 
         }
       };
       setLocation(getRouteForRole(user.role));
@@ -73,6 +90,19 @@ export default function AuthPage() {
       companyName: "",
       companyAddress: "",
       companyWebsite: "",
+      shippingAddress: {
+        street: "",
+        city: "",
+        state: "",
+        zipCode: "",
+        country: "",
+      },
+      bankDetails: {
+        accountName: "",
+        accountNumber: "",
+        bankName: "",
+        routingNumber: "",
+      },
     }
   });
 
@@ -86,7 +116,7 @@ export default function AuthPage() {
         if (data.role === UserRole.WHOLESALE) {
           setLocation("/auth/registration-success");
         } else {
-          setLocation("/shop"); // Redirect retail users to shop
+          setLocation("/shop"); 
         }
       }
     });
@@ -99,7 +129,7 @@ export default function AuthPage() {
     if (user.role === UserRole.WHOLESALE) {
       return <Redirect to="/wholesale" />;
     }
-    return <Redirect to="/shop" />; // Redirect retail users to shop
+    return <Redirect to="/shop" />; 
   }
 
   return (
@@ -218,7 +248,11 @@ export default function AuthPage() {
                           <FormItem>
                             <FormLabel>Account Type</FormLabel>
                             <Select
-                              onValueChange={field.onChange}
+                              onValueChange={(value) => {
+                                field.onChange(value);
+                                setShowBankFields(value === "WHOLESALE");
+                                setShowShippingFields(value === "WHOLESALE");
+                              }}
                               defaultValue={field.value}
                             >
                               <FormControl>
@@ -284,6 +318,139 @@ export default function AuthPage() {
                                 <FormLabel>Company Website (Optional)</FormLabel>
                                 <FormControl>
                                   <Input {...field} placeholder="Company website" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+
+                      {showShippingFields && (
+                        <div className="space-y-4">
+                          <h3 className="font-medium">Shipping Information</h3>
+                          <FormField
+                            control={registerForm.control}
+                            name="shippingAddress.street"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Street Address</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={registerForm.control}
+                              name="shippingAddress.city"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>City</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={registerForm.control}
+                              name="shippingAddress.state"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>State</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <FormField
+                              control={registerForm.control}
+                              name="shippingAddress.zipCode"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>ZIP Code</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={registerForm.control}
+                              name="shippingAddress.country"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Country</FormLabel>
+                                  <FormControl>
+                                    <Input {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {showBankFields && (
+                        <div className="space-y-4">
+                          <h3 className="font-medium">Bank Information</h3>
+                          <FormField
+                            control={registerForm.control}
+                            name="bankDetails.accountName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Account Name</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={registerForm.control}
+                            name="bankDetails.accountNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Account Number</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="text" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={registerForm.control}
+                            name="bankDetails.bankName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Bank Name</FormLabel>
+                                <FormControl>
+                                  <Input {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={registerForm.control}
+                            name="bankDetails.routingNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Routing Number</FormLabel>
+                                <FormControl>
+                                  <Input {...field} type="text" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
