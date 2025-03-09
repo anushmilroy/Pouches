@@ -1,13 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
 import { OrderStatus, UserRole, PaymentMethod } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
-import { PayoutStatus } from "@shared/schema"; // Import PayoutStatus
-import fs from 'fs'; //Import fs module
+import { PayoutStatus } from "@shared/schema";
+import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
 
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -517,8 +517,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const distributor = await storage.createDistributor(req.body);
-      res.status(201).json(distributor);
+      // Hash the password before creating the distributor
+      const hashedPassword = await hashPassword(req.body.password);
+
+      const distributor = await storage.createDistributor({
+        ...req.body,
+        password: hashedPassword,
+        role: UserRole.DISTRIBUTOR
+      });
+
+      // Remove password from response
+      const { password, ...distributorWithoutPassword } = distributor;
+      res.status(201).json(distributorWithoutPassword);
     } catch (error) {
       console.error("Error creating distributor:", error);
       res.status(500).json({ error: "Failed to create distributor" });
