@@ -9,12 +9,7 @@ import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema";
 import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
-import { 
-  db, 
-  eq, 
-  or, 
-  desc 
-} from "./db";
+import { db, eq, or } from "./db";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
