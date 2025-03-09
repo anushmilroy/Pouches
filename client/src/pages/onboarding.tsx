@@ -64,32 +64,17 @@ export default function OnboardingPage() {
     },
   });
 
-  // Handle redirects
+  // Simple redirect for non-authenticated users
   useEffect(() => {
-    const handleRedirect = () => {
-      if (!user) {
-        setLocation("/auth");
-        return;
-      }
+    if (!user) {
+      setLocation("/auth");
+    }
+  }, [user, setLocation]);
 
-      // Admin users don't need onboarding
-      if (user.role === UserRole.ADMIN) {
-        setLocation("/admin");
-        return;
-      }
-
-      // Users who completed onboarding
-      if (user.onboardingCompletedAt) {
-        if (user.role === UserRole.WHOLESALE) {
-          setLocation("/wholesale");
-        } else {
-          setLocation("/shop");
-        }
-      }
-    };
-
-    handleRedirect();
-  }, [user, setLocation]); // Add proper dependencies
+  // Don't render anything for admin users or if onboarding is complete
+  if (!user || user.role === UserRole.ADMIN || user.onboardingCompletedAt) {
+    return null;
+  }
 
   const onSubmit = async (data: OnboardingData) => {
     try {
@@ -108,7 +93,7 @@ export default function OnboardingPage() {
       });
 
       // Redirect based on user role
-      if (user?.role === UserRole.WHOLESALE) {
+      if (user.role === UserRole.WHOLESALE) {
         setLocation("/wholesale");
       } else {
         setLocation("/shop");
@@ -122,11 +107,6 @@ export default function OnboardingPage() {
       });
     }
   };
-
-  // Don't render for admin or if user has completed onboarding
-  if (!user || user.role === UserRole.ADMIN || user.onboardingCompletedAt) {
-    return null;
-  }
 
   return (
     <StoreLayout>
