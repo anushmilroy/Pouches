@@ -122,12 +122,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userRole: req.user?.role || 'guest',
         orderTotal: orderData.total,
         paymentMethod: orderData.paymentMethod,
+        shippingMethod: orderData.shippingMethod,
         timestamp: new Date().toISOString()
       });
 
       // Validate required fields
-      if (!orderData.total || !orderData.subtotal || !orderData.paymentMethod || !orderData.shippingMethod) {
-        console.error("Missing required fields in order data");
+      if (!orderData.total || !orderData.subtotal || !orderData.paymentMethod || !orderData.shippingMethod || !orderData.shippingCost) {
+        console.error("Missing required fields in order data:", {
+          hasTotal: !!orderData.total,
+          hasSubtotal: !!orderData.subtotal,
+          hasPaymentMethod: !!orderData.paymentMethod,
+          hasShippingMethod: !!orderData.shippingMethod,
+          hasShippingCost: !!orderData.shippingCost
+        });
         return res.status(400).json({ error: "Missing required order fields" });
       }
 
@@ -142,12 +149,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentMethod: orderData.paymentMethod,
           shippingMethod: orderData.shippingMethod,
           shippingCost: parseFloat(orderData.shippingCost),
-          discountCode: orderData.discountCode || null,
-          discountAmount: orderData.discountAmount ? parseFloat(orderData.discountAmount) : 0,
           paymentDetails: orderData.paymentDetails || {},
           createdAt: new Date(),
-          referralCode: orderData.referralCode || null,
-          commissionAmount: orderData.commissionAmount ? parseFloat(orderData.commissionAmount) : 0,
         })
         .returning();
 
@@ -857,9 +860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/referral-summary", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
-    }
-
-    try {
+    }try {
       const allTransactions = await storage.getAllCommissionTransactions();
       console.log('Found total commission transactions:', allTransactions.length);
 

@@ -168,7 +168,7 @@ export default function WholesaleCheckout() {
       const orderData = {
         total: total,
         subtotal: subtotal,
-        paymentMethod: PaymentMethod.INVOICE,
+        paymentMethod: paymentMethod, // Use the selected payment method
         shippingMethod: ShippingMethod.WHOLESALE,
         shippingCost: shippingCost,
         items: Object.entries(cartItems).map(([itemKey, item]) => {
@@ -191,7 +191,7 @@ export default function WholesaleCheckout() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(orderData),
-        credentials: 'include' // Add this to ensure cookies are sent
+        credentials: 'include'
       });
 
       if (!response.ok) {
