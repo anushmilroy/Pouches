@@ -191,10 +191,12 @@ export default function WholesaleCheckout() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(orderData),
+        credentials: 'include' // Add this to ensure cookies are sent
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create order');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create order');
       }
 
       const order = await response.json();
@@ -213,7 +215,7 @@ export default function WholesaleCheckout() {
       console.error("Error creating order:", error);
       toast({
         title: "Error",
-        description: "Failed to create order. Please try again.",
+        description: error.message || "Failed to create order. Please try again.",
         variant: "destructive",
       });
     }

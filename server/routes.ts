@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
 // Import with a different name to avoid conflict
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders as ordersTable } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders as ordersTable, ShippingMethod } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
@@ -131,6 +131,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completeOrderPayload: orderData // Added complete payload logging
       });
 
+      // Validate required fields
+      if (!orderData.total || !orderData.subtotal || !orderData.paymentMethod || !orderData.shippingMethod) {
+        console.error("Missing required fields in order data");
+        return res.status(400).json({ error: "Missing required order fields" });
+      }
+
       // Create the order with the correct schema fields
       const [newOrder] = await db
         .insert(ordersTable)
@@ -140,12 +146,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           total: parseFloat(orderData.total),
           subtotal: parseFloat(orderData.subtotal),
           paymentMethod: orderData.paymentMethod,
-          shippingMethod: orderData.shippingMethod || null,
-          shippingCost: orderData.shippingCost ? parseFloat(orderData.shippingCost) : 0,
+          shippingMethod: ShippingMethod.WHOLESALE.name, // Explicitly set shipping method for wholesale orders
+          shippingCost: parseFloat(orderData.shippingCost),
           discountCode: orderData.discountCode || null,
           discountAmount: orderData.discountAmount ? parseFloat(orderData.discountAmount) : 0,
           paymentDetails: orderData.paymentDetails || {},
-          createdAt: new Date(), // Fix: Use Date object instead of string
+          createdAt: new Date(),
           referralCode: orderData.referralCode || null,
           commissionAmount: orderData.commissionAmount ? parseFloat(orderData.commissionAmount) : 0,
         })
@@ -156,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: newOrder.status,
         userId: newOrder.userId,
         total: newOrder.total,
-        databaseOperationResult: "success" //Added database operation result logging
+        databaseOperationResult: "success"
       });
 
       // Verify the order was created by immediately fetching it
@@ -169,13 +175,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verifiedOrderId: verifiedOrder?.id,
         verifiedUserId: verifiedOrder?.userId,
         exists: !!verifiedOrder,
-        databaseOperationResult: "success" //Added database operation result logging
+        databaseOperationResult: "success"
       });
 
       res.status(201).json(newOrder);
     } catch (error) {
       console.error("Error creating order:", error);
-      console.log("Database operation result:", "failure"); //Added database operation result logging
+      console.log("Database operation result:", "failure");
       res.status(500).json({ error: "Failed to create order" });
     }
   });
