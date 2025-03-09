@@ -855,11 +855,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Fix the bug in the loan route
   app.get("/api/wholesale/loans", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole. WHOLESALE) {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
       return res.sendStatus(401);
     }
 
-    try {const loans = await storage.getWholesaleLoansForUser(req.user.id);
+    try {
+      const loans = await storage.getWholesaleLoansForUser(req.user.id);
       res.json(loans);
     } catch (error) {
       console.error("Error fetching wholesale loans:", error);
@@ -988,12 +989,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Processing onboarding data for user:", req.user.id, {
         firstName: req.body.firstName,
         lastName: req.body.lastName,
-        // Log sensitive data safely
         hasShippingAddress: !!req.body.shippingAddress,
         hasBankDetails: !!req.body.bankDetails
       });
 
-      // Validate required fields based on user role
+      // Validate required fields
       if (!req.body.firstName || !req.body.lastName) {
         return res.status(400).json({ error: "Name is required" });
       }
@@ -1014,11 +1014,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastName: req.body.lastName,
           shippingAddress: req.body.shippingAddress,
           bankDetails: req.body.bankDetails,
-          onboardingStatus: "COMPLETED",
-          onboardingCompletedAt: new Date().toISOString()
+          onboardingStatus: "COMPLETED" as const,
+          onboardingCompletedAt: new Date(),
+          onboardingStep: 1
         })
         .where(eq(users.id, req.user.id))
         .returning();
+
+      if (!updatedUser) {
+        throw new Error("Failed to update user data");
+      }
 
       console.log("Onboarding completed successfully for user:", req.user.id);
       res.json(updatedUser);
