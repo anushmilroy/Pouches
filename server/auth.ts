@@ -16,27 +16,28 @@ declare global {
 const scryptAsync = promisify(scrypt);
 
 export async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+  try {
+    const salt = randomBytes(16).toString("hex");
+    const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+    return `${buf.toString("hex")}.${salt}`;
+  } catch (error) {
+    console.error('Error hashing password:', error);
+    throw new Error('Failed to hash password');
+  }
 }
 
 async function comparePasswords(supplied: string, stored: string) {
   try {
-    if (!stored || !stored.includes('.')) {
+    const [hashedPassword, salt] = stored.split(".");
+    if (!hashedPassword || !salt) {
       console.error('Invalid stored password format');
       return false;
     }
 
-    const [hashed, salt] = stored.split(".");
-    if (!hashed || !salt) {
-      console.error('Invalid password components');
-      return false;
-    }
-
-    const hashedBuf = Buffer.from(hashed, "hex");
     const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    return timingSafeEqual(hashedBuf, suppliedBuf);
+    const storedBuf = Buffer.from(hashedPassword, "hex");
+
+    return timingSafeEqual(suppliedBuf, storedBuf);
   } catch (error) {
     console.error('Error comparing passwords:', error);
     return false;
@@ -45,10 +46,14 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || 'dev_secret',
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
   };
 
   app.set("trust proxy", 1);
@@ -67,26 +72,15 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
+        console.log('Found user:', username);
         const isValidPassword = await comparePasswords(password, user.password);
+
         if (!isValidPassword) {
           console.log('Invalid password for user:', username);
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        // Check wholesale account status
-        if (user.role === UserRole.WHOLESALE) {
-          if (!user.wholesaleStatus || user.wholesaleStatus === WholesaleStatus.PENDING) {
-            return done(null, false, { message: "Your wholesale account is pending approval" });
-          }
-          if (user.wholesaleStatus === WholesaleStatus.REJECTED) {
-            return done(null, false, { message: "Your wholesale account application was rejected" });
-          }
-          if (user.wholesaleStatus === WholesaleStatus.BLOCKED) {
-            return done(null, false, { message: "Your wholesale account has been blocked" });
-          }
-        }
-
-        console.log('Successful login for user:', username, 'with role:', user.role);
+        console.log('Password verified for user:', username);
         return done(null, user);
       } catch (error) {
         console.error('Error during authentication:', error);
@@ -117,31 +111,23 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      console.log("Registration request received:", { ...req.body, password: '***' });
+      console.log("Registration request received for username:", req.body.username);
 
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
+      const hashedPassword = await hashPassword(req.body.password);
       const userData = {
         ...req.body,
-        password: await hashPassword(req.body.password),
-        wholesaleStatus: req.body.role === UserRole.WHOLESALE ? WholesaleStatus.PENDING : null
+        password: hashedPassword
       };
 
-      console.log("Creating user with data:", { ...userData, password: '***' });
+      console.log("Creating new user:", userData.username);
       const user = await storage.createUser(userData);
-      console.log("User created:", { ...user, password: '***' });
+      console.log("User created successfully:", user.username);
 
-      if (user.role === UserRole.WHOLESALE) {
-        return res.status(201).json({ 
-          message: "Your wholesale account has been registered and is pending approval. You will be notified once approved.",
-          user 
-        });
-      }
-
-      // Auto-login for non-wholesale users
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json({ user });
@@ -153,7 +139,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
         console.error("Error during login:", err);
         return next(err);
@@ -168,19 +154,21 @@ export function setupAuth(app: Express) {
           console.error("Error logging in user:", err);
           return next(err);
         }
-        console.log("User logged in successfully:", { id: user.id, role: user.role });
+        console.log("User logged in successfully:", user.username);
         res.status(200).json(user);
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
-    console.log("Logging out user:", req.user?.id);
+    const username = req.user?.username;
+    console.log("Logging out user:", username);
     req.logout((err) => {
       if (err) {
         console.error("Error during logout:", err);
         return next(err);
       }
+      console.log("User logged out successfully:", username);
       res.sendStatus(200);
     });
   });
