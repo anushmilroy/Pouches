@@ -164,11 +164,11 @@ export default function WholesaleCheckout() {
     }
 
     try {
+      // Simplified order data with only required fields
       const orderData = {
-        total: total,
-        subtotal: subtotal,
-        paymentMethod: paymentMethod === "INVOICE" ? "INVOICE" : "LOAN",
-        shippingCost: shippingCost
+        total,
+        subtotal,
+        paymentMethod: "INVOICE"
       };
 
       const response = await fetch('/api/orders', {

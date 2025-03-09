@@ -118,12 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const orderData = req.body;
 
-      // Basic required fields validation
-      if (!orderData.total || !orderData.subtotal || !orderData.paymentMethod) {
-        return res.status(400).json({ error: "Missing required order fields" });
-      }
-
-      // Create the order with required fields
+      // Create the order with minimal required fields
       const [newOrder] = await db
         .insert(ordersTable)
         .values({
@@ -131,15 +126,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: OrderStatus.PENDING,
           total: orderData.total,
           subtotal: orderData.subtotal,
-          paymentMethod: orderData.paymentMethod,
-          shippingMethod: "WHOLESALE", // Always set for wholesale orders
-          shippingCost: orderData.shippingCost || 0,
+          paymentMethod: orderData.paymentMethod || "INVOICE",
+          shippingMethod: "WHOLESALE",
+          shippingCost: 0,
           paymentDetails: {},
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(),
         })
         .returning();
 
-      console.log("Order created successfully:", newOrder);
       res.status(201).json(newOrder);
     } catch (error) {
       console.error("Error creating order:", error);
@@ -148,115 +142,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Update wholesale orders endpoint
+  // Add updated wholesale orders endpoint
   app.get("/api/orders/wholesale", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
-      console.log("Unauthorized attempt to fetch wholesale orders:", {
-        isAuthenticated: req.isAuthenticated(),
-        userRole: req.user?.role
-      });
       return res.sendStatus(401);
     }
 
     try {
       console.log(`Fetching orders for wholesaler ${req.user.id}...`);
-      const userOrders = await db
+      const orders = await db
         .select()
         .from(ordersTable)
         .where(eq(ordersTable.userId, req.user.id))
         .orderBy(desc(ordersTable.createdAt));
 
-      console.log("Wholesale orders fetch result:", {
-        userId: req.user.id,
-        orderCount: userOrders.length,
-        orderIds: userOrders.map(o => o.id)
-      });
-      res.json(userOrders);
+      res.json(orders);
     } catch (error) {
       console.error("Error fetching wholesale orders:", error);
       res.status(500).json({ error: "Failed to fetch wholesale orders" });
     }
   });
 
-
-  // Update getDistributorOrders endpoint with better error handling
-  app.get("/api/orders/distributor", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
-      return res.sendStatus(401);
-    }
-
-    try {
-      console.log(`Fetching orders for distributor ${req.user.id}...`);
-      const orders = await storage.getDistributorOrders(req.user.id);
-      console.log(`Found ${orders.length} orders for distributor ${req.user.id}`);
-      res.json(orders);
-    } catch (error) {
-      console.error("Error fetching distributor orders:", error);
-      res.status(500).json({ error: "Failed to fetch distributor orders" });
-    }
-  });
-
-  // Add new distributor stats endpoint
-  app.get("/api/distributor/stats", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
-      return res.sendStatus(401);
-    }
-
-    try {
-      console.log(`Fetching stats for distributor ${req.user.id}`);
-      const orders = await storage.getDistributorOrders(req.user.id);
-      const commissions = await storage.getDistributorCommissions(req.user.id);
-
-      const total = commissions
-        .filter(c => c.status === 'PAID')
-        .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
-
-      const thisMonth = commissions
-        .filter(c => {
-          const date = new Date(c.createdAt);
-          const now = new Date();
-          return date.getMonth() === now.getMonth() &&
-            date.getFullYear() === now.getFullYear() &&
-            c.status === 'PAID';
-        })
-        .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
-
-      const pendingDeliveries = orders.filter(
-        o => o.status !== OrderStatus.DELIVERED && o.status !== OrderStatus.CANCELLED
-      ).length;
-
-      res.json({
-        total: total.toFixed(2),
-        thisMonth: thisMonth.toFixed(2),
-        pendingDeliveries
-      });
-    } catch (error) {
-      console.error("Error fetching distributor stats:", error);
-      res.status(500).json({ error: "Failed to fetch distributor statistics" });
-    }
-  });
-
-
-  // Commission management
-  app.patch("/api/users/:id/commission", async (req, res) => {
+  // Add admin orders endpoint
+  app.get("/api/admin/orders", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
     }
 
-    const { commission } = req.body;
-    const user = await storage.updateUserCommission(parseInt(req.params.id), commission);
-    res.json(user);
-  });
+    try {
+      const orders = await db
+        .select()
+        .from(ordersTable)
+        .orderBy(desc(ordersTable.createdAt));
 
-  // Order status updates
-  app.patch("/api/orders/:id/status", async (req, res) => {
-    if (!req.isAuthenticated() || ![UserRole.ADMIN, UserRole.DISTRIBUTOR].includes(req.user.role)) {
-      return res.sendStatus(401);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching admin orders:", error);
+      res.status(500).json({ error: "Failed to fetch orders" });
     }
-
-    const { status } = req.body;
-    const order = await storage.updateOrderStatus(parseInt(req.params.id), status);
-    res.json(order);
   });
 
   // Add route to get user's commission earnings (from edited snippet)
