@@ -254,18 +254,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Admin requesting wholesale users");
       const users = await storage.getWholesaleUsers();
 
-      // Add detailed logging of the response
-      console.log("Found wholesale users:", users.map(u => ({
-        ...u,
-        password: '***',
-        companyName: u.companyName,
-        companyAddress: u.companyAddress,
-        companyWebsite: u.companyWebsite,
-        referralCode: u.referralCode,
-        wholesaleStatus: u.wholesaleStatus,
-        createdAt: u.createdAt
-      })));
+      // Add detailed logging of each wholesale user
+      users.forEach(user => {
+        console.log("Wholesale user details:", {
+          id: user.id,
+          username: user.username,
+          password: '***',
+          companyName: user.companyName,
+          companyAddress: user.companyAddress,
+          companyWebsite: user.companyWebsite,
+          referralCode: user.referralCode,
+          wholesaleStatus: user.wholesaleStatus,
+          createdAt: user.createdAt
+        });
+      });
 
+      // Send complete user objects to frontend
       res.json(users);
     } catch (error) {
       console.error("Error fetching wholesale users:", error);

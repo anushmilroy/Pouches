@@ -71,8 +71,26 @@ export class DatabaseStorage implements IStorage {
   async getWholesaleUsers(): Promise<User[]> {
     try {
       console.log("Fetching wholesale users...");
+      // Explicitly select all fields to ensure we get complete user data
       const users = await db
-        .select()
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          password: usersTable.password,
+          role: usersTable.role,
+          wholesaleStatus: usersTable.wholesaleStatus,
+          companyName: usersTable.companyName,
+          companyAddress: usersTable.companyAddress,
+          companyWebsite: usersTable.companyWebsite,
+          bankDetails: usersTable.bankDetails,
+          referrerId: usersTable.referrerId,
+          referralCode: usersTable.referralCode,
+          commission: usersTable.commission,
+          commissionTier: usersTable.commissionTier,
+          totalReferrals: usersTable.totalReferrals,
+          createdAt: usersTable.createdAt,
+          customPricing: usersTable.customPricing
+        })
         .from(usersTable)
         .where(eq(usersTable.role, UserRole.WHOLESALE))
         .orderBy(desc(usersTable.createdAt));
@@ -91,6 +109,7 @@ export class DatabaseStorage implements IStorage {
         });
       });
 
+      // Return the complete user objects
       return users;
     } catch (error) {
       console.error("Error fetching wholesale users:", error);
