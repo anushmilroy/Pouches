@@ -7,7 +7,7 @@ interface LogoProps {
 export default function Logo({ className }: LogoProps) {
   return (
     <img 
-      src="/BLACK POUCHES WORLDWIDE.png"
+      src="/black-pouches-worldwide.png"
       alt="Pouches Worldwide"
       className={cn("h-8 w-auto", className)}
     />
