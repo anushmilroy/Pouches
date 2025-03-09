@@ -12,6 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import StoreLayout from "@/components/layout/store-layout";
+import { UserRole } from "@shared/schema";
 
 const onboardingSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -63,13 +64,16 @@ export default function OnboardingPage() {
     },
   });
 
-  // Redirect if user is not logged in or has already completed onboarding
+  // Redirect if user is not logged in, is admin, or has already completed onboarding
   useEffect(() => {
     if (!user) {
       setLocation("/auth");
+    } else if (user.role === UserRole.ADMIN) {
+      // Admins don't need to complete onboarding
+      setLocation("/admin");
     } else if (user.onboardingCompletedAt) {
       // Redirect based on user role
-      if (user.role === "WHOLESALE") {
+      if (user.role === UserRole.WHOLESALE) {
         setLocation("/wholesale");
       } else {
         setLocation("/shop");
@@ -95,10 +99,10 @@ export default function OnboardingPage() {
       });
 
       // Redirect based on user role
-      if (user?.role === "WHOLESALE") {
+      if (user?.role === UserRole.WHOLESALE) {
         setLocation("/wholesale");
       } else {
-        setLocation("/shop"); // Ensure retail users go to shop
+        setLocation("/shop");
       }
     } catch (error) {
       console.error("Onboarding error:", error);
@@ -110,7 +114,8 @@ export default function OnboardingPage() {
     }
   };
 
-  if (!user || user.onboardingCompletedAt) {
+  // Don't render for admin or if user has completed onboarding
+  if (!user || user.role === UserRole.ADMIN || user.onboardingCompletedAt) {
     return null;
   }
 
@@ -121,7 +126,7 @@ export default function OnboardingPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
-              {user.role === "WHOLESALE" ? (
+              {user.role === UserRole.WHOLESALE ? (
                 <CardDescription>
                   Please provide your shipping and bank information to complete your wholesale account setup.
                 </CardDescription>

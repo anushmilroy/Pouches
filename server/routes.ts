@@ -986,46 +986,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      console.log("Processing onboarding data for user:", req.user.id, {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        hasShippingAddress: !!req.body.shippingAddress,
-        hasBankDetails: !!req.body.bankDetails
-      });
+      // If user is admin, mark onboarding as complete without requiring profile info
+      if (req.user.role === UserRole.ADMIN) {
+        await db
+          .update(users)
+          .set({
+            onboardingStatus: 'COMPLETED',
+            onboardingCompletedAt: new Date()
+          })
+          .where(eq(users.id, req.user.id));
 
-      // Validate required fields
-      if (!req.body.firstName || !req.body.lastName) {
-        return res.status(400).json({ error: "Name is required" });
+        const [updatedUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, req.user.id));
+
+        return res.json(updatedUser);
       }
 
-      if (!req.body.shippingAddress) {
-        return res.status(400).json({ error: "Shipping address is required" });
-      }
-
-      if (!req.body.bankDetails) {
-        return res.status(400).json({ error: "Bank details are required" });
-      }
-
-      // Update user with onboarding data
-      const [updatedUser] = await db
+      // For non-admin users, require profile completion
+      await db
         .update(users)
         .set({
           firstName: req.body.firstName,
           lastName: req.body.lastName,
           shippingAddress: req.body.shippingAddress,
           bankDetails: req.body.bankDetails,
-          onboardingStatus: "COMPLETED" as const,
-          onboardingCompletedAt: new Date(),
-          onboardingStep: 1
+          onboardingStatus: 'COMPLETED',
+          onboardingCompletedAt: new Date()
         })
-        .where(eq(users.id, req.user.id))
-        .returning();
+        .where(eq(users.id, req.user.id));
 
-      if (!updatedUser) {
-        throw new Error("Failed to update user data");
-      }
+      const [updatedUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, req.user.id));
 
-      console.log("Onboarding completed successfully for user:", req.user.id);
       res.json(updatedUser);
     } catch (error) {
       console.error("Error completing onboarding:", error);
