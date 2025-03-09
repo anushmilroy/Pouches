@@ -18,6 +18,7 @@ import WholesaleOrders from "@/pages/wholesale/orders";
 import WholesaleEarnings from "@/pages/wholesale/earnings";
 import WholesaleShop from "@/pages/wholesale/shop";
 import WholesaleReferralGuide from "@/pages/wholesale/referral-guide";
+import WholesaleOrderConfirmation from "@/pages/wholesale/order-confirmation";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 import RegistrationSuccess from "@/pages/auth/registration-success";
 import { useAuth } from "@/hooks/use-auth";
@@ -52,21 +53,25 @@ function Router() {
           <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
           <ProtectedRoute path="/wholesale/earnings" component={WholesaleEarnings} />
           <ProtectedRoute path="/wholesale/referral-guide" component={WholesaleReferralGuide} />
+          <ProtectedRoute path="/wholesale/order-confirmation" component={WholesaleOrderConfirmation} />
           <Route path="/shop">
             <Redirect to="/wholesale" />
           </Route>
           <Route path="/checkout">
             <Redirect to="/wholesale/checkout" />
           </Route>
+          <Route path="/order-confirmation">
+            <Redirect to="/wholesale/order-confirmation" />
+          </Route>
         </>
       ) : (
         <>
           <Route path="/shop" component={ShopPage} />
           <Route path="/checkout" component={CheckoutPage} />
+          <Route path="/order-confirmation" component={OrderConfirmationPage} />
         </>
       )}
 
-      <Route path="/order-confirmation" component={OrderConfirmationPage} />
       <Route component={NotFound} />
     </Switch>
   );
