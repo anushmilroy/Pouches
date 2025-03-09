@@ -3,16 +3,20 @@ import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Package, Truck, ChevronLeft, Minus, Plus, Trash2 } from "lucide-react";
+import { ShoppingCart, Package, Truck, ChevronLeft, Minus, Plus, Trash2, FileText, Banknote } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Product, ShippingMethod } from "@shared/schema";
+import { Product, ShippingMethod, PaymentMethod } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 interface CartItem {
   quantity: number;
   unitPrice: number;
+  strength: string;
+  flavor: string;
 }
 
 // Function to calculate wholesale price based on total cart quantity
@@ -29,6 +33,7 @@ function calculateWholesalePrice(totalCartQuantity: number): number {
 export default function WholesaleCheckout() {
   const { toast } = useToast();
   const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
+  const [paymentMethod, setPaymentMethod] = useState<"INVOICE" | "LOAN">("INVOICE");
   const [, setLocation] = useLocation();
 
   const { data: products } = useQuery<Product[]>({
@@ -69,6 +74,7 @@ export default function WholesaleCheckout() {
       delete newCart[productId];
     } else {
       newCart[productId] = {
+        ...cartItems[productId],
         quantity: newQuantity,
         unitPrice: calculateWholesalePrice(getTotalCartQuantity(newCart)),
       };
@@ -123,6 +129,20 @@ export default function WholesaleCheckout() {
 
   const totalQuantity = getTotalCartQuantity();
 
+  const handlePayment = () => {
+    if (paymentMethod === "INVOICE") {
+      toast({
+        title: "Invoice Request Submitted",
+        description: "You will receive the invoice via email for manual payment processing.",
+      });
+    } else {
+      toast({
+        title: "Wholesale Loan Request",
+        description: "Request a wholesale loan to complete this order",
+      });
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto py-8">
@@ -158,8 +178,8 @@ export default function WholesaleCheckout() {
                           <Package className="h-5 w-5 mr-2 mt-1" />
                           <div>
                             <p className="font-medium">{product?.name}</p>
-                            <p className="text-sm">Strength: {product?.strength}</p>
-                            <p className="text-sm">Flavor: {product?.flavor}</p>
+                            <p className="text-sm">Strength: {item.strength}</p>
+                            <p className="text-sm">Flavor: {item.flavor}</p>
                             <p className="text-sm text-muted-foreground">
                               ${item.unitPrice.toFixed(2)}/unit
                             </p>
@@ -256,22 +276,48 @@ export default function WholesaleCheckout() {
           {/* Payment Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Wholesale Payment</CardTitle>
+              <CardTitle>Payment Method</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-6">
+                <RadioGroup 
+                  value={paymentMethod} 
+                  onValueChange={(value: "INVOICE" | "LOAN") => setPaymentMethod(value)}
+                  className="space-y-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="INVOICE" id="invoice" />
+                    <Label htmlFor="invoice" className="flex items-center">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Manual Invoice Payment
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="LOAN" id="loan" />
+                    <Label htmlFor="loan" className="flex items-center">
+                      <Banknote className="h-4 w-4 mr-2" />
+                      Request Wholesale Loan
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                <div className="text-sm text-muted-foreground">
+                  {paymentMethod === "INVOICE" ? (
+                    <p>You will receive an invoice via email for manual payment processing.</p>
+                  ) : (
+                    <p>Apply for a wholesale loan to finance your purchase.</p>
+                  )}
+                </div>
+
                 <Button
                   className="w-full"
-                  onClick={() => {
-                    toast({
-                      title: "Wholesale Loan Request",
-                      description: "Request a wholesale loan to complete this order",
-                    });
-                  }}
+                  onClick={handlePayment}
                 >
-                  Request Wholesale Loan
+                  {paymentMethod === "INVOICE" ? "Request Invoice" : "Apply for Loan"}
                 </Button>
+
                 <Separator />
+
                 <p className="text-sm text-muted-foreground">
                   Contact your account manager for more information about wholesale loans and payment options.
                 </p>
