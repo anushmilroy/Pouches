@@ -10,6 +10,8 @@ import {
   LogOut,
   Menu,
   X,
+  CircleDollarSign,
+  TrendingUp,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -40,7 +42,7 @@ const roleLinks: Record<string, SidebarLink[]> = {
     { label: "Dashboard", href: "/wholesale", icon: <LayoutDashboard className="h-5 w-5" /> },
     { label: "Products", href: "/wholesale/products", icon: <Package className="h-5 w-5" /> },
     { label: "Orders", href: "/wholesale/orders", icon: <ShoppingCart className="h-5 w-5" /> },
-    { label: "Commissions", href: "/wholesale/commissions", icon: <Wallet className="h-5 w-5" /> },
+    { label: "Commissions", href: "/wholesale/commissions", icon: <CircleDollarSign className="h-5 w-5" /> },
   ],
   distributor: [
     { label: "Dashboard", href: "/distributor", icon: <LayoutDashboard className="h-5 w-5" /> },
