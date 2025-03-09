@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { AdminReferralStats } from "@/components/admin/referral-stats";
 import { Order, OrderStatus, Promotion, UserRole, WholesaleStatus, ConsignmentStatus } from "@shared/schema";
@@ -164,7 +164,7 @@ function WholesalerDetailsDialog({
   onApprove,
   onReject,
   onBlock,
-  onUnblock
+  onUnblock,
 }: {
   user: any;
   onApprove: (id: number) => Promise<void>;
