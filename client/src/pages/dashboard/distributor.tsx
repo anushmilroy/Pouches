@@ -16,10 +16,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Loader2, TrendingUp, Truck, DollarSign, Package } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { OnboardingModal } from "@/components/distributor/onboarding-modal";
 
 // Update the type to include productName
 type InventoryWithProduct = DistributorInventory & {
   productName: string;
+};
+
+type User = {
+  onboardingStatus: string;
+  // Add other user properties as needed
 };
 
 export default function DistributorDashboard() {
@@ -45,6 +51,13 @@ export default function DistributorDashboard() {
   const { data: commissions, isLoading: commissionsLoading, error: commissionsError } = useQuery<DistributorCommission[]>({
     queryKey: ["/api/distributors/commissions"],
   });
+
+  const { data: user } = useQuery<User>({
+    queryKey: ["/api/user"],
+  });
+
+  const showOnboarding = user?.onboardingStatus !== 'COMPLETED';
+
 
   const handleUpdateStatus = async (orderId: number, newStatus: keyof typeof OrderStatus) => {
     try {
@@ -82,6 +95,7 @@ export default function DistributorDashboard() {
 
   return (
     <DashboardLayout>
+      {showOnboarding && <OnboardingModal />}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <Card>
           <CardHeader>

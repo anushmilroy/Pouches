@@ -754,6 +754,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add these new routes after the distributor routes section
+
+  // Distributor Onboarding Routes
+  app.post("/api/distributor/onboarding/progress", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { step } = req.body;
+      await storage.updateUser(req.user.id, {
+        onboardingStep: step,
+        onboardingStatus: 'IN_PROGRESS'
+      });
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error updating onboarding progress:", error);
+      res.status(500).json({ error: "Failed to update onboarding progress" });
+    }
+  });
+
+  app.post("/api/distributor/onboarding/complete", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      await storage.updateUser(req.user.id, {
+        onboardingStatus: 'COMPLETED',
+        onboardingCompletedAt: new Date().toISOString()
+      });
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: "Failed to complete onboarding" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

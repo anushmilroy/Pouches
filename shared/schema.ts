@@ -117,6 +117,14 @@ export const DistributorCommissionStatus = {
   PAID: 'PAID'
 } as const;
 
+// Add onboarding status enum
+export const OnboardingStatus = {
+  NOT_STARTED: 'NOT_STARTED',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED'
+} as const;
+
+// Update users table definition to include onboarding fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -133,7 +141,11 @@ export const users = pgTable("users", {
   commissionTier: text("commission_tier").$type<keyof typeof CommissionTier>().default("STANDARD"),
   totalReferrals: integer("total_referrals").default(0),
   createdAt: timestamp("created_at").defaultNow(),
-  customPricing: jsonb("custom_pricing").$type<Record<string, number>>()
+  customPricing: jsonb("custom_pricing").$type<Record<string, number>>(),
+  // Add new onboarding fields
+  onboardingStatus: text("onboarding_status").$type<keyof typeof OnboardingStatus>().default("NOT_STARTED"),
+  onboardingStep: integer("onboarding_step").default(0),
+  onboardingCompletedAt: timestamp("onboarding_completed_at"),
 });
 
 export const products = pgTable("products", {
