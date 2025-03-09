@@ -14,7 +14,7 @@ import { PaymentMethod, NicotineStrength, PouchFlavor, ShippingMethod, UserRole 
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import BankTransferForm from "@/components/payment/bank-transfer-form";
-import { Loader2 } from "lucide-react";
+import { Minus, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -266,16 +266,88 @@ export default function CheckoutPage() {
                   {Object.entries(cart).map(([key, item]) => {
                     const [flavor, strength] = key.split('-');
                     return (
-                      <div key={key} className="flex justify-between items-center py-2 border-b">
-                        <div>
-                          <div className="font-medium">
-                            {PouchFlavor[flavor as keyof typeof PouchFlavor]}
+                      <div key={key} className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium">
+                              {PouchFlavor[flavor as keyof typeof PouchFlavor]}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {NicotineStrength[strength as keyof typeof NicotineStrength]}
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground">
-                            {NicotineStrength[strength as keyof typeof NicotineStrength]} • {item.quantity} cans
-                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const newCart = { ...cart };
+                              delete newCart[key];
+                              setCart(newCart);
+                              localStorage.setItem('cart', JSON.stringify(newCart));
+                              toast({
+                                title: "Item Removed",
+                                description: "Item has been removed from your cart",
+                              });
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <div className="font-medium">${(15 * item.quantity).toFixed(2)}</div>
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const newCart = { ...cart };
+                              if (item.quantity > 1) {
+                                newCart[key] = {
+                                  ...item,
+                                  quantity: item.quantity - 1
+                                };
+                                setCart(newCart);
+                                localStorage.setItem('cart', JSON.stringify(newCart));
+                              }
+                            }}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const newQuantity = parseInt(e.target.value) || 1;
+                              if (newQuantity >= 1) {
+                                const newCart = { ...cart };
+                                newCart[key] = {
+                                  ...item,
+                                  quantity: newQuantity
+                                };
+                                setCart(newCart);
+                                localStorage.setItem('cart', JSON.stringify(newCart));
+                              }
+                            }}
+                            className="w-20 text-center"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const newCart = { ...cart };
+                              newCart[key] = {
+                                ...item,
+                                quantity: item.quantity + 1
+                              };
+                              setCart(newCart);
+                              localStorage.setItem('cart', JSON.stringify(newCart));
+                            }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          <p className="font-medium ml-2">
+                            ${(15 * item.quantity).toFixed(2)}
+                          </p>
+                        </div>
                       </div>
                     );
                   })}
