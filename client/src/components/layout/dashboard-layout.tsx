@@ -5,12 +5,9 @@ import { useLocation } from "wouter";
 import {
   LayoutDashboard,
   Package,
-  ShoppingCart,
   Users,
   LogOut,
   Menu,
-  CircleDollarSign,
-  TrendingUp,
   Boxes,
   Gift,
   ClipboardList,
@@ -25,75 +22,59 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-interface SidebarLink {
-  label: string;
-  href: string;
-  icon: ReactNode;
-}
-
-const roleLinks: Record<string, SidebarLink[]> = {
-  admin: [
-    { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { label: "Wholesale Accounts", href: "/admin/wholesale", icon: <Users className="h-5 w-5" /> },
-    { label: "Distributors", href: "/admin/distributors", icon: <Boxes className="h-5 w-5" /> },
-    { label: "Promotions", href: "/admin/promotions", icon: <Gift className="h-5 w-5" /> },
-    { label: "Orders", href: "/admin/orders", icon: <ClipboardList className="h-5 w-5" /> },
-    { label: "Consignments", href: "/admin/consignments", icon: <Package className="h-5 w-5" /> },
-    { label: "Referrals", href: "/admin/referrals", icon: <Share2 className="h-5 w-5" /> },
-  ],
-  distributor: [
-    { label: "Dashboard", href: "/distributor", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { label: "Orders", href: "/distributor/orders", icon: <ShoppingCart className="h-5 w-5" /> },
-    { label: "Performance", href: "/distributor/performance", icon: <TrendingUp className="h-5 w-5" /> },
-  ],
-};
-
-interface DashboardLayoutProps {
-  children: ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, logoutMutation } = useAuth();
   const [location, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   if (!user) return null;
 
-  const links = roleLinks[user.role] || [];
+  const menuItems = [
+    { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: "Wholesale Accounts", href: "/admin/wholesale", icon: <Users className="h-4 w-4" /> },
+    { label: "Distributors", href: "/admin/distributors", icon: <Boxes className="h-4 w-4" /> },
+    { label: "Promotions", href: "/admin/promotions", icon: <Gift className="h-4 w-4" /> },
+    { label: "Orders", href: "/admin/orders", icon: <ClipboardList className="h-4 w-4" /> },
+    { label: "Consignments", href: "/admin/consignments", icon: <Package className="h-4 w-4" /> },
+    { label: "Referrals", href: "/admin/referrals", icon: <Share2 className="h-4 w-4" /> },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header with navigation */}
       <header className="border-b border-border py-4">
         <div className="container mx-auto px-4">
-          {/* Logo and desktop navigation */}
-          <div className="flex items-center justify-between">
-            <Logo className="h-8" />
+          <div className="flex items-center space-x-6">
+            {/* Logo */}
+            <Logo className="h-8 flex-shrink-0" />
 
-            {/* Desktop Menu */}
-            <div className="hidden md:flex items-center space-x-2">
-              {links.map((link) => (
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-1 overflow-x-auto">
+              {menuItems.map((item) => (
                 <Button
-                  key={link.href}
-                  variant={location === link.href ? "secondary" : "ghost"}
-                  onClick={() => setLocation(link.href)}
+                  key={item.href}
+                  variant={location === item.href ? "secondary" : "ghost"}
+                  onClick={() => setLocation(item.href)}
                   size="sm"
+                  className="whitespace-nowrap"
                 >
-                  {link.icon}
-                  <span className="ml-2">{link.label}</span>
+                  {item.icon}
+                  <span className="ml-1.5 text-sm">{item.label}</span>
                 </Button>
               ))}
-            </div>
+            </nav>
 
-            <div className="flex items-center space-x-4">
+            {/* Right side with logout and mobile menu */}
+            <div className="flex items-center space-x-4 ml-auto flex-shrink-0">
               {/* Desktop Logout */}
               <Button
                 variant="ghost"
                 className="hidden md:flex items-center text-destructive hover:text-destructive"
                 onClick={() => logoutMutation.mutate()}
                 disabled={logoutMutation.isPending}
+                size="sm"
               >
-                <LogOut className="h-4 w-4 mr-2" />
+                <LogOut className="h-4 w-4 mr-1.5" />
                 Logout
               </Button>
 
@@ -105,22 +86,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="right">
-                  <SheetHeader>
-                    <SheetTitle>Menu</SheetTitle>
+                  <SheetHeader className="text-left">
+                    <SheetTitle>Dashboard Menu</SheetTitle>
                   </SheetHeader>
-                  <div className="flex flex-col space-y-2 mt-6">
-                    {links.map((link) => (
+                  <div className="flex flex-col gap-1 mt-6">
+                    {menuItems.map((item) => (
                       <Button
-                        key={link.href}
-                        variant={location === link.href ? "secondary" : "ghost"}
+                        key={item.href}
+                        variant={location === item.href ? "secondary" : "ghost"}
                         onClick={() => {
-                          setLocation(link.href);
+                          setLocation(item.href);
                           setIsMobileMenuOpen(false);
                         }}
                         className="w-full justify-start"
+                        size="sm"
                       >
-                        {link.icon}
-                        <span className="ml-2">{link.label}</span>
+                        {item.icon}
+                        <span className="ml-2">{item.label}</span>
                       </Button>
                     ))}
                     <div className="pt-4 mt-4 border-t">
@@ -132,6 +114,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                           setIsMobileMenuOpen(false);
                         }}
                         disabled={logoutMutation.isPending}
+                        size="sm"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         Logout
