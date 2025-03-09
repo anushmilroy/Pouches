@@ -7,11 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export function WholesaleProfileSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sameAsBilling, setSameAsBilling] = useState(false);
 
   const [formData, setFormData] = useState({
     companyName: user?.companyName || "",
@@ -40,7 +42,7 @@ export function WholesaleProfileSettings() {
     try {
       setIsSubmitting(true);
       await apiRequest("PATCH", "/api/users/profile", formData);
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "Profile Updated",
@@ -54,6 +56,52 @@ export function WholesaleProfileSettings() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleShippingAddressChange = (field: string, value: string) => {
+    const newShippingAddress = {
+      ...formData.shippingAddress,
+      [field]: value
+    };
+
+    setFormData({
+      ...formData,
+      shippingAddress: newShippingAddress,
+      // If same as billing is checked, update billing address too
+      billingAddress: sameAsBilling ? newShippingAddress : formData.billingAddress
+    });
+  };
+
+  const handleBillingAddressChange = (field: string, value: string) => {
+    setFormData({
+      ...formData,
+      billingAddress: {
+        ...formData.billingAddress,
+        [field]: value
+      }
+    });
+  };
+
+  const handleSameAddressChange = (checked: boolean) => {
+    setSameAsBilling(checked);
+    if (checked) {
+      setFormData({
+        ...formData,
+        billingAddress: { ...formData.shippingAddress }
+      });
+    } else {
+      //If unchecked, reset billing address to original values if they exist, otherwise keep empty.
+      setFormData( prevFormData => ({
+        ...prevFormData,
+        billingAddress: {
+          street: user?.billingAddress?.street || "",
+          city: user?.billingAddress?.city || "",
+          state: user?.billingAddress?.state || "",
+          zipCode: user?.billingAddress?.zipCode || "",
+          country: user?.billingAddress?.country || ""
+        }
+      }));
     }
   };
 
@@ -132,10 +180,7 @@ export function WholesaleProfileSettings() {
               <label className="text-sm font-medium">Street Address</label>
               <Input
                 value={formData.shippingAddress.street}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  shippingAddress: { ...formData.shippingAddress, street: e.target.value }
-                })}
+                onChange={(e) => handleShippingAddressChange('street', e.target.value)}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -143,20 +188,14 @@ export function WholesaleProfileSettings() {
                 <label className="text-sm font-medium">City</label>
                 <Input
                   value={formData.shippingAddress.city}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    shippingAddress: { ...formData.shippingAddress, city: e.target.value }
-                  })}
+                  onChange={(e) => handleShippingAddressChange('city', e.target.value)}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">State</label>
                 <Input
                   value={formData.shippingAddress.state}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    shippingAddress: { ...formData.shippingAddress, state: e.target.value }
-                  })}
+                  onChange={(e) => handleShippingAddressChange('state', e.target.value)}
                 />
               </div>
             </div>
@@ -165,26 +204,34 @@ export function WholesaleProfileSettings() {
                 <label className="text-sm font-medium">ZIP Code</label>
                 <Input
                   value={formData.shippingAddress.zipCode}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    shippingAddress: { ...formData.shippingAddress, zipCode: e.target.value }
-                  })}
+                  onChange={(e) => handleShippingAddressChange('zipCode', e.target.value)}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Country</label>
                 <Input
                   value={formData.shippingAddress.country}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    shippingAddress: { ...formData.shippingAddress, country: e.target.value }
-                  })}
+                  onChange={(e) => handleShippingAddressChange('country', e.target.value)}
                 />
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="same-address"
+          checked={sameAsBilling}
+          onCheckedChange={handleSameAddressChange}
+        />
+        <label
+          htmlFor="same-address"
+          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          Billing address same as shipping address
+        </label>
+      </div>
 
       <Card>
         <CardHeader>
@@ -196,10 +243,8 @@ export function WholesaleProfileSettings() {
               <label className="text-sm font-medium">Street Address</label>
               <Input
                 value={formData.billingAddress.street}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  billingAddress: { ...formData.billingAddress, street: e.target.value }
-                })}
+                onChange={(e) => handleBillingAddressChange('street', e.target.value)}
+                disabled={sameAsBilling}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -207,20 +252,16 @@ export function WholesaleProfileSettings() {
                 <label className="text-sm font-medium">City</label>
                 <Input
                   value={formData.billingAddress.city}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    billingAddress: { ...formData.billingAddress, city: e.target.value }
-                  })}
+                  onChange={(e) => handleBillingAddressChange('city', e.target.value)}
+                  disabled={sameAsBilling}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">State</label>
                 <Input
                   value={formData.billingAddress.state}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    billingAddress: { ...formData.billingAddress, state: e.target.value }
-                  })}
+                  onChange={(e) => handleBillingAddressChange('state', e.target.value)}
+                  disabled={sameAsBilling}
                 />
               </div>
             </div>
@@ -229,20 +270,16 @@ export function WholesaleProfileSettings() {
                 <label className="text-sm font-medium">ZIP Code</label>
                 <Input
                   value={formData.billingAddress.zipCode}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    billingAddress: { ...formData.billingAddress, zipCode: e.target.value }
-                  })}
+                  onChange={(e) => handleBillingAddressChange('zipCode', e.target.value)}
+                  disabled={sameAsBilling}
                 />
               </div>
               <div>
                 <label className="text-sm font-medium">Country</label>
                 <Input
                   value={formData.billingAddress.country}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    billingAddress: { ...formData.billingAddress, country: e.target.value }
-                  })}
+                  onChange={(e) => handleBillingAddressChange('country', e.target.value)}
+                  disabled={sameAsBilling}
                 />
               </div>
             </div>
