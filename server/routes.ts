@@ -282,7 +282,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-
   // Promotions Management
   app.get("/api/promotions", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
@@ -860,8 +859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.sendStatus(401);
     }
 
-    try {
-      const loans = await storage.getWholesaleLoansForUser(req.user.id);
+    try {const loans = await storage.getWholesaleLoansForUser(req.user.id);
       res.json(loans);
     } catch (error) {
       console.error("Error fetching wholesale loans:", error);
@@ -939,6 +937,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching loan repayments:", error);
       res.status(500).json({ error: "Failed to fetch loan repayments" });
+    }
+  });
+
+  // Add the profile update endpoint after other user-related routes
+  app.patch("/api/users/profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log("Updating user profile:", req.user.id, req.body);
+
+      // Update user in database
+      await db
+        .update(users)
+        .set({
+          companyName: req.body.companyName,
+          companyWebsite: req.body.companyWebsite,
+          contactPhone: req.body.contactPhone,
+          contactEmail: req.body.contactEmail,
+          businessType: req.body.businessType,
+          taxId: req.body.taxId,
+          shippingAddress: req.body.shippingAddress,
+          billingAddress: req.body.billingAddress,
+        })
+        .where(eq(users.id, req.user.id));
+
+      // Fetch updated user data
+      const [updatedUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, req.user.id));
+
+      console.log("Profile updated successfully for user:", updatedUser.id);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 
