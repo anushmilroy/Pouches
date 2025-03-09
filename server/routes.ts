@@ -2,7 +2,6 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-// Import with a different name to avoid conflict
 import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders as ordersTable, ShippingMethod } from "@shared/schema";
 import path from "path";
 import express from "express";
@@ -17,6 +16,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16'
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -115,20 +115,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Order creation endpoint
   app.post("/api/orders", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      console.log("Unauthorized attempt to create order - user not authenticated");
-      return res.sendStatus(401);
-    }
-
     try {
       const orderData = req.body;
       console.log("Creating new order with data:", {
-        userId: req.user.id,
-        userRole: req.user.role,
+        userId: req.user?.id || 'guest',
+        userRole: req.user?.role || 'guest',
         orderTotal: orderData.total,
         paymentMethod: orderData.paymentMethod,
-        timestamp: new Date().toISOString(),
-        completeOrderPayload: orderData
+        timestamp: new Date().toISOString()
       });
 
       // Validate required fields
@@ -141,12 +135,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [newOrder] = await db
         .insert(ordersTable)
         .values({
-          userId: req.user.id,
+          userId: req.user?.id || null,
           status: OrderStatus.PENDING,
           total: parseFloat(orderData.total),
           subtotal: parseFloat(orderData.subtotal),
           paymentMethod: orderData.paymentMethod,
-          shippingMethod: ShippingMethod.WHOLESALE, // Fix: Use the enum value directly
+          shippingMethod: orderData.shippingMethod,
           shippingCost: parseFloat(orderData.shippingCost),
           discountCode: orderData.discountCode || null,
           discountAmount: orderData.discountAmount ? parseFloat(orderData.discountAmount) : 0,
@@ -161,30 +155,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderId: newOrder.id,
         status: newOrder.status,
         userId: newOrder.userId,
-        total: newOrder.total,
-        databaseOperationResult: "success"
-      });
-
-      // Verify the order was created by immediately fetching it
-      const [verifiedOrder] = await db
-        .select()
-        .from(ordersTable)
-        .where(eq(ordersTable.id, newOrder.id));
-
-      console.log("Verified order exists:", {
-        verifiedOrderId: verifiedOrder?.id,
-        verifiedUserId: verifiedOrder?.userId,
-        exists: !!verifiedOrder,
-        databaseOperationResult: "success"
+        total: newOrder.total
       });
 
       res.status(201).json(newOrder);
     } catch (error) {
       console.error("Error creating order:", error);
-      console.log("Database operation result:", "failure");
       res.status(500).json({ error: "Failed to create order" });
     }
   });
+
 
   // Update wholesale orders endpoint
   app.get("/api/orders/wholesale", async (req, res) => {
@@ -215,7 +195,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch wholesale orders" });
     }
   });
-
 
   //removed old order get route
 
