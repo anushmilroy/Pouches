@@ -19,12 +19,16 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
         <div className="container mx-auto px-6">
           <div className="h-16 flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <h1 
-                className="text-xl font-bold cursor-pointer"
+              <div 
+                className="cursor-pointer"
                 onClick={() => setLocation("/wholesale")}
               >
-                Pouches Worldwide
-              </h1>
+                <img 
+                  src="/attached_assets/BLACK POUCHES WORLDWIDE.png" 
+                  alt="Pouches Worldwide" 
+                  className="h-8 w-auto"
+                />
+              </div>
               <nav className="hidden md:flex items-center space-x-4">
                 <Button
                   variant={location === "/wholesale/dashboard" ? "secondary" : "ghost"}
