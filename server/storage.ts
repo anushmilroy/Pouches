@@ -46,25 +46,9 @@ export class DatabaseStorage implements IStorage {
   async getWholesaleUsers(): Promise<User[]> {
     try {
       console.log("Fetching wholesale users...");
+      // Modified to return all fields from the users table
       const users = await db
-        .select({
-          id: usersTable.id,
-          username: usersTable.username,
-          password: usersTable.password, // Required by User type
-          role: usersTable.role,
-          wholesaleStatus: usersTable.wholesaleStatus,
-          companyName: usersTable.companyName,
-          companyAddress: usersTable.companyAddress,
-          companyWebsite: usersTable.companyWebsite,
-          referralCode: usersTable.referralCode,
-          commission: usersTable.commission,
-          commissionTier: usersTable.commissionTier,
-          totalReferrals: usersTable.totalReferrals,
-          createdAt: usersTable.createdAt,
-          customPricing: usersTable.customPricing,
-          bankDetails: usersTable.bankDetails,
-          referrerId: usersTable.referrerId
-        })
+        .select()
         .from(usersTable)
         .where(eq(usersTable.role, UserRole.WHOLESALE))
         .orderBy(desc(usersTable.createdAt));
@@ -74,10 +58,10 @@ export class DatabaseStorage implements IStorage {
         password: '***',
         id: u.id,
         username: u.username,
-        companyName: u.companyName,
-        companyAddress: u.companyAddress,
-        companyWebsite: u.companyWebsite,
-        referralCode: u.referralCode,
+        companyName: u.companyName || 'Not provided',
+        companyAddress: u.companyAddress || 'Not provided',
+        companyWebsite: u.companyWebsite || 'Not provided',
+        referralCode: u.referralCode || 'None',
         wholesaleStatus: u.wholesaleStatus,
         createdAt: u.createdAt
       })));
@@ -89,6 +73,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // [Previous implementations remain unchanged...]
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log("Creating new user:", { 
