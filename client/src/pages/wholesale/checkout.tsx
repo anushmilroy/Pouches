@@ -45,7 +45,7 @@ export default function WholesaleCheckout() {
   });
 
   // Check if shipping details are missing
-  const hasShippingDetails = user?.shippingAddress &&
+  const hasShippingDetails = user?.shippingAddress && 
     Object.keys(user.shippingAddress).length > 0 &&
     user.contactPhone &&
     user.contactEmail;
@@ -152,7 +152,7 @@ export default function WholesaleCheckout() {
 
   const totalQuantity = getTotalCartQuantity();
 
-  const handlePayment = async () => {
+  const handlePayment = () => {
     if (!hasShippingDetails) {
       toast({
         title: "Shipping Details Required",
@@ -163,39 +163,12 @@ export default function WholesaleCheckout() {
       return;
     }
 
-    try {
-      // Simplified order data with only required fields
-      const orderData = {
-        total,
-        subtotal,
-        paymentMethod: "INVOICE"
-      };
-
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-        credentials: 'include'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create order');
-      }
-
-      // Clear the cart
-      localStorage.removeItem('wholesale_cart');
-
-      // Redirect to confirmation
-      setLocation("/wholesale/order-confirmation/invoice");
-    } catch (error) {
-      console.error("Error creating order:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create order. Please try again.",
-        variant: "destructive",
-      });
+    // Create the order first (this would be handled by your API)
+    // For now, we'll just redirect to the confirmation page
+    if (paymentMethod === "INVOICE") {
+      setLocation("/wholesale/order-confirmation?payment_method=invoice");
+    } else {
+      setLocation("/wholesale/order-confirmation?payment_method=loan");
     }
   };
 
@@ -205,7 +178,7 @@ export default function WholesaleCheckout() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Profile Settings</h1>
-            <Button
+            <Button 
               variant="outline"
               onClick={() => setShowProfileSettings(false)}
               className="flex items-center"
@@ -226,7 +199,7 @@ export default function WholesaleCheckout() {
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Wholesale Checkout</h1>
           <div className="flex gap-2">
-            <Button
+            <Button 
               variant="outline"
               onClick={() => setShowProfileSettings(true)}
               className="flex items-center"
@@ -234,7 +207,7 @@ export default function WholesaleCheckout() {
               <Settings className="h-4 w-4 mr-2" />
               Profile Settings
             </Button>
-            <Button
+            <Button 
               variant="outline"
               onClick={() => setLocation("/wholesale")}
               className="flex items-center"
@@ -368,8 +341,8 @@ export default function WholesaleCheckout() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <RadioGroup
-                  value={paymentMethod}
+                <RadioGroup 
+                  value={paymentMethod} 
                   onValueChange={(value: "INVOICE" | "LOAN") => setPaymentMethod(value)}
                   className="space-y-4"
                 >

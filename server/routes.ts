@@ -2,29 +2,23 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders as ordersTable, ShippingMethod } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema";
 import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
-import { db, eq, or, desc } from "./db";
+import { db, eq, or } from "./db";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16'
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Health check endpoint
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
-
   setupAuth(app);
 
   // Add wholesale products endpoint
@@ -106,35 +100,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
       console.error('Error creating payment intent:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         error: 'Failed to create payment intent',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 
-  // Order creation endpoint
+  // Orders
   app.post("/api/orders", async (req, res) => {
     try {
       const orderData = req.body;
+      let referrerId = null;
 
-      // Create the order with minimal required fields
-      const [newOrder] = await db
-        .insert(ordersTable)
-        .values({
-          userId: req.user?.id || null,
-          status: OrderStatus.PENDING,
-          total: orderData.total,
-          subtotal: orderData.subtotal,
-          paymentMethod: orderData.paymentMethod || "INVOICE",
-          shippingMethod: "WHOLESALE",
-          shippingCost: 0,
-          paymentDetails: {},
-          createdAt: new Date(),
-        })
-        .returning();
+      // If a referral code is provided, look up the referrer
+      if (orderData.referralCode) {
+        const referrer = await storage.getUserByReferralCode(orderData.referralCode);
+        if (referrer) {
+          referrerId = referrer.id;
+          // Calculate 5% commission
+          const commissionAmount = parseFloat(orderData.subtotal) * 0.05;
+          orderData.referrerId = referrerId;
+          orderData.commissionAmount = commissionAmount.toFixed(2);
+        }
+      }
 
-      res.status(201).json(newOrder);
+      const order = await storage.createOrder({
+        ...orderData,
+        userId: req.user?.id || null,
+        status: OrderStatus.PENDING
+      });
+
+      res.status(201).json(order);
     } catch (error) {
       console.error("Error creating order:", error);
       res.status(500).json({ error: "Failed to create order" });
@@ -142,44 +139,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Add updated wholesale orders endpoint
-  app.get("/api/orders/wholesale", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+  app.get("/api/orders", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const orders = await storage.getUserOrders(req.user.id);
+    res.json(orders);
+  });
+
+  // Update getDistributorOrders endpoint with better error handling
+  app.get("/api/orders/distributor", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
       return res.sendStatus(401);
     }
 
     try {
-      console.log(`Fetching orders for wholesaler ${req.user.id}...`);
-      const orders = await db
-        .select()
-        .from(ordersTable)
-        .where(eq(ordersTable.userId, req.user.id))
-        .orderBy(desc(ordersTable.createdAt));
-
+      console.log(`Fetching orders for distributor ${req.user.id}...`);
+      const orders = await storage.getDistributorOrders(req.user.id);
+      console.log(`Found ${orders.length} orders for distributor ${req.user.id}`);
       res.json(orders);
     } catch (error) {
-      console.error("Error fetching wholesale orders:", error);
-      res.status(500).json({ error: "Failed to fetch wholesale orders" });
+      console.error("Error fetching distributor orders:", error);
+      res.status(500).json({ error: "Failed to fetch distributor orders" });
     }
   });
 
-  // Add admin orders endpoint
-  app.get("/api/admin/orders", async (req, res) => {
+  // Add new distributor stats endpoint
+  app.get("/api/distributor/stats", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log(`Fetching stats for distributor ${req.user.id}`);
+      const orders = await storage.getDistributorOrders(req.user.id);
+      const commissions = await storage.getDistributorCommissions(req.user.id);
+
+      const total = commissions
+        .filter(c => c.status === 'PAID')
+        .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
+
+      const thisMonth = commissions
+        .filter(c => {
+          const date = new Date(c.createdAt);
+          const now = new Date();
+          return date.getMonth() === now.getMonth() && 
+                 date.getFullYear() === now.getFullYear() &&
+                 c.status === 'PAID';
+        })
+        .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
+
+      const pendingDeliveries = orders.filter(
+        o => o.status !== OrderStatus.DELIVERED && o.status !== OrderStatus.CANCELLED
+      ).length;
+
+      res.json({
+        total: total.toFixed(2),
+        thisMonth: thisMonth.toFixed(2),
+        pendingDeliveries
+      });
+    } catch (error) {
+      console.error("Error fetching distributor stats:", error);
+      res.status(500).json({ error: "Failed to fetch distributor statistics" });
+    }
+  });
+
+
+  // Commission management
+  app.patch("/api/users/:id/commission", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
     }
 
-    try {
-      const orders = await db
-        .select()
-        .from(ordersTable)
-        .orderBy(desc(ordersTable.createdAt));
+    const { commission } = req.body;
+    const user = await storage.updateUserCommission(parseInt(req.params.id), commission);
+    res.json(user);
+  });
 
-      res.json(orders);
-    } catch (error) {
-      console.error("Error fetching admin orders:", error);
-      res.status(500).json({ error: "Failed to fetch orders" });
+  // Order status updates
+  app.patch("/api/orders/:id/status", async (req, res) => {
+    if (!req.isAuthenticated() || ![UserRole.ADMIN, UserRole.DISTRIBUTOR].includes(req.user.role)) {
+      return res.sendStatus(401);
     }
+
+    const { status } = req.body;
+    const order = await storage.updateOrderStatus(parseInt(req.params.id), status);
+    res.json(order);
   });
 
   // Add route to get user's commission earnings (from edited snippet)
@@ -741,7 +785,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             pendingEarnings,
             lastReferralDate: lastReferral
           };
-        } catch (error) {          console.error(`Error processing stats for user ${user.id}:`, error);
+        } catch (error) {
+          console.error(`Error processing stats for user ${user.id}:`, error);
           return null;
         }
       }));
@@ -760,7 +805,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/referral-summary", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
-    }try {
+    }
+
+    try {
       const allTransactions = await storage.getAllCommissionTransactions();
       console.log('Found total commission transactions:', allTransactions.length);
 
@@ -796,7 +843,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const loan = await storage.createWholesaleLoan({
         ...req.body,
         wholesalerId: req.user.id,
-        status: "PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"        remainingAmount: req.body.amount
+        status: "PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"
+        remainingAmount: req.body.amount
       });
       res.status(201).json(loan);
     } catch (error) {
@@ -811,8 +859,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.sendStatus(401);
     }
 
-    try {
-      const loans = await storage.getWholesaleLoansForUser(req.user.id);
+    try {const loans = await storage.getWholesaleLoansForUser(req.user.id);
       res.json(loans);
     } catch (error) {
       console.error("Error fetching wholesale loans:", error);
@@ -821,7 +868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/wholesale/loans/:id/repayments", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+    if(!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
       return res.sendStatus(401);
     }
 

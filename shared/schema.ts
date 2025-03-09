@@ -29,8 +29,7 @@ export const PaymentMethod = {
 
 export const OrderStatus = {
   PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  DISTRIBUTOR_ASSIGNED: 'DISTRIBUTOR_ASSIGNED',
+  PAID: 'PAID',
   PROCESSING: 'PROCESSING',
   SHIPPED: 'SHIPPED',
   DELIVERED: 'DELIVERED',
@@ -209,13 +208,7 @@ export const orders = pgTable("orders", {
   paymentMethod: text("payment_method").notNull().$type<keyof typeof PaymentMethod>(),
   paymentDetails: jsonb("payment_details"),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
   wholesaleLoanId: integer("wholesale_loan_id").references(() => wholesaleLoans.id),
-  shippingDetails: jsonb("shipping_details"),
-  trackingNumber: text("tracking_number"),
-  shippedAt: timestamp("shipped_at"),
-  deliveredAt: timestamp("delivered_at"),
-  notes: text("notes"),
 });
 
 export const promotions = pgTable("promotions", {
@@ -343,22 +336,6 @@ export const loanRepaymentRelations = relations(loanRepayments, ({ one }) => ({
     references: [commissionTransactions.id],
   }),
 }));
-
-export const orderRelations = relations(orders, ({ one }) => ({
-  user: one(users, {
-    fields: [orders.userId],
-    references: [users.id],
-  }),
-  distributor: one(users, {
-    fields: [orders.distributorId],
-    references: [users.id],
-  }),
-  loan: one(wholesaleLoans, {
-    fields: [orders.wholesaleLoanId],
-    references: [wholesaleLoans.id],
-  }),
-}));
-
 
 export const insertUserSchema = createInsertSchema(users);
 export const insertProductSchema = createInsertSchema(products);

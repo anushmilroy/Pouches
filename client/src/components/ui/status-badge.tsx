@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { WholesaleStatus, OrderStatus } from "@shared/schema";
+import { WholesaleStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { CheckCircle, XCircle, AlertCircle, Ban, Truck, PackageCheck, UserCheck } from "lucide-react";
+import { CheckCircle, XCircle, AlertCircle, Ban } from "lucide-react";
 
 interface StatusBadgeProps {
-  status: keyof typeof WholesaleStatus | keyof typeof OrderStatus;
+  status: keyof typeof WholesaleStatus;
   className?: string;
 }
 
@@ -20,15 +20,14 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       scale: 1,
       transition: {
         repeat: Infinity,
-        repeatType: "reverse" as const,
+        repeatType: "reverse",
         duration: 1.5,
       },
     },
   };
 
-  const getStatusConfig = (status: keyof typeof WholesaleStatus | keyof typeof OrderStatus) => {
+  const getStatusConfig = (status: keyof typeof WholesaleStatus) => {
     switch (status) {
-      // Order Statuses
       case "PENDING":
         return {
           icon: AlertCircle,
@@ -48,27 +47,6 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
           icon: XCircle,
           bgColor: "bg-red-100",
           textColor: "text-red-800",
-          animation: variants,
-        };
-      case "DISTRIBUTOR_ASSIGNED":
-        return {
-          icon: UserCheck,
-          bgColor: "bg-blue-100",
-          textColor: "text-blue-800",
-          animation: variants,
-        };
-      case "SHIPPED":
-        return {
-          icon: Truck,
-          bgColor: "bg-purple-100",
-          textColor: "text-purple-800",
-          animation: variants,
-        };
-      case "DELIVERED":
-        return {
-          icon: PackageCheck,
-          bgColor: "bg-emerald-100",
-          textColor: "text-emerald-800",
           animation: variants,
         };
       case "BLOCKED":
@@ -104,7 +82,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       )}
     >
       <Icon className="w-4 h-4" />
-      <span className="font-medium text-sm">{status.replace(/_/g, " ")}</span>
+      <span className="font-medium text-sm">{status}</span>
     </motion.div>
   );
 }
