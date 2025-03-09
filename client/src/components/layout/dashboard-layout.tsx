@@ -66,29 +66,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Header with navigation */}
       <header className="border-b border-border py-4">
         <div className="container mx-auto px-4">
+          {/* Logo and desktop navigation */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              {/* Logo */}
-              <Logo className="h-8" />
+            <Logo className="h-8" />
 
-              {/* Desktop Navigation */}
-              <nav className="hidden md:flex items-center space-x-2">
-                {links.map((link) => (
-                  <Button
-                    key={link.href}
-                    variant={location === link.href ? "secondary" : "ghost"}
-                    onClick={() => setLocation(link.href)}
-                    className="flex items-center"
-                  >
-                    {link.icon}
-                    <span className="ml-2">{link.label}</span>
-                  </Button>
-                ))}
-              </nav>
+            {/* Desktop Menu */}
+            <div className="hidden md:flex items-center space-x-2">
+              {links.map((link) => (
+                <Button
+                  key={link.href}
+                  variant={location === link.href ? "secondary" : "ghost"}
+                  onClick={() => setLocation(link.href)}
+                  size="sm"
+                >
+                  {link.icon}
+                  <span className="ml-2">{link.label}</span>
+                </Button>
+              ))}
             </div>
 
             <div className="flex items-center space-x-4">
-              {/* Logout button (desktop) */}
+              {/* Desktop Logout */}
               <Button
                 variant="ghost"
                 className="hidden md:flex items-center text-destructive hover:text-destructive"
@@ -99,14 +97,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 Logout
               </Button>
 
-              {/* Mobile menu button */}
+              {/* Mobile Menu Button */}
               <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="md:hidden">
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[400px]">
+                <SheetContent side="right">
                   <SheetHeader>
                     <SheetTitle>Menu</SheetTitle>
                   </SheetHeader>
@@ -149,11 +147,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h2 className="text-2xl font-semibold">
-            {links.find((link) => link.href === location)?.label || "Dashboard"}
-          </h2>
-        </div>
         {children}
       </main>
     </div>
