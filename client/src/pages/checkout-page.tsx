@@ -104,6 +104,7 @@ export default function CheckoutPage() {
     }
   }, []);
 
+  // Update the onSubmit function to properly handle shipping method
   const onSubmit = async (data: CheckoutFormData) => {
     try {
       setIsSubmitting(true);
@@ -128,27 +129,25 @@ export default function CheckoutPage() {
         userId = user.id;
       }
 
-      // Create order
-      const orderItems = Object.entries(cart).map(([key, item]) => {
-        const [flavor] = key.split('-');
-        return {
-          productId: 1,
-          quantity: item.quantity,
-          price: "15.00"
-        };
-      });
-
-      const orderResponse = await apiRequest("POST", "/api/orders", {
+      // Prepare order data
+      const orderData = {
         userId: userId || user?.id || null,
         status: "PENDING",
         total: cartTotal.toString(),
         subtotal: subtotal.toString(),
-        shippingMethod: data.shippingMethod,
+        shippingMethod: data.shippingMethod as 'STANDARD' | 'EXPRESS' | 'WHOLESALE',
         shippingCost: shippingCost.toString(),
-        paymentMethod: selectedPaymentMethod,
+        paymentMethod: selectedPaymentMethod as 'BANK_TRANSFER' | 'MANUAL',
         referralCode: data.referralCode,
-        discountCode: data.discountCode, // Added discount code
-        items: orderItems,
+        discountCode: data.discountCode,
+        items: Object.entries(cart).map(([key, item]) => {
+          const [flavor] = key.split('-');
+          return {
+            productId: 1,
+            quantity: item.quantity,
+            price: "15.00"
+          };
+        }),
         customerDetails: {
           email: data.email,
           name: `${data.firstName} ${data.lastName}`,
@@ -158,7 +157,16 @@ export default function CheckoutPage() {
           country: data.country,
           phone: data.phone
         }
-      });
+      };
+
+      console.log('Submitting order with data:', orderData);
+
+      const orderResponse = await apiRequest("POST", "/api/orders", orderData);
+
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json();
+        throw new Error(errorData.error || 'Failed to create order');
+      }
 
       const order = await orderResponse.json();
 
@@ -201,6 +209,7 @@ export default function CheckoutPage() {
 
       setLocation("/order-confirmation");
     } catch (error) {
+      console.error('Order creation error:', error);
       toast({
         title: "Error placing order",
         description: error instanceof Error ? error.message : "Please try again later",

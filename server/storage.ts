@@ -716,17 +716,24 @@ export class DatabaseStorage implements IStorage {
         paymentMethod: orderData.paymentMethod
       });
 
-      // Prepare the order data with proper field mappings
+      if (!orderData.shippingMethod) {
+        throw new Error("Shipping method is required");
+      }
+
+      // Ensure proper mapping of fields
       const orderValues = {
-        ...orderData,
-        shipping_method: orderData.shippingMethod, // Map camelCase to snake_case
+        user_id: orderData.userId,
+        status: orderData.status || "PENDING",
+        total: orderData.total,
+        subtotal: orderData.subtotal,
+        shipping_method: orderData.shippingMethod,
         shipping_cost: orderData.shippingCost,
         payment_method: orderData.paymentMethod,
         referrer_id: orderData.referrerId,
         referral_code: orderData.referralCode,
         customer_details: orderData.customerDetails,
         created_at: new Date(),
-        order_details: orderData.items // Store order items
+        items: orderData.items
       };
 
       // Insert the order
