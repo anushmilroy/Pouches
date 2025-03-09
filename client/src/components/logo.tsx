@@ -9,7 +9,7 @@ export default function Logo({ className }: LogoProps) {
     <img 
       src="/black-pouches-worldwide.png"
       alt="Pouches Worldwide"
-      className={cn("h-16 md:h-20 w-auto", className)}
+      className={cn("h-12 md:h-14 w-auto", className)}
     />
   );
 }
