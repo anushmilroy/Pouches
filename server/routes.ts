@@ -433,7 +433,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Distributor Management Routes
+  // Distributor Management Routes from edited snippet
+  app.get("/api/orders/unassigned", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const orders = await storage.getUnassignedOrders();
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching unassigned orders:", error);
+      res.status(500).json({ error: "Failed to fetch unassigned orders" });
+    }
+  });
+
   app.get("/api/users/distributors", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
@@ -479,13 +493,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Distributor Inventory Management
+  app.post("/api/distributors/:id/inventory", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const inventory = await storage.updateDistributorInventory({
+        distributorId: parseInt(req.params.id),
+        productId: req.body.productId,
+        quantity: req.body.quantity
+      });
+      res.json(inventory);
+    } catch (error) {
+      console.error("Error updating distributor inventory:", error);
+      res.status(500).json({ error: "Failed to update distributor inventory" });
+    }
+  });
+
+  // Add new distributor inventory route
+  app.get("/api/distributors/inventory", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const inventory = await storage.getDistributorInventory(req.user.id);
+      res.json(inventory);
+    } catch (error) {
+      console.error("Error fetching distributor inventory:", error);
+      res.status(500).json({ error: "Failed to fetch inventory" });
+    }
+  });
+
+  // Order Assignment
   app.post("/api/orders/:id/assign", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
     }
 
     try {
-      const order = await storage.assignOrderToDistributor(
+      const order = await storage.allocateOrderToDistributor(
         parseInt(req.params.id),
         req.body.distributorId
       );
@@ -496,54 +545,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add consignment management routes
-  app.get("/api/orders/consignment", async (req, res) => {
+  // Distributor Commission Routes
+  app.get("/api/distributors/:id/commissions", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    // Allow both admin and the distributor themselves to access their commissions
+    if (req.user.role !== UserRole.ADMIN && req.user.id !== parseInt(req.params.id)) {
+      return res.sendStatus(403);
+    }
+
+    try {
+      const commissions = await storage.getDistributorCommissions(parseInt(req.params.id));
+      res.json(commissions);
+    } catch (error) {
+      console.error("Error fetching distributor commissions:", error);
+      res.status(500).json({ error: "Failed to fetch distributor commissions" });
+    }
+  });
+
+  app.get("/api/admin/distributor-commissions", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
     }
 
     try {
-      const orders = await storage.getConsignmentOrders();
-      res.json(orders);
+      const commissions = await storage.getAllDistributorCommissions();
+      res.json(commissions);
     } catch (error) {
-      console.error("Error fetching consignment orders:", error);
-      res.status(500).json({ error: "Failed to fetch consignment orders" });
-    }
-  });
-
-  app.post("/api/orders/consignment", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
-      return res.sendStatus(401);
-    }
-
-    try {
-      const order = await storage.createConsignmentOrder({
-        ...req.body,
-        userId: req.user.id,
-        status: OrderStatus.PENDING,
-      });
-      res.status(201).json(order);
-    } catch (error) {
-      console.error("Error creating consignment order:", error);
-      res.status(500).json({ error: "Failed to create consignment order" });
-    }
-  });
-
-  app.patch("/api/orders/:id/consignment-status", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
-      return res.sendStatus(401);
-    }
-
-    try {
-      const order = await storage.updateConsignmentStatus(
-        parseInt(req.params.id),
-        req.body.status,
-        req.user.id // Admin who approved/rejected
-      );
-      res.json(order);
-    } catch (error) {
-      console.error("Error updating consignment status:", error);
-      res.status(500).json({ error: "Failed to update consignment status" });
+      console.error("Error fetching all distributor commissions:", error);
+      res.status(500).json({ error: "Failed to fetch distributor commissions" });
     }
   });
 

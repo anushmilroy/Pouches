@@ -53,6 +53,8 @@ export interface IStorage {
   getDistributorCommissions(distributorId: number): Promise<DistributorCommission[]>;
   createDistributorCommission(data: InsertDistributorCommission): Promise<DistributorCommission>;
   getAllDistributorCommissions(): Promise<DistributorCommission[]>;
+  getUnassignedOrders(): Promise<Order[]>;
+  createDistributor(data: InsertUser): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -358,13 +360,25 @@ export class DatabaseStorage implements IStorage {
   async getDistributorInventory(distributorId: number): Promise<DistributorInventory[]> {
     try {
       console.log(`Fetching inventory for distributor ${distributorId}...`);
-      const inventory = await db.select()
+      const result = await db
+        .select({
+          id: distributorInventoryTable.id,
+          distributorId: distributorInventoryTable.distributorId,
+          productId: distributorInventoryTable.productId,
+          quantity: distributorInventoryTable.quantity,
+          createdAt: distributorInventoryTable.createdAt,
+          updatedAt: distributorInventoryTable.updatedAt,
+          productName: productsTable.name // Add product name to the result
+        })
         .from(distributorInventoryTable)
-        .where(eq(distributorInventoryTable.distributorId, distributorId))
-        .innerJoin(productsTable, eq(distributorInventoryTable.productId, productsTable.id));
+        .innerJoin(
+          productsTable,
+          eq(distributorInventoryTable.productId, productsTable.id)
+        )
+        .where(eq(distributorInventoryTable.distributorId, distributorId));
 
-      console.log(`Found ${inventory.length} inventory items for distributor ${distributorId}`);
-      return inventory;
+      console.log(`Found ${result.length} inventory items for distributor ${distributorId}`);
+      return result;
     } catch (error) {
       console.error(`Error fetching distributor inventory:`, error);
       return [];
@@ -456,6 +470,54 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching all distributor commissions:', error);
       return [];
+    }
+  }
+
+  async getUnassignedOrders(): Promise<Order[]> {
+    try {
+      console.log("Fetching unassigned orders...");
+      const orders = await db.select()
+        .from(ordersTable)
+        .where(sql`${ordersTable.distributorId} IS NULL`)
+        .orderBy(desc(ordersTable.createdAt));
+
+      console.log(`Found ${orders.length} unassigned orders`);
+      return orders;
+    } catch (error) {
+      console.error("Error fetching unassigned orders:", error);
+      return [];
+    }
+  }
+
+  async createDistributor(data: InsertUser): Promise<User> {
+    try {
+      console.log("Creating new distributor account:", {
+        ...data,
+        password: '***'
+      });
+
+      const [distributor] = await db
+        .insert(usersTable)
+        .values({
+          ...data,
+          role: UserRole.DISTRIBUTOR
+        })
+        .returning();
+
+      if (!distributor) {
+        throw new Error("Failed to create distributor account");
+      }
+
+      console.log("Successfully created distributor account:", {
+        id: distributor.id,
+        username: distributor.username,
+        role: distributor.role
+      });
+
+      return distributor;
+    } catch (error) {
+      console.error("Error creating distributor:", error);
+      throw new Error(`Failed to create distributor: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 }

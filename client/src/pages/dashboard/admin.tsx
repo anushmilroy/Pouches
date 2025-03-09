@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { CustomPricingDialog } from "@/components/admin/custom-pricing-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 
+
 function CreatePromotionDialog() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -319,6 +320,250 @@ function WholesalerDetailsDialog({
   );
 }
 
+function CreateDistributorDialog() {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      await apiRequest("POST", "/api/users/distributor", {
+        username,
+        password,
+        email,
+        role: "DISTRIBUTOR"
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/users/distributors"] });
+      toast({
+        title: "Distributor Created",
+        description: "The distributor account has been created successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create distributor account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Distributor
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Distributor Account</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Username</label>
+            <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Email</label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Password</label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+          </div>
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              "Create Distributor"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AllocateInventoryDialog({ distributor }) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [quantity, setQuantity] = useState("");
+
+  const { data: products, isLoading: productsLoading } = useQuery({
+    queryKey: ["/api/products"],
+  });
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      await apiRequest("POST", `/api/distributors/${distributor.id}/inventory`, {
+        productId: parseInt(selectedProduct),
+        quantity: parseInt(quantity)
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/distributors"] });
+      toast({
+        title: "Inventory Allocated",
+        description: "Successfully allocated inventory to distributor.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to allocate inventory",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Allocate Inventory</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Allocate Inventory to {distributor.username}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Product</label>
+            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a product" />
+              </SelectTrigger>
+              <SelectContent>
+                {products?.map((product) => (
+                  <SelectItem key={product.id} value={product.id.toString()}>
+                    {product.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Quantity</label>
+            <Input 
+              type="number" 
+              value={quantity} 
+              onChange={(e) => setQuantity(e.target.value)}
+              min="1"
+            />
+          </div>
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !selectedProduct || !quantity}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Allocating...
+              </>
+            ) : (
+              "Allocate Inventory"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AssignOrderDialog({ distributor }) {
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState("");
+
+  const { data: unassignedOrders, isLoading: ordersLoading } = useQuery({
+    queryKey: ["/api/orders/unassigned"],
+  });
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+      await apiRequest("POST", `/api/orders/${selectedOrder}/assign`, {
+        distributorId: distributor.id
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/orders/unassigned"] });
+      toast({
+        title: "Order Assigned",
+        description: "Successfully assigned order to distributor.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to assign order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">Assign Order</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Assign Order to {distributor.username}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-medium">Order</label>
+            <Select value={selectedOrder} onValueChange={setSelectedOrder}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an order" />
+              </SelectTrigger>
+              <SelectContent>
+                {unassignedOrders?.map((order) => (
+                  <SelectItem key={order.id} value={order.id.toString()}>
+                    Order #{order.id} - ${order.total}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            className="w-full"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !selectedOrder}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Assigning...
+              </>
+            ) : (
+              "Assign Order"
+            )}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AdminDashboard() {
   const { toast } = useToast();
   const [processingOrder, setProcessingOrder] = useState<number | null>(null);
@@ -463,83 +708,6 @@ function AdminDashboard() {
     }
   };
 
-  function CreateDistributorDialog() {
-    const { toast } = useToast();
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const [email, setEmail] = useState("");
-
-    const handleSubmit = async () => {
-      try {
-        setIsSubmitting(true);
-        await apiRequest("POST", "/api/users/distributor", {
-          username,
-          password,
-          email,
-          role: "DISTRIBUTOR"
-        });
-
-        queryClient.invalidateQueries({ queryKey: ["/api/users/distributors"] });
-        toast({
-          title: "Distributor Created",
-          description: "The distributor account has been created successfully.",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to create distributor account",
-          variant: "destructive",
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-
-    return (
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Distributor
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Distributor Account</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium">Username</label>
-              <Input value={username} onChange={(e) => setUsername(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Email</label>
-              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Password</label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Distributor"
-              )}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   // Add these queries in the AdminDashboard component
   const { data: referralStats, isLoading: referralStatsLoading } = useQuery({
@@ -690,16 +858,9 @@ function AdminDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell>{distributor.assignedOrders || 0}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              // Handle distributor management
-                            }}
-                          >
-                            Manage
-                          </Button>
+                        <TableCell className="space-x-2">
+                          <AllocateInventoryDialog distributor={distributor} />
+                          <AssignOrderDialog distributor={distributor} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -794,6 +955,7 @@ function AdminDashboard() {
                       <TableHead>Status</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead>Payment Method</TableHead>
+                      <TableHead>Order Date</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -804,6 +966,9 @@ function AdminDashboard() {
                         <TableCell>{order.status}</TableCell>
                         <TableCell>${order.total}</TableCell>
                         <TableCell>{order.paymentMethod}</TableCell>
+                        <TableCell>
+                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
+                        </TableCell>
                         <TableCell>
                           {order.status === OrderStatus.PENDING && (
                             <Button
@@ -820,6 +985,13 @@ function AdminDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
+                    {(!orders || orders.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          No orders found
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               )}

@@ -11,11 +11,16 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Order, OrderStatus } from "@shared/schema";
+import { Order, OrderStatus, DistributorInventory, DistributorCommission } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Loader2, TrendingUp, Truck, DollarSign } from "lucide-react";
+import { Loader2, TrendingUp, Truck, DollarSign, Package } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
+// Update the type to include productName
+type InventoryWithProduct = DistributorInventory & {
+  productName: string;
+};
 
 export default function DistributorDashboard() {
   const { toast } = useToast();
@@ -31,6 +36,14 @@ export default function DistributorDashboard() {
     pendingDeliveries: number;
   }>({
     queryKey: ["/api/distributor/stats"],
+  });
+
+  const { data: inventory, isLoading: inventoryLoading } = useQuery<InventoryWithProduct[]>({
+    queryKey: ["/api/distributors/inventory"],
+  });
+
+  const { data: commissions, isLoading: commissionsLoading } = useQuery<DistributorCommission[]>({
+    queryKey: ["/api/distributors/commissions"],
   });
 
   const handleUpdateStatus = async (orderId: number, newStatus: keyof typeof OrderStatus) => {
@@ -73,7 +86,7 @@ export default function DistributorDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -115,9 +128,66 @@ export default function DistributorDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Products in Stock
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-muted-foreground">
+              {inventory?.reduce((acc, item) => acc + item.quantity, 0) || 0}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
+      {/* Inventory Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Your Inventory</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {inventoryLoading ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Last Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inventory?.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.productName}</TableCell>
+                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell>
+                      {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(!inventory || inventory.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
+                      No inventory items found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Orders Section */}
+      <Card className="mb-6">
         <CardHeader>
           <CardTitle>Assigned Orders</CardTitle>
         </CardHeader>
@@ -198,6 +268,54 @@ export default function DistributorDashboard() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground">
                       No orders assigned yet
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Commission History Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Commission History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {commissionsLoading ? (
+            <div className="flex justify-center p-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {commissions?.map((commission) => (
+                  <TableRow key={commission.id}>
+                    <TableCell>#{commission.orderId}</TableCell>
+                    <TableCell>${commission.amount}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={commission.status === 'PAID' ? 'bg-green-100 text-green-800' : ''}>
+                        {commission.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {commission.createdAt ? new Date(commission.createdAt).toLocaleDateString() : "N/A"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(!commissions || commissions.length === 0) && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      No commission history found
                     </TableCell>
                   </TableRow>
                 )}
