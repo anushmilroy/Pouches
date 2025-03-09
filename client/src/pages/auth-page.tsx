@@ -28,14 +28,6 @@ const registrationSchema = z.object({
   companyAddress: z.string().optional(),
   companyEmail: z.string().email("Invalid email").optional(),
   companyWebsite: z.string().url("Invalid URL").optional(),
-}).refine((data) => {
-  if (data.role === "WHOLESALE") {
-    return data.companyName && data.companyAddress && data.companyEmail;
-  }
-  return true;
-}, {
-  message: "Company name, address and email are required for wholesale accounts",
-  path: ["companyName"],
 });
 
 export default function AuthPage() {
