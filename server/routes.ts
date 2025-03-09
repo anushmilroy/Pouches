@@ -2,14 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema";
 import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
-import { db, eq, or } from "./db";
+import { db, eq, or, desc } from "./db";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -108,30 +108,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Orders
+  // Update the order creation endpoint
   app.post("/api/orders", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
     try {
       const orderData = req.body;
-      let referrerId = null;
-
-      // If a referral code is provided, look up the referrer
-      if (orderData.referralCode) {
-        const referrer = await storage.getUserByReferralCode(orderData.referralCode);
-        if (referrer) {
-          referrerId = referrer.id;
-          // Calculate 5% commission
-          const commissionAmount = parseFloat(orderData.subtotal) * 0.05;
-          orderData.referrerId = referrerId;
-          orderData.commissionAmount = commissionAmount.toFixed(2);
-        }
-      }
-
-      const order = await storage.createOrder({
-        ...orderData,
-        userId: req.user?.id || null,
-        status: OrderStatus.PENDING
+      console.log("Creating new order:", {
+        userId: req.user.id,
+        ...orderData
       });
 
-      res.status(201).json(order);
+      const [newOrder] = await db
+        .insert(orders)
+        .values({
+          ...orderData,
+          userId: req.user.id,
+          status: OrderStatus.PENDING,
+          createdAt: new Date().toISOString(),
+        })
+        .returning();
+
+      console.log("Order created successfully:", newOrder);
+      res.status(201).json(newOrder);
     } catch (error) {
       console.error("Error creating order:", error);
       res.status(500).json({ error: "Failed to create order" });
@@ -139,12 +140,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.get("/api/orders", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  // Update the wholesale orders endpoint
+  app.get("/api/orders/wholesale", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+      return res.sendStatus(401);
+    }
 
-    const orders = await storage.getUserOrders(req.user.id);
-    res.json(orders);
+    try {
+      console.log(`Fetching orders for wholesaler ${req.user.id}...`);
+      const [orders] = await db
+        .select()
+        .from(orders)
+        .where(eq(orders.userId, req.user.id))
+        .orderBy(desc(orders.createdAt));
+
+      console.log(`Found ${orders?.length || 0} orders for wholesaler ${req.user.id}`);
+      res.json(orders || []);
+    } catch (error) {
+      console.error("Error fetching wholesale orders:", error);
+      res.status(500).json({ error: "Failed to fetch wholesale orders" });
+    }
   });
+
+  //removed old order get route
 
   // Update getDistributorOrders endpoint with better error handling
   app.get("/api/orders/distributor", async (req, res) => {
@@ -843,8 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const loan = await storage.createWholesaleLoan({
         ...req.body,
         wholesalerId: req.user.id,
-        status: "PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"
-        remainingAmount: req.body.amount
+        status: "PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"        remainingAmount: req.body.amount
       });
       res.status(201).json(loan);
     } catch (error) {
