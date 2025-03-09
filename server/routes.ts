@@ -20,6 +20,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok" });
+  });
+
   setupAuth(app);
 
   // Add wholesale products endpoint
@@ -101,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
       console.error('Error creating payment intent:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to create payment intent',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -122,7 +127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userRole: req.user.role,
         orderTotal: orderData.total,
         paymentMethod: orderData.paymentMethod,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        completeOrderPayload: orderData // Added complete payload logging
       });
 
       // Create the order with the correct schema fields
@@ -149,7 +155,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderId: newOrder.id,
         status: newOrder.status,
         userId: newOrder.userId,
-        total: newOrder.total
+        total: newOrder.total,
+        databaseOperationResult: "success" //Added database operation result logging
       });
 
       // Verify the order was created by immediately fetching it
@@ -161,12 +168,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Verified order exists:", {
         verifiedOrderId: verifiedOrder?.id,
         verifiedUserId: verifiedOrder?.userId,
-        exists: !!verifiedOrder
+        exists: !!verifiedOrder,
+        databaseOperationResult: "success" //Added database operation result logging
       });
 
       res.status(201).json(newOrder);
     } catch (error) {
       console.error("Error creating order:", error);
+      console.log("Database operation result:", "failure"); //Added database operation result logging
       res.status(500).json({ error: "Failed to create order" });
     }
   });
@@ -241,9 +250,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(c => {
           const date = new Date(c.createdAt);
           const now = new Date();
-          return date.getMonth() === now.getMonth() && 
-                 date.getFullYear() === now.getFullYear() &&
-                 c.status === 'PAID';
+          return date.getMonth() === now.getMonth() &&
+            date.getFullYear() === now.getFullYear() &&
+            c.status === 'PAID';
         })
         .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
 
@@ -852,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Filter out any failed stats
       const validStats = stats.filter(stat => stat !== null);
-      console.log('Successfully processed stats for', validStats.length, 'users');
+console.log('Successfully processed stats for', validStats.length, 'users');
 
       res.json(validStats);
     } catch (error) {
@@ -875,8 +884,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
       const totalCommissionPending = allTransactions
-                .filter(t => t.status === 'PENDING')
-        .reduce((sum, t) => sum + parseFloat(t.amount.toString()),0), 0);
+        .filter(t => t.status === 'PENDING')
+        .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
 
       const activeReferrers = await storage.getActiveReferrersCount();
       console.log('Active referrers count:', activeReferrers);
@@ -885,7 +894,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalCommissionPaid,
         totalCommissionPending,
         activeReferrers
-      });    } catch (error) {
+      });
+    } catch (error) {
       console.error("Error fetching referral summary:", error);
       res.status(500).json({ error: "Failed to fetch referral summary" });
     }
@@ -916,7 +926,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.sendStatus(401);
     }
 
-    try {const loans = await storage.getWholesaleLoansForUser(req.user.id);
+    try {
+      const loans = await storage.getWholesaleLoansForUser(req.user.id);
       res.json(loans);
     } catch (error) {
       console.error("Error fetching wholesale loans:", error);
@@ -925,7 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/wholesale/loans/:id/repayments", async (req, res) => {
-    if(!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
       return res.sendStatus(401);
     }
 
