@@ -123,6 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderTotal: orderData.total,
         paymentMethod: orderData.paymentMethod,
         shippingMethod: orderData.shippingMethod,
+        shippingCost: orderData.shippingCost,
         timestamp: new Date().toISOString()
       });
 

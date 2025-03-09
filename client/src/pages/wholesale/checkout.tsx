@@ -164,12 +164,12 @@ export default function WholesaleCheckout() {
     }
 
     try {
-      // Create the order
+      // Create the order with explicit shipping method
       const orderData = {
         total: total,
         subtotal: subtotal,
-        paymentMethod: paymentMethod, // Use the selected payment method
-        shippingMethod: ShippingMethod.WHOLESALE,
+        paymentMethod: paymentMethod,
+        shippingMethod: "WHOLESALE", 
         shippingCost: shippingCost,
         items: Object.entries(cartItems).map(([itemKey, item]) => {
           const [productId] = itemKey.split('-');
@@ -206,7 +206,7 @@ export default function WholesaleCheckout() {
       localStorage.removeItem('wholesale_cart');
 
       // Redirect based on payment method
-      if (paymentMethod === "INVOICE") {
+      if (paymentMethod === PaymentMethod.INVOICE) {
         setLocation("/wholesale/order-confirmation/invoice");
       } else {
         setLocation("/wholesale/order-confirmation/loan");
