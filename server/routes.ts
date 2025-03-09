@@ -148,14 +148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       console.log(`Fetching orders for wholesaler ${req.user.id}...`);
-      const [orders] = await db
+      const wholesaleOrders = await db
         .select()
         .from(orders)
         .where(eq(orders.userId, req.user.id))
         .orderBy(desc(orders.createdAt));
 
-      console.log(`Found ${orders?.length || 0} orders for wholesaler ${req.user.id}`);
-      res.json(orders || []);
+      console.log(`Found ${wholesaleOrders.length} orders for wholesaler ${req.user.id}`);
+      res.json(wholesaleOrders);
     } catch (error) {
       console.error("Error fetching wholesale orders:", error);
       res.status(500).json({ error: "Failed to fetch wholesale orders" });
