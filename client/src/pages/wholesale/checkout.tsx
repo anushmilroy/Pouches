@@ -163,16 +163,12 @@ export default function WholesaleCheckout() {
       return;
     }
 
+    // Create the order first (this would be handled by your API)
+    // For now, we'll just redirect to the confirmation page
     if (paymentMethod === "INVOICE") {
-      toast({
-        title: "Invoice Request Submitted",
-        description: "You will receive the invoice via email for manual payment processing.",
-      });
+      setLocation("/wholesale/order-confirmation?payment_method=invoice");
     } else {
-      toast({
-        title: "Wholesale Loan Request",
-        description: "Request a wholesale loan to complete this order",
-      });
+      setLocation("/wholesale/order-confirmation?payment_method=loan");
     }
   };
 
