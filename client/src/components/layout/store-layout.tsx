@@ -51,31 +51,33 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
             <div className="flex items-center space-x-8">
               <h1 
                 className="text-xl font-bold cursor-pointer"
-                onClick={() => setLocation("/")}
+                onClick={() => {
+                  // Redirect wholesale users to their dashboard
+                  if (user?.role === UserRole.WHOLESALE) {
+                    setLocation("/wholesale");
+                  } else {
+                    setLocation("/");
+                  }
+                }}
               >
                 Pouches Worldwide
               </h1>
               <nav className="hidden md:flex items-center space-x-4">
-                <Button 
-                  variant="ghost"
-                  onClick={() => setLocation("/")}
-                >
-                  Home
-                </Button>
-                {user?.role === UserRole.WHOLESALE ? (
-                  <Button 
-                    variant="ghost"
-                    onClick={() => setLocation("/wholesale-shop")}
-                  >
-                    Wholesale Shop
-                  </Button>
-                ) : (
-                  <Button 
-                    variant="ghost"
-                    onClick={() => setLocation("/shop")}
-                  >
-                    Shop
-                  </Button>
+                {user?.role !== UserRole.WHOLESALE && (
+                  <>
+                    <Button 
+                      variant="ghost"
+                      onClick={() => setLocation("/")}
+                    >
+                      Home
+                    </Button>
+                    <Button 
+                      variant="ghost"
+                      onClick={() => setLocation("/shop")}
+                    >
+                      Shop
+                    </Button>
+                  </>
                 )}
               </nav>
             </div>
@@ -129,15 +131,7 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
             <div>
               <h3 className="font-semibold mb-4">Quick Links</h3>
               <div className="space-y-2">
-                {user?.role === UserRole.WHOLESALE ? (
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-muted-foreground"
-                    onClick={() => setLocation("/wholesale-shop")}
-                  >
-                    Wholesale Shop
-                  </Button>
-                ) : (
+                {user?.role !== UserRole.WHOLESALE && (
                   <Button 
                     variant="link" 
                     className="p-0 h-auto text-muted-foreground"

@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Product, Order } from "@shared/schema";
+import { Product } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -11,6 +10,19 @@ import { useAuth } from "@/hooks/use-auth";
 import { Input } from "@/components/ui/input";
 import { EarningsSection } from "@/components/earnings-section";
 import { BankDetailsForm } from "@/components/bank-details-form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Function to calculate wholesale price based on quantity
+function calculateWholesalePrice(quantity: number): number | null {
+  if (quantity < 100) return null; // Minimum order quantity
+  if (quantity >= 25000) return 5.00; // TIER_7
+  if (quantity >= 10000) return 5.50; // TIER_6
+  if (quantity >= 5000) return 6.00;  // TIER_5
+  if (quantity >= 1000) return 6.50;  // TIER_4
+  if (quantity >= 500) return 7.00;   // TIER_3
+  if (quantity >= 250) return 7.50;   // TIER_2
+  return 8.00; // TIER_1 (100-249)
+}
 
 export default function WholesaleDashboard() {
   const { user } = useAuth();
@@ -25,47 +37,57 @@ export default function WholesaleDashboard() {
     queryKey: ["/api/products"],
   });
 
-  const { data: orders } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
-  });
+  const handleQuantityChange = (productId: number, value: string) => {
+    const quantity = parseInt(value) || 0;
+    setQuantities({ ...quantities, [productId]: quantity });
+  };
 
-  const handleOrder = async (productId: number) => {
+  const addToCart = (productId: number) => {
     const quantity = quantities[productId] || 0;
-    if (quantity < 1) {
+    if (quantity < 100) {
       toast({
         title: "Invalid Quantity",
-        description: "Please enter a valid quantity",
+        description: "Minimum order quantity is 100 units",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const wholesalePrice = calculateWholesalePrice(quantity);
+    if (!wholesalePrice) {
+      toast({
+        title: "Price Calculation Error",
+        description: "Could not calculate wholesale price for this quantity",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      setIsOrdering(true);
-      await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId,
-          quantity,
-          type: "wholesale",
-        }),
-      });
+      const cartKey = 'wholesale_cart';
+      const savedCart = localStorage.getItem(cartKey);
+      const cart = savedCart ? JSON.parse(savedCart) : {};
+
+      cart[productId] = {
+        quantity,
+        unitPrice: wholesalePrice,
+      };
+
+      localStorage.setItem(cartKey, JSON.stringify(cart));
 
       toast({
-        title: "Order Created",
-        description: "Your wholesale order has been placed successfully",
+        title: "Added to Cart",
+        description: `${quantity} units added at $${wholesalePrice.toFixed(2)} per unit`,
       });
 
-      setQuantities({ ...quantities, [productId]: 0 });
+      // Reset quantity input
+      setQuantities({ ...quantities, [productId]: 100 });
     } catch (error) {
       toast({
-        title: "Order Failed",
-        description: error instanceof Error ? error.message : "Please try again",
+        title: "Error",
+        description: "Failed to add item to cart",
         variant: "destructive",
       });
-    } finally {
-      setIsOrdering(false);
     }
   };
 
@@ -85,76 +107,74 @@ export default function WholesaleDashboard() {
 
   return (
     <DashboardLayout>
-      <EarningsSection />
+      <Tabs defaultValue="shop" className="space-y-8">
+        <TabsList>
+          <TabsTrigger value="shop">Wholesale Shop</TabsTrigger>
+          <TabsTrigger value="earnings">Earnings & Referrals</TabsTrigger>
+        </TabsList>
 
-      <div className="mt-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Wholesale Products</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {productsLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Wholesale Price</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Quantity</TableHead>
-                    <TableHead>Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+        <TabsContent value="shop">
+          <Card>
+            <CardHeader>
+              <CardTitle>Wholesale Products</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {productsLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {products?.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          <Package className="h-4 w-4 mr-2" />
+                    <Card key={product.id} className="flex flex-col">
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Package className="h-5 w-5 mr-2" />
                           {product.name}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {product.description}
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="text-sm font-medium">Quantity (min. 100)</label>
+                            <Input
+                              type="number"
+                              min="100"
+                              value={quantities[product.id] || 100}
+                              onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Unit Price</p>
+                            <p className="text-lg font-bold">
+                              {calculateWholesalePrice(quantities[product.id] || 0)?.toFixed(2) || 'N/A'}
+                            </p>
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={() => addToCart(product.id)}
+                            disabled={!calculateWholesalePrice(quantities[product.id] || 0)}
+                          >
+                            Add to Cart
+                          </Button>
                         </div>
-                      </TableCell>
-                      <TableCell>{product.description}</TableCell>
-                      <TableCell>${product.wholesalePrice}</TableCell>
-                      <TableCell>{product.stock}</TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          min="1"
-                          value={quantities[product.id] || ""}
-                          onChange={(e) =>
-                            setQuantities({
-                              ...quantities,
-                              [product.id]: parseInt(e.target.value) || 0,
-                            })
-                          }
-                          className="w-24"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          onClick={() => handleOrder(product.id)}
-                          disabled={isOrdering || product.stock === 0}
-                        >
-                          {isOrdering && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          )}
-                          Order
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                      </CardContent>
+                    </Card>
                   ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="earnings">
+          <EarningsSection />
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }
