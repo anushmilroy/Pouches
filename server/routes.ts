@@ -1033,6 +1033,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add this route after the profile update endpoint
+  app.post("/api/user/update-addresses", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log("Updating addresses for user:", req.user.id);
+
+      const { shippingAddress, billingAddress, sameAsShipping } = req.body;
+
+      // Validate shipping address
+      if (!shippingAddress) {
+        return res.status(400).json({ error: "Shipping address is required" });
+      }
+
+      // If sameAsShipping is true, use shipping address as billing address
+      const finalBillingAddress = sameAsShipping ? shippingAddress : billingAddress;
+
+      // Update user addresses
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          shippingAddress,
+          billingAddress: finalBillingAddress
+        })
+        .where(eq(users.id, req.user.id))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error("Failed to update user addresses");
+      }
+
+      console.log("Successfully updated addresses for user:", req.user.id);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user addresses:", error);
+      res.status(500).json({ error: "Failed to update addresses" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
