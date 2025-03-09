@@ -25,15 +25,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products/wholesale", async (_req, res) => {
     try {
       console.log("Fetching wholesale products...");
+      // Fetch all products to allow wholesalers access to all variations
       const wholesaleProducts = await db
         .select()
-        .from(products)
-        .where(
-          or(
-            eq(products.allocation, ProductAllocation.WHOLESALE_ONLY),
-            eq(products.allocation, ProductAllocation.BOTH)
-          )
-        );
+        .from(products);
       console.log(`Found ${wholesaleProducts.length} wholesale products`);
       res.json(wholesaleProducts);
     } catch (error) {
@@ -850,6 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix the bug in the loan route
   app.get("/api/wholesale/loans", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
       return res.sendStatus(401);
@@ -857,7 +853,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const loans = await storage.getWholesaleLoansForUser(req.user.id);
-      res.json(loans);} catch (error) {
+      res.json(loans);
+    } catch (error) {
       console.error("Error fetching wholesale loans:", error);
       res.status(500).json({ error: "Failed to fetch wholesale loans" });
     }

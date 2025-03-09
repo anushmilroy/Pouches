@@ -17,6 +17,8 @@ import { useQuery } from "@tanstack/react-query";
 interface CartItem {
   quantity: number;
   unitPrice: number;
+  strength: string;
+  flavor: string;
 }
 
 // Function to calculate wholesale price based on total cart quantity
@@ -33,8 +35,10 @@ function calculateWholesalePrice(totalCartQuantity: number): number {
 export default function WholesaleDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
+  const [selectedStrength, setSelectedStrength] = useState<string>("");
+  const [selectedFlavor, setSelectedFlavor] = useState<string>("");
   const [, setLocation] = useLocation();
 
   // Check if user has bank details
@@ -44,6 +48,10 @@ export default function WholesaleDashboard() {
     queryKey: ["/api/products/wholesale"],
   });
 
+  // Get unique strengths and flavors
+  const strengths = [...new Set(products?.map(p => p.strength) || [])];
+  const flavors = [...new Set(products?.map(p => p.flavor) || [])];
+
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('wholesale_cart');
@@ -52,7 +60,7 @@ export default function WholesaleDashboard() {
     }
   }, []);
 
-  const handleQuantityChange = (productId: number, value: string) => {
+  const handleQuantityChange = (productId: string, value: string) => {
     const quantity = parseInt(value) || 0;
     setQuantities({ ...quantities, [productId]: quantity });
   };
@@ -62,15 +70,22 @@ export default function WholesaleDashboard() {
     return Object.values(items).reduce((total, item) => total + item.quantity, 0);
   };
 
-  const updateCartItem = (productId: string, newQuantity: number) => {
+  const getCartItemKey = (productId: number, strength: string, flavor: string) => {
+    return `${productId}-${strength}-${flavor}`;
+  };
+
+  const updateCartItem = (itemKey: string, newQuantity: number) => {
     const newCart = { ...cartItems };
 
     if (newQuantity <= 0) {
-      delete newCart[productId];
+      delete newCart[itemKey];
     } else {
-      newCart[productId] = {
+      const [productId, strength, flavor] = itemKey.split('-');
+      newCart[itemKey] = {
         quantity: newQuantity,
         unitPrice: calculateWholesalePrice(getTotalCartQuantity(newCart)),
+        strength,
+        flavor
       };
     }
 
@@ -85,9 +100,9 @@ export default function WholesaleDashboard() {
     localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
   };
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = (itemKey: string) => {
     const newCart = { ...cartItems };
-    delete newCart[productId];
+    delete newCart[itemKey];
 
     // Update prices for remaining items
     const totalQuantity = getTotalCartQuantity(newCart);
@@ -105,8 +120,17 @@ export default function WholesaleDashboard() {
     });
   };
 
-  const addToCart = (productId: number) => {
-    const quantity = quantities[productId] || 0;
+  const addToCart = (product: Product) => {
+    if (!selectedStrength || !selectedFlavor) {
+      toast({
+        title: "Selection Required",
+        description: "Please select both strength and flavor",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const quantity = quantities[product.id.toString()] || 0;
     if (quantity <= 0) {
       toast({
         title: "Invalid Quantity",
@@ -116,13 +140,16 @@ export default function WholesaleDashboard() {
       return;
     }
 
+    const itemKey = getCartItemKey(product.id, selectedStrength, selectedFlavor);
+
     try {
-      // Calculate new total cart quantity
       const newCart = {
         ...cartItems,
-        [productId]: {
+        [itemKey]: {
           quantity,
           unitPrice: calculateWholesalePrice(getTotalCartQuantity() + quantity),
+          strength: selectedStrength,
+          flavor: selectedFlavor
         }
       };
 
@@ -138,11 +165,13 @@ export default function WholesaleDashboard() {
 
       toast({
         title: "Added to Cart",
-        description: `${quantity} units added. Total cart quantity: ${getTotalCartQuantity(newCart)} units`,
+        description: `${quantity} units of ${product.name} (${selectedStrength}, ${selectedFlavor}) added`,
       });
 
-      // Reset quantity input
-      setQuantities({ ...quantities, [productId]: 0 });
+      // Reset inputs
+      setQuantities({ ...quantities, [product.id.toString()]: 0 });
+      setSelectedStrength("");
+      setSelectedFlavor("");
     } catch (error) {
       toast({
         title: "Error",
@@ -152,7 +181,7 @@ export default function WholesaleDashboard() {
     }
   };
 
-  const cartTotal = Object.entries(cartItems).reduce((total, [productId, item]) => {
+  const cartTotal = Object.entries(cartItems).reduce((total, [, item]) => {
     return total + (item.quantity * item.unitPrice);
   }, 0);
 
@@ -164,7 +193,7 @@ export default function WholesaleDashboard() {
         <div className="max-w-2xl mx-auto py-8">
           <h2 className="text-2xl font-bold mb-6">Welcome to Your Wholesale Account</h2>
           <p className="text-muted-foreground mb-8">
-            To start earning commissions from referrals, please set up your bank account details first.
+            To start ordering wholesale products, please set up your bank account details first.
           </p>
           <BankDetailsForm />
         </div>
@@ -213,19 +242,45 @@ export default function WholesaleDashboard() {
                                 <p className="text-lg font-bold">${calculateWholesalePrice(cartItemCount).toFixed(2)}/unit</p>
                               </div>
                               <div>
+                                <label className="text-sm font-medium">Strength</label>
+                                <select
+                                  className="w-full mt-1 p-2 border rounded"
+                                  value={selectedStrength}
+                                  onChange={(e) => setSelectedStrength(e.target.value)}
+                                >
+                                  <option value="">Select Strength</option>
+                                  {strengths.map(strength => (
+                                    <option key={strength} value={strength}>{strength}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-sm font-medium">Flavor</label>
+                                <select
+                                  className="w-full mt-1 p-2 border rounded"
+                                  value={selectedFlavor}
+                                  onChange={(e) => setSelectedFlavor(e.target.value)}
+                                >
+                                  <option value="">Select Flavor</option>
+                                  {flavors.map(flavor => (
+                                    <option key={flavor} value={flavor}>{flavor}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div>
                                 <label className="text-sm font-medium">Quantity</label>
                                 <Input
                                   type="number"
                                   min="1"
-                                  value={quantities[product.id] || 0}
-                                  onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                                  value={quantities[product.id.toString()] || 0}
+                                  onChange={(e) => handleQuantityChange(product.id.toString(), e.target.value)}
                                   className="mt-1"
                                 />
                               </div>
                               <Button
                                 className="w-full"
-                                onClick={() => addToCart(product.id)}
-                                disabled={quantities[product.id] <= 0}
+                                onClick={() => addToCart(product)}
+                                disabled={!selectedStrength || !selectedFlavor || (quantities[product.id.toString()] || 0) <= 0}
                               >
                                 Add to Cart
                               </Button>
@@ -250,13 +305,15 @@ export default function WholesaleDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {Object.entries(cartItems).map(([productId, item]) => {
+                    {Object.entries(cartItems).map(([itemKey, item]) => {
+                      const [productId] = itemKey.split('-');
                       const product = products?.find(p => p.id === parseInt(productId));
                       return (
-                        <div key={productId} className="space-y-2">
+                        <div key={itemKey} className="space-y-2">
                           <div className="flex justify-between items-start">
                             <div>
                               <p className="font-medium">{product?.name}</p>
+                              <p className="text-sm">{item.strength} - {item.flavor}</p>
                               <p className="text-sm text-muted-foreground">
                                 ${item.unitPrice.toFixed(2)}/unit
                               </p>
@@ -264,7 +321,7 @@ export default function WholesaleDashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeFromCart(productId)}
+                              onClick={() => removeFromCart(itemKey)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -273,7 +330,7 @@ export default function WholesaleDashboard() {
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => updateCartItem(productId, item.quantity - 1)}
+                              onClick={() => updateCartItem(itemKey, item.quantity - 1)}
                             >
                               <Minus className="h-4 w-4" />
                             </Button>
@@ -281,13 +338,13 @@ export default function WholesaleDashboard() {
                               type="number"
                               min="1"
                               value={item.quantity}
-                              onChange={(e) => updateCartItem(productId, parseInt(e.target.value) || 0)}
+                              onChange={(e) => updateCartItem(itemKey, parseInt(e.target.value) || 0)}
                               className="w-20 text-center"
                             />
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => updateCartItem(productId, item.quantity + 1)}
+                              onClick={() => updateCartItem(itemKey, item.quantity + 1)}
                             >
                               <Plus className="h-4 w-4" />
                             </Button>

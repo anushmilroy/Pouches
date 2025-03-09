@@ -1,17 +1,29 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Package, Truck } from "lucide-react";
+import { ShoppingCart, Package, Truck, ChevronLeft, Minus, Plus, Trash2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Product, ShippingMethod } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { Input } from "@/components/ui/input";
 
 interface CartItem {
   quantity: number;
   unitPrice: number;
+}
+
+// Function to calculate wholesale price based on total cart quantity
+function calculateWholesalePrice(totalCartQuantity: number): number {
+  if (totalCartQuantity >= 25000) return 5.00; // TIER_7
+  if (totalCartQuantity >= 10000) return 5.50; // TIER_6
+  if (totalCartQuantity >= 5000) return 6.00;  // TIER_5
+  if (totalCartQuantity >= 1000) return 6.50;  // TIER_4
+  if (totalCartQuantity >= 500) return 7.00;   // TIER_3
+  if (totalCartQuantity >= 250) return 7.50;   // TIER_2
+  return 8.00; // TIER_1
 }
 
 export default function WholesaleCheckout() {
@@ -45,6 +57,63 @@ export default function WholesaleCheckout() {
     }
   }, []);
 
+  const getTotalCartQuantity = (newCartItems?: Record<string, CartItem>): number => {
+    const items = newCartItems || cartItems;
+    return Object.values(items).reduce((total, item) => total + item.quantity, 0);
+  };
+
+  const updateCartItem = (productId: string, newQuantity: number) => {
+    const newCart = { ...cartItems };
+
+    if (newQuantity <= 0) {
+      delete newCart[productId];
+    } else {
+      newCart[productId] = {
+        quantity: newQuantity,
+        unitPrice: calculateWholesalePrice(getTotalCartQuantity(newCart)),
+      };
+    }
+
+    // Update all items' prices based on new total quantity
+    const totalQuantity = getTotalCartQuantity(newCart);
+    const newPrice = calculateWholesalePrice(totalQuantity);
+    Object.keys(newCart).forEach(id => {
+      newCart[id].unitPrice = newPrice;
+    });
+
+    setCartItems(newCart);
+    localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
+  };
+
+  const removeFromCart = (productId: string) => {
+    const newCart = { ...cartItems };
+    delete newCart[productId];
+
+    if (getTotalCartQuantity(newCart) < 100) {
+      toast({
+        title: "Minimum Order Quantity",
+        description: "Cannot remove item as total quantity would be below 100 units",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update prices for remaining items
+    const totalQuantity = getTotalCartQuantity(newCart);
+    const newPrice = calculateWholesalePrice(totalQuantity);
+    Object.keys(newCart).forEach(id => {
+      newCart[id].unitPrice = newPrice;
+    });
+
+    setCartItems(newCart);
+    localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
+
+    toast({
+      title: "Item Removed",
+      description: "Item has been removed from your cart",
+    });
+  };
+
   const subtotal = Object.entries(cartItems).reduce((total, [productId, item]) => {
     return total + (item.quantity * item.unitPrice);
   }, 0);
@@ -52,12 +121,22 @@ export default function WholesaleCheckout() {
   const shippingCost = ShippingMethod.WHOLESALE.price;
   const total = subtotal + shippingCost;
 
-  const totalQuantity = Object.values(cartItems).reduce((sum, item) => sum + item.quantity, 0);
+  const totalQuantity = getTotalCartQuantity();
 
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-8">Wholesale Checkout</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">Wholesale Checkout</h1>
+          <Button 
+            variant="outline"
+            onClick={() => setLocation("/wholesale")}
+            className="flex items-center"
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Back to Shop
+          </Button>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Order Summary */}
@@ -73,19 +152,53 @@ export default function WholesaleCheckout() {
                 {Object.entries(cartItems).map(([productId, item]) => {
                   const product = products?.find(p => p.id === parseInt(productId));
                   return (
-                    <div key={productId} className="flex justify-between items-start">
-                      <div className="flex items-start">
-                        <Package className="h-5 w-5 mr-2 mt-1" />
-                        <div>
-                          <p className="font-medium">{product?.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.quantity} units @ ${item.unitPrice.toFixed(2)}
-                          </p>
+                    <div key={productId} className="space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-start">
+                          <Package className="h-5 w-5 mr-2 mt-1" />
+                          <div>
+                            <p className="font-medium">{product?.name}</p>
+                            <p className="text-sm">Strength: {product?.strength}</p>
+                            <p className="text-sm">Flavor: {product?.flavor}</p>
+                            <p className="text-sm text-muted-foreground">
+                              ${item.unitPrice.toFixed(2)}/unit
+                            </p>
+                          </div>
                         </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeFromCart(productId)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <p className="font-medium">
-                        ${(item.quantity * item.unitPrice).toFixed(2)}
-                      </p>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCartItem(productId, item.quantity - 1)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => updateCartItem(productId, parseInt(e.target.value) || 0)}
+                          className="w-20 text-center"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => updateCartItem(productId, item.quantity + 1)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <p className="font-medium ml-2">
+                          ${(item.quantity * item.unitPrice).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   );
                 })}
