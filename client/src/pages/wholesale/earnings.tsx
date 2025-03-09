@@ -170,30 +170,6 @@ export default function WholesaleEarnings() {
             </CardContent>
           </Card>
 
-          {/* Referral Strategy Guide Section */}
-          {user?.referralCode && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Referral Strategy Guide</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Get personalized AI-powered insights on how to maximize your referral earnings
-                    and grow your network effectively.
-                  </p>
-                  <Button
-                    onClick={() => window.location.href = '/wholesale/referral-guide'}
-                    className="w-full flex items-center justify-center gap-2"
-                  >
-                    <BrainCircuit className="h-4 w-4" />
-                    View Personalized Strategy
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Referral Link Section */}
           {user?.referralCode && (
             <Card>
@@ -280,6 +256,31 @@ export default function WholesaleEarnings() {
               </div>
             </CardContent>
           </Card>
+
+
+          {/* Referral Strategy Guide Section */}
+          {user?.referralCode && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Referral Strategy Guide</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Get personalized AI-powered insights on how to maximize your referral earnings
+                    and grow your network effectively.
+                  </p>
+                  <Button
+                    onClick={() => window.location.href = '/wholesale/referral-guide'}
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    <BrainCircuit className="h-4 w-4" />
+                    View Personalized Strategy
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </WholesaleLayout>
