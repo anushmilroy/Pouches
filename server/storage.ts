@@ -7,6 +7,7 @@ import type { Order } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { UserRole } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -18,6 +19,7 @@ export interface IStorage {
   getUserOrders(userId: number): Promise<Order[]>;
   getConsignmentOrders(): Promise<Order[]>;
   updateCustomPricing(userId: number, customPricing: Record<string, number>): Promise<User>;
+  getWholesaleUsers(): Promise<User[]>;
 
   // Referral management
   getUsersWithReferrals(): Promise<User[]>;
@@ -37,6 +39,23 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true,
     });
+  }
+
+  async getWholesaleUsers(): Promise<User[]> {
+    try {
+      console.log("Fetching wholesale users...");
+      const users = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.role, UserRole.WHOLESALE))
+        .orderBy(desc(usersTable.createdAt));
+
+      console.log(`Found ${users.length} wholesale users`);
+      return users;
+    } catch (error) {
+      console.error("Error fetching wholesale users:", error);
+      throw new Error("Failed to fetch wholesale users");
+    }
   }
 
   async createUser(userData: InsertUser): Promise<User> {
