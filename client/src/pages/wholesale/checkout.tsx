@@ -3,7 +3,7 @@ import WholesaleLayout from "@/components/layout/wholesale-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ShoppingCart, Package, Truck, ChevronLeft, Minus, Plus, Trash2, FileText, Banknote } from "lucide-react";
+import { ShoppingCart, Package, Truck, ChevronLeft, Minus, Plus, Trash2, FileText, Banknote, Settings } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Product, ShippingMethod, PaymentMethod } from "@shared/schema";
 import { useQuery } from "@tanstack/react-query";
@@ -11,6 +11,8 @@ import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/use-auth";
+import { WholesaleProfileSettings } from "@/components/wholesale/profile-settings";
 
 interface CartItem {
   quantity: number;
@@ -31,14 +33,22 @@ function calculateWholesalePrice(totalCartQuantity: number): number {
 }
 
 export default function WholesaleCheckout() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
   const [paymentMethod, setPaymentMethod] = useState<"INVOICE" | "LOAN">("INVOICE");
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [, setLocation] = useLocation();
 
   const { data: products } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
+
+  // Check if shipping details are missing
+  const hasShippingDetails = user?.shippingAddress && 
+    Object.keys(user.shippingAddress).length > 0 &&
+    user.contactPhone &&
+    user.contactEmail;
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -61,6 +71,17 @@ export default function WholesaleCheckout() {
       setLocation("/wholesale");
     }
   }, []);
+
+  // If shipping details are missing, show profile settings
+  useEffect(() => {
+    if (!hasShippingDetails) {
+      toast({
+        title: "Shipping Details Required",
+        description: "Please provide your shipping details to continue with checkout",
+      });
+      setShowProfileSettings(true);
+    }
+  }, [hasShippingDetails]);
 
   const getTotalCartQuantity = (newCartItems?: Record<string, CartItem>): number => {
     const items = newCartItems || cartItems;
@@ -132,6 +153,16 @@ export default function WholesaleCheckout() {
   const totalQuantity = getTotalCartQuantity();
 
   const handlePayment = () => {
+    if (!hasShippingDetails) {
+      toast({
+        title: "Shipping Details Required",
+        description: "Please provide your shipping details before proceeding",
+        variant: "destructive",
+      });
+      setShowProfileSettings(true);
+      return;
+    }
+
     if (paymentMethod === "INVOICE") {
       toast({
         title: "Invoice Request Submitted",
@@ -145,19 +176,50 @@ export default function WholesaleCheckout() {
     }
   };
 
+  if (showProfileSettings) {
+    return (
+      <WholesaleLayout>
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">Profile Settings</h1>
+            <Button 
+              variant="outline"
+              onClick={() => setShowProfileSettings(false)}
+              className="flex items-center"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Back to Checkout
+            </Button>
+          </div>
+          <WholesaleProfileSettings />
+        </div>
+      </WholesaleLayout>
+    );
+  }
+
   return (
     <WholesaleLayout>
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Wholesale Checkout</h1>
-          <Button 
-            variant="outline"
-            onClick={() => setLocation("/wholesale")}
-            className="flex items-center"
-          >
-            <ChevronLeft className="h-4 w-4 mr-2" />
-            Back to Shop
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => setShowProfileSettings(true)}
+              className="flex items-center"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Profile Settings
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setLocation("/wholesale")}
+              className="flex items-center"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Back to Shop
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -315,9 +377,16 @@ export default function WholesaleCheckout() {
                 <Button
                   className="w-full"
                   onClick={handlePayment}
+                  disabled={!hasShippingDetails}
                 >
                   {paymentMethod === "INVOICE" ? "Request Invoice" : "Apply for Loan"}
                 </Button>
+
+                {!hasShippingDetails && (
+                  <p className="text-sm text-destructive">
+                    Please provide your shipping details in Profile Settings before proceeding.
+                  </p>
+                )}
 
                 <Separator />
 

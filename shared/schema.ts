@@ -117,14 +117,12 @@ export const DistributorCommissionStatus = {
   PAID: 'PAID'
 } as const;
 
-// Add onboarding status enum
 export const OnboardingStatus = {
   NOT_STARTED: 'NOT_STARTED',
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED'
 } as const;
 
-// Add new loan status enum
 export const LoanStatus = {
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',
@@ -132,20 +130,24 @@ export const LoanStatus = {
   PAID: 'PAID'
 } as const;
 
-// Add loan repayment type
 export const RepaymentType = {
   REFERRAL_EARNINGS: 'REFERRAL_EARNINGS',
   DIRECT_PAYMENT: 'DIRECT_PAYMENT'
 } as const;
 
-// Add allocation type to schema
 export const ProductAllocation = {
   WHOLESALE_ONLY: 'WHOLESALE_ONLY',
   RETAIL_ONLY: 'RETAIL_ONLY',
   BOTH: 'BOTH'
 } as const;
 
-// Update users table definition to include onboarding fields
+// Add new address type for wholesaler addresses
+export const Address = {
+  SHIPPING: 'SHIPPING',
+  BILLING: 'BILLING'
+} as const;
+
+// Update users table with new fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -155,6 +157,13 @@ export const users = pgTable("users", {
   companyName: text("company_name"),
   companyAddress: text("company_address"),
   companyWebsite: text("company_website"),
+  // Add new fields for wholesaler details
+  contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
+  businessType: text("business_type"),
+  taxId: text("tax_id"),
+  shippingAddress: jsonb("shipping_address"),
+  billingAddress: jsonb("billing_address"),
   bankDetails: jsonb("bank_details"),
   referrerId: integer("referrer_id").references(() => users.id),
   referralCode: text("referral_code").unique(),
@@ -163,13 +172,11 @@ export const users = pgTable("users", {
   totalReferrals: integer("total_referrals").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   customPricing: jsonb("custom_pricing").$type<Record<string, number>>(),
-  // Add new onboarding fields
   onboardingStatus: text("onboarding_status").$type<keyof typeof OnboardingStatus>().default("NOT_STARTED"),
   onboardingStep: integer("onboarding_step").default(0),
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
 });
 
-// Update products table to include allocation
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -183,11 +190,9 @@ export const products = pgTable("products", {
   minRetailOrder: integer("min_retail_order").notNull().default(5),
   minWholesaleOrder: integer("min_wholesale_order").notNull().default(100),
   imagePath: text("image_path"),
-  // Add allocation field
   allocation: text("allocation").notNull().$type<keyof typeof ProductAllocation>().default("BOTH"),
 });
 
-// Update orders table to include loan reference
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -203,7 +208,6 @@ export const orders = pgTable("orders", {
   paymentMethod: text("payment_method").notNull().$type<keyof typeof PaymentMethod>(),
   paymentDetails: jsonb("payment_details"),
   createdAt: timestamp("created_at").defaultNow(),
-  // Add loan reference
   wholesaleLoanId: integer("wholesale_loan_id").references(() => wholesaleLoans.id),
 });
 
@@ -269,7 +273,6 @@ export const distributorCommissions = pgTable("distributor_commissions", {
   paidAt: timestamp("paid_at"),
 });
 
-// Add wholesale loan table
 export const wholesaleLoans = pgTable("wholesale_loans", {
   id: serial("id").primaryKey(),
   wholesalerId: integer("wholesaler_id").notNull().references(() => users.id),
@@ -282,7 +285,6 @@ export const wholesaleLoans = pgTable("wholesale_loans", {
   notes: text("notes"),
 });
 
-// Add loan repayment table
 export const loanRepayments = pgTable("loan_repayments", {
   id: serial("id").primaryKey(),
   loanId: integer("loan_id").notNull().references(() => wholesaleLoans.id),
@@ -315,7 +317,6 @@ export const distributorCommissionRelations = relations(distributorCommissions, 
   }),
 }));
 
-// Add relations
 export const wholesaleLoanRelations = relations(wholesaleLoans, ({ one, many }) => ({
   wholesaler: one(users, {
     fields: [wholesaleLoans.wholesalerId],
@@ -346,7 +347,6 @@ export const insertCommissionTransactionSchema = createInsertSchema(commissionTr
 export const insertDistributorInventorySchema = createInsertSchema(distributorInventory);
 export const insertDistributorCommissionSchema = createInsertSchema(distributorCommissions);
 
-// Add schema types
 export const insertWholesaleLoanSchema = createInsertSchema(wholesaleLoans);
 export const insertLoanRepaymentSchema = createInsertSchema(loanRepayments);
 
