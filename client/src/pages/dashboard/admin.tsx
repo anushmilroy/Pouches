@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { AdminReferralStats } from "@/components/admin/referral-stats";
 import { Order, OrderStatus, Promotion, UserRole, WholesaleStatus, ConsignmentStatus } from "@shared/schema";
@@ -190,6 +190,23 @@ function WholesalerDetailsDialog({
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Registration Date</h4>
               <p className="text-lg">{format(new Date(user.createdAt), 'MMM d, yyyy')}</p>
+            </div>
+
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Company Name</h4>
+              <p className="text-lg">{user.companyName || 'Not provided'}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Company Website</h4>
+              <p className="text-lg">{user.companyWebsite || 'Not provided'}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Company Address</h4>
+              <p className="text-lg">{user.companyAddress || 'Not provided'}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Referral Code</h4>
+              <p className="text-lg">{user.referralCode || 'None'}</p>
             </div>
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Account Status</h4>
@@ -927,7 +944,7 @@ function AdminDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {(!orders || orders.filter(o => o.isConsignment).length === 0) && (
+                    {(!orders|| orders.filter(o => o.isConsignment).length === 0) && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center text-muted-foreground">
                           No consignment orders found
