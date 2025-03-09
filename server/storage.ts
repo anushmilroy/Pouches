@@ -1,13 +1,27 @@
 import { sql, eq, desc } from "drizzle-orm";
 import { db } from "./db";
-import { users as usersTable, orders as ordersTable, commissionTransactions as commissionsTable } from "@shared/schema";
-import type { User, InsertUser } from "@shared/schema";
-import type { CommissionTransaction } from "@shared/schema";
-import type { Order } from "@shared/schema";
+import { 
+  users as usersTable, 
+  orders as ordersTable, 
+  commissionTransactions as commissionsTable,
+  distributorInventory as distributorInventoryTable,
+  distributorCommissions as distributorCommissionsTable,
+  products as productsTable
+} from "@shared/schema";
+import type { 
+  User, 
+  InsertUser, 
+  CommissionTransaction, 
+  Order, 
+  DistributorInventory,
+  DistributorCommission,
+  InsertDistributorInventory,
+  InsertDistributorCommission
+} from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
-import { UserRole, WholesaleStatus } from "@shared/schema";
+import { UserRole, WholesaleStatus, DistributorCommissionStatus } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -20,7 +34,7 @@ export interface IStorage {
   getConsignmentOrders(): Promise<Order[]>;
   updateCustomPricing(userId: number, customPricing: Record<string, number>): Promise<User>;
   getWholesaleUsers(): Promise<User[]>;
-
+  
   // Referral management
   getUsersWithReferrals(): Promise<User[]>;
   getReferralsByUserId(userId: number): Promise<Order[]>;
@@ -31,6 +45,14 @@ export interface IStorage {
   getDistributors(): Promise<User[]>;
   updateWholesaleStatus(userId: number, status: keyof typeof WholesaleStatus): Promise<User>;
   sessionStore: session.Store;
+
+  // Add new interface methods for distributor management
+  getDistributorInventory(distributorId: number): Promise<DistributorInventory[]>;
+  updateDistributorInventory(data: InsertDistributorInventory): Promise<DistributorInventory>;
+  allocateOrderToDistributor(orderId: number, distributorId: number): Promise<Order>;
+  getDistributorCommissions(distributorId: number): Promise<DistributorCommission[]>;
+  createDistributorCommission(data: InsertDistributorCommission): Promise<DistributorCommission>;
+  getAllDistributorCommissions(): Promise<DistributorCommission[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -329,6 +351,110 @@ export class DatabaseStorage implements IStorage {
       return distributors;
     } catch (error) {
       console.error("Error fetching distributors:", error);
+      return [];
+    }
+  }
+
+  async getDistributorInventory(distributorId: number): Promise<DistributorInventory[]> {
+    try {
+      console.log(`Fetching inventory for distributor ${distributorId}...`);
+      const inventory = await db.select()
+        .from(distributorInventoryTable)
+        .where(eq(distributorInventoryTable.distributorId, distributorId))
+        .innerJoin(productsTable, eq(distributorInventoryTable.productId, productsTable.id));
+
+      console.log(`Found ${inventory.length} inventory items for distributor ${distributorId}`);
+      return inventory;
+    } catch (error) {
+      console.error(`Error fetching distributor inventory:`, error);
+      return [];
+    }
+  }
+
+  async updateDistributorInventory(data: InsertDistributorInventory): Promise<DistributorInventory> {
+    try {
+      console.log(`Updating inventory for distributor ${data.distributorId}, product ${data.productId}`);
+      const [inventory] = await db
+        .insert(distributorInventoryTable)
+        .values(data)
+        .onConflictDoUpdate({
+          target: [
+            distributorInventoryTable.distributorId,
+            distributorInventoryTable.productId,
+          ],
+          set: { quantity: data.quantity }
+        })
+        .returning();
+
+      return inventory;
+    } catch (error) {
+      console.error(`Error updating distributor inventory:`, error);
+      throw error;
+    }
+  }
+
+  async allocateOrderToDistributor(orderId: number, distributorId: number): Promise<Order> {
+    try {
+      console.log(`Allocating order ${orderId} to distributor ${distributorId}`);
+      const [order] = await db
+        .update(ordersTable)
+        .set({ distributorId })
+        .where(eq(ordersTable.id, orderId))
+        .returning();
+
+      if (!order) {
+        throw new Error(`Order ${orderId} not found`);
+      }
+
+      return order;
+    } catch (error) {
+      console.error(`Error allocating order to distributor:`, error);
+      throw error;
+    }
+  }
+
+  async getDistributorCommissions(distributorId: number): Promise<DistributorCommission[]> {
+    try {
+      console.log(`Fetching commissions for distributor ${distributorId}...`);
+      const commissions = await db.select()
+        .from(distributorCommissionsTable)
+        .where(eq(distributorCommissionsTable.distributorId, distributorId))
+        .orderBy(desc(distributorCommissionsTable.createdAt));
+
+      console.log(`Found ${commissions.length} commissions for distributor ${distributorId}`);
+      return commissions;
+    } catch (error) {
+      console.error(`Error fetching distributor commissions:`, error);
+      return [];
+    }
+  }
+
+  async createDistributorCommission(data: InsertDistributorCommission): Promise<DistributorCommission> {
+    try {
+      console.log(`Creating commission for distributor ${data.distributorId}, order ${data.orderId}`);
+      const [commission] = await db
+        .insert(distributorCommissionsTable)
+        .values(data)
+        .returning();
+
+      return commission;
+    } catch (error) {
+      console.error(`Error creating distributor commission:`, error);
+      throw error;
+    }
+  }
+
+  async getAllDistributorCommissions(): Promise<DistributorCommission[]> {
+    try {
+      console.log('Fetching all distributor commissions...');
+      const commissions = await db.select()
+        .from(distributorCommissionsTable)
+        .orderBy(desc(distributorCommissionsTable.createdAt));
+
+      console.log(`Found ${commissions.length} total distributor commissions`);
+      return commissions;
+    } catch (error) {
+      console.error('Error fetching all distributor commissions:', error);
       return [];
     }
   }

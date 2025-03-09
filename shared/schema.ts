@@ -111,6 +111,11 @@ export const CommissionType = {
   WHOLESALE_REFERRAL: 'WHOLESALE_REFERRAL'
 } as const;
 
+export const DistributorCommissionStatus = {
+  PENDING: 'PENDING',
+  PAID: 'PAID'
+} as const;
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -148,6 +153,7 @@ export const products = pgTable("products", {
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  distributorId: integer("distributor_id").references(() => users.id),
   status: text("status").notNull().$type<keyof typeof OrderStatus>(),
   total: numeric("total").notNull(),
   subtotal: numeric("subtotal").notNull(),
@@ -204,6 +210,25 @@ export const commissionTransactions = pgTable("commission_transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const distributorInventory = pgTable("distributor_inventory", {
+  id: serial("id").primaryKey(),
+  distributorId: integer("distributor_id").notNull().references(() => users.id),
+  productId: integer("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const distributorCommissions = pgTable("distributor_commissions", {
+  id: serial("id").primaryKey(),
+  distributorId: integer("distributor_id").notNull().references(() => users.id),
+  orderId: integer("order_id").notNull().references(() => orders.id),
+  amount: numeric("amount").notNull(),
+  status: text("status").notNull().$type<keyof typeof DistributorCommissionStatus>(),
+  createdAt: timestamp("created_at").defaultNow(),
+  paidAt: timestamp("paid_at"),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertProductSchema = createInsertSchema(products);
 export const insertOrderSchema = createInsertSchema(orders);
@@ -211,6 +236,8 @@ export const insertOrderItemSchema = createInsertSchema(orderItems);
 export const insertPromotionSchema = createInsertSchema(promotions);
 export const insertCommissionPayoutSchema = createInsertSchema(commissionPayouts);
 export const insertCommissionTransactionSchema = createInsertSchema(commissionTransactions);
+export const insertDistributorInventorySchema = createInsertSchema(distributorInventory);
+export const insertDistributorCommissionSchema = createInsertSchema(distributorCommissions);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -222,3 +249,7 @@ export type CommissionPayout = typeof commissionPayouts.$inferSelect;
 export type CommissionTransaction = typeof commissionTransactions.$inferSelect;
 export type InsertCommissionPayout = z.infer<typeof insertCommissionPayoutSchema>;
 export type InsertCommissionTransaction = z.infer<typeof insertCommissionTransactionSchema>;
+export type InsertDistributorInventory = z.infer<typeof insertDistributorInventorySchema>;
+export type InsertDistributorCommission = z.infer<typeof insertDistributorCommissionSchema>;
+export type DistributorInventory = typeof distributorInventory.$inferSelect;
+export type DistributorCommission = typeof distributorCommissions.$inferSelect;
