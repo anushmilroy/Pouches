@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { LogOut, ShoppingCart, Settings, Store, BookCheck, TrendingUp, Coins } from "lucide-react";
+import Logo from "@/components/logo";
 
 interface WholesaleLayoutProps {
   children: ReactNode;
@@ -19,12 +20,12 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
         <div className="container mx-auto px-6">
           <div className="h-16 flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <h1 
-                className="text-xl font-bold cursor-pointer"
+              <div 
+                className="cursor-pointer"
                 onClick={() => setLocation("/wholesale")}
               >
-                Pouches Worldwide
-              </h1>
+                <Logo />
+              </div>
               <nav className="hidden md:flex items-center space-x-4">
                 <Button
                   variant={location === "/wholesale/dashboard" ? "secondary" : "ghost"}

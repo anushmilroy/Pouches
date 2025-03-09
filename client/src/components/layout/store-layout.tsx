@@ -5,6 +5,7 @@ import { ShoppingBag, UserCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { NicotineStrength, UserRole } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
+import Logo from "@/components/logo";
 
 interface StoreLayoutProps {
   children: ReactNode;
@@ -49,8 +50,8 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
           <div className="h-16 flex items-center justify-between">
             {/* Logo and main navigation */}
             <div className="flex items-center space-x-8">
-              <h1 
-                className="text-xl font-bold cursor-pointer"
+              <div 
+                className="cursor-pointer"
                 onClick={() => {
                   // Redirect wholesale users to their dashboard
                   if (user?.role === UserRole.WHOLESALE) {
@@ -60,8 +61,8 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
                   }
                 }}
               >
-                Pouches Worldwide
-              </h1>
+                <Logo />
+              </div>
               <nav className="hidden md:flex items-center space-x-4">
                 {user?.role !== UserRole.WHOLESALE && (
                   <>

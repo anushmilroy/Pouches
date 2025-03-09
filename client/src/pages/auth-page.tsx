@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserRole } from "@shared/schema";
 import { Home, ShoppingBag } from "lucide-react";
 import { useEffect } from "react";
+import Logo from "@/components/logo";
 
 // Separate schemas for login and registration
 const loginSchema = z.object({
@@ -95,7 +96,9 @@ export default function AuthPage() {
       <header className="border-b bg-background">
         <div className="container mx-auto px-4">
           <div className="h-16 flex items-center justify-between">
-            <h1 className="text-xl font-bold">Pouches Worldwide</h1>
+            <div className="cursor-pointer" onClick={() => setLocation("/")}>
+              <Logo />
+            </div>
             <nav className="flex items-center space-x-4">
               <Button
                 variant="ghost"

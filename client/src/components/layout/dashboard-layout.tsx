@@ -11,6 +11,7 @@ import {
   Wallet,
   TrendingUp,
 } from "lucide-react";
+import Logo from "@/components/logo";
 
 interface SidebarLink {
   label: string;
@@ -60,7 +61,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside className="w-64 bg-sidebar border-r border-sidebar-border">
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
-          <h1 className="text-lg font-semibold text-sidebar-foreground">Pouches Worldwide</h1>
+          <Logo className="h-6" />
         </div>
         <nav className="p-4 space-y-2">
           {links.map((link) => (
@@ -83,8 +84,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <h2 className="text-lg font-semibold">
             {links.find((link) => link.href === location)?.label || "Dashboard"}
           </h2>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className="flex items-center text-destructive hover:text-destructive"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
