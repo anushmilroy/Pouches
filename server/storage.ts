@@ -27,6 +27,8 @@ export interface IStorage {
   getCommissionTransactions(userId: number): Promise<CommissionTransaction[]>;
   getAllCommissionTransactions(): Promise<CommissionTransaction[]>;
   getActiveReferrersCount(): Promise<number>;
+  getPromotions(): Promise<any[]>;
+  getDistributors(): Promise<User[]>;
 
   sessionStore: session.Store;
 }
@@ -263,6 +265,31 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error updating custom pricing for user ${userId}:`, error);
       throw error;
+    }
+  }
+
+  async getPromotions(): Promise<any[]> {
+    try {
+      console.log("Fetching promotions...");
+      return [];  // Stub implementation until promotions feature is implemented
+    } catch (error) {
+      console.error("Error fetching promotions:", error);
+      return [];
+    }
+  }
+
+  async getDistributors(): Promise<User[]> {
+    try {
+      console.log("Fetching distributors...");
+      const distributors = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.role, UserRole.DISTRIBUTOR))
+        .orderBy(desc(usersTable.createdAt));
+      return distributors;
+    } catch (error) {
+      console.error("Error fetching distributors:", error);
+      return [];
     }
   }
 }
