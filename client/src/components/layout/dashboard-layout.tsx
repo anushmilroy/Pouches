@@ -9,9 +9,12 @@ import {
   Users,
   LogOut,
   Menu,
-  X,
   CircleDollarSign,
   TrendingUp,
+  Boxes,
+  Gift,
+  ClipboardList,
+  Share2,
 } from "lucide-react";
 import Logo from "@/components/logo";
 import {
@@ -30,16 +33,13 @@ interface SidebarLink {
 
 const roleLinks: Record<string, SidebarLink[]> = {
   admin: [
-    { label: "Dashboard", href: "/admin", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { label: "Users", href: "/admin/users", icon: <Users className="h-5 w-5" /> },
-    { label: "Products", href: "/admin/products", icon: <Package className="h-5 w-5" /> },
-    { label: "Orders", href: "/admin/orders", icon: <ShoppingCart className="h-5 w-5" /> },
-  ],
-  wholesale: [
-    { label: "Dashboard", href: "/wholesale", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { label: "Products", href: "/wholesale/products", icon: <Package className="h-5 w-5" /> },
-    { label: "Orders", href: "/wholesale/orders", icon: <ShoppingCart className="h-5 w-5" /> },
-    { label: "Commissions", href: "/wholesale/commissions", icon: <CircleDollarSign className="h-5 w-5" /> },
+    { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { label: "Wholesale Accounts", href: "/admin/wholesale", icon: <Users className="h-5 w-5" /> },
+    { label: "Distributors", href: "/admin/distributors", icon: <Boxes className="h-5 w-5" /> },
+    { label: "Promotions", href: "/admin/promotions", icon: <Gift className="h-5 w-5" /> },
+    { label: "Orders", href: "/admin/orders", icon: <ClipboardList className="h-5 w-5" /> },
+    { label: "Consignments", href: "/admin/consignments", icon: <Package className="h-5 w-5" /> },
+    { label: "Referrals", href: "/admin/referrals", icon: <Share2 className="h-5 w-5" /> },
   ],
   distributor: [
     { label: "Dashboard", href: "/distributor", icon: <LayoutDashboard className="h-5 w-5" /> },
