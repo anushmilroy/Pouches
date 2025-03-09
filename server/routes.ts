@@ -117,40 +117,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/orders", async (req, res) => {
     try {
       const orderData = req.body;
-      console.log("Creating new order with data:", {
-        userId: req.user?.id || 'guest',
-        userRole: req.user?.role || 'guest',
-        orderTotal: orderData.total,
-        paymentMethod: orderData.paymentMethod,
-        shippingMethod: orderData.shippingMethod,
-        shippingCost: orderData.shippingCost,
-        timestamp: new Date().toISOString()
-      });
 
-      // Validate required fields
-      if (!orderData.total || !orderData.subtotal || !orderData.paymentMethod || !orderData.shippingMethod || !orderData.shippingCost) {
-        console.error("Missing required fields in order data:", {
-          hasTotal: !!orderData.total,
-          hasSubtotal: !!orderData.subtotal,
-          hasPaymentMethod: !!orderData.paymentMethod,
-          hasShippingMethod: !!orderData.shippingMethod,
-          hasShippingCost: !!orderData.shippingCost
-        });
-        return res.status(400).json({ error: "Missing required order fields" });
-      }
-
-      // Create the order with the correct schema fields
+      // Create the order with minimal required fields
       const [newOrder] = await db
         .insert(ordersTable)
         .values({
           userId: req.user?.id || null,
           status: OrderStatus.PENDING,
-          total: parseFloat(orderData.total),
-          subtotal: parseFloat(orderData.subtotal),
+          total: orderData.total,
+          subtotal: orderData.subtotal,
           paymentMethod: orderData.paymentMethod,
-          shippingMethod: orderData.shippingMethod,
-          shippingCost: parseFloat(orderData.shippingCost),
-          paymentDetails: orderData.paymentDetails || {},
+          shippingMethod: 'WHOLESALE',
+          shippingCost: orderData.shippingCost,
+          paymentDetails: {},
           createdAt: new Date(),
         })
         .returning();
@@ -199,8 +178,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch wholesale orders" });
     }
   });
-
-  //removed old order get route
 
 
   // Update getDistributorOrders endpoint with better error handling

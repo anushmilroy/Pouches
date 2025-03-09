@@ -164,12 +164,11 @@ export default function WholesaleCheckout() {
     }
 
     try {
-      // Create the order with explicit shipping method
+      // Create order with minimal required data
       const orderData = {
         total: total,
         subtotal: subtotal,
         paymentMethod: paymentMethod,
-        shippingMethod: "WHOLESALE", 
         shippingCost: shippingCost,
         items: Object.entries(cartItems).map(([itemKey, item]) => {
           const [productId] = itemKey.split('-');
@@ -199,18 +198,11 @@ export default function WholesaleCheckout() {
         throw new Error(errorData.error || 'Failed to create order');
       }
 
-      const order = await response.json();
-      console.log("Order created successfully:", order);
-
       // Clear the cart
       localStorage.removeItem('wholesale_cart');
 
-      // Redirect based on payment method
-      if (paymentMethod === PaymentMethod.INVOICE) {
-        setLocation("/wholesale/order-confirmation/invoice");
-      } else {
-        setLocation("/wholesale/order-confirmation/loan");
-      }
+      // Redirect to invoice confirmation
+      setLocation("/wholesale/order-confirmation/invoice");
     } catch (error) {
       console.error("Error creating order:", error);
       toast({
