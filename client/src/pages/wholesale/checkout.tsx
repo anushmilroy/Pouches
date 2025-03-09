@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import DashboardLayout from "@/components/layout/dashboard-layout";
+import WholesaleLayout from "@/components/layout/wholesale-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -67,16 +67,18 @@ export default function WholesaleCheckout() {
     return Object.values(items).reduce((total, item) => total + item.quantity, 0);
   };
 
-  const updateCartItem = (productId: string, newQuantity: number) => {
+  const updateCartItem = (itemKey: string, newQuantity: number) => {
     const newCart = { ...cartItems };
 
     if (newQuantity <= 0) {
-      delete newCart[productId];
+      delete newCart[itemKey];
     } else {
-      newCart[productId] = {
-        ...cartItems[productId],
+      const [productId, strength, flavor] = itemKey.split('-');
+      newCart[itemKey] = {
         quantity: newQuantity,
         unitPrice: calculateWholesalePrice(getTotalCartQuantity(newCart)),
+        strength,
+        flavor
       };
     }
 
@@ -91,9 +93,9 @@ export default function WholesaleCheckout() {
     localStorage.setItem('wholesale_cart', JSON.stringify(newCart));
   };
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = (itemKey: string) => {
     const newCart = { ...cartItems };
-    delete newCart[productId];
+    delete newCart[itemKey];
 
     if (getTotalCartQuantity(newCart) < 100) {
       toast({
@@ -120,7 +122,7 @@ export default function WholesaleCheckout() {
     });
   };
 
-  const subtotal = Object.entries(cartItems).reduce((total, [productId, item]) => {
+  const subtotal = Object.entries(cartItems).reduce((total, [, item]) => {
     return total + (item.quantity * item.unitPrice);
   }, 0);
 
@@ -144,8 +146,8 @@ export default function WholesaleCheckout() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="max-w-4xl mx-auto py-8">
+    <WholesaleLayout>
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Wholesale Checkout</h1>
           <Button 
@@ -169,10 +171,11 @@ export default function WholesaleCheckout() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {Object.entries(cartItems).map(([productId, item]) => {
+                {Object.entries(cartItems).map(([itemKey, item]) => {
+                  const [productId] = itemKey.split('-');
                   const product = products?.find(p => p.id === parseInt(productId));
                   return (
-                    <div key={productId} className="space-y-2">
+                    <div key={itemKey} className="space-y-2">
                       <div className="flex justify-between items-start">
                         <div className="flex items-start">
                           <Package className="h-5 w-5 mr-2 mt-1" />
@@ -188,7 +191,7 @@ export default function WholesaleCheckout() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => removeFromCart(productId)}
+                          onClick={() => removeFromCart(itemKey)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -197,7 +200,7 @@ export default function WholesaleCheckout() {
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updateCartItem(productId, item.quantity - 1)}
+                          onClick={() => updateCartItem(itemKey, item.quantity - 1)}
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
@@ -205,13 +208,13 @@ export default function WholesaleCheckout() {
                           type="number"
                           min="1"
                           value={item.quantity}
-                          onChange={(e) => updateCartItem(productId, parseInt(e.target.value) || 0)}
+                          onChange={(e) => updateCartItem(itemKey, parseInt(e.target.value) || 0)}
                           className="w-20 text-center"
                         />
                         <Button
                           variant="outline"
                           size="icon"
-                          onClick={() => updateCartItem(productId, item.quantity + 1)}
+                          onClick={() => updateCartItem(itemKey, item.quantity + 1)}
                         >
                           <Plus className="h-4 w-4" />
                         </Button>
@@ -326,6 +329,6 @@ export default function WholesaleCheckout() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
+    </WholesaleLayout>
   );
 }
