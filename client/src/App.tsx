@@ -13,6 +13,7 @@ import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminDashboard from "@/pages/dashboard/admin";
 import WholesaleDashboard from "@/pages/dashboard/wholesale";
 import WholesaleCheckout from "@/pages/wholesale/checkout";
+import WholesaleProfile from "@/pages/wholesale/profile";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 import RegistrationSuccess from "@/pages/auth/registration-success";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,6 +43,7 @@ function Router() {
       {user?.role === UserRole.WHOLESALE ? (
         <>
           <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
+          <ProtectedRoute path="/wholesale/profile" component={WholesaleProfile} />
           <Route path="/shop">
             <Redirect to="/wholesale" />
           </Route>
