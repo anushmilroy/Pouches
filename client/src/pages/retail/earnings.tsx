@@ -106,7 +106,7 @@ export default function RetailEarnings() {
                 <Gift className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">3%</div>
+                <div className="text-2xl font-bold">5%</div>
                 <p className="text-xs text-muted-foreground">Commission per referral purchase</p>
               </CardContent>
             </Card>
@@ -183,7 +183,7 @@ export default function RetailEarnings() {
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Share this link with friends. When they make a purchase, you'll earn 3% commission.
+                    Share this link with friends. When they make a purchase, you'll earn 5% commission.
                   </p>
                 </div>
               </CardContent>
@@ -216,7 +216,7 @@ export default function RetailEarnings() {
                     <div className="mb-2">3</div>
                     <h3 className="font-medium mb-2">Earn Commission</h3>
                     <p className="text-sm text-muted-foreground">
-                      You earn 3% commission on their purchase
+                      You earn 5% commission on their purchase
                     </p>
                   </div>
                 </div>
