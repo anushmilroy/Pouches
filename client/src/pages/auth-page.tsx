@@ -26,8 +26,7 @@ const registrationSchema = z.object({
   referralCode: z.string().optional(),
   companyName: z.string().optional(),
   companyAddress: z.string().optional(),
-  companyEmail: z.string().email("Invalid email format").optional(),
-  companyWebsite: z.string().url("Invalid URL format").optional(),
+  companyWebsite: z.string().optional(),
 });
 
 export default function AuthPage() {
@@ -71,7 +70,6 @@ export default function AuthPage() {
       referralCode: "",
       companyName: "",
       companyAddress: "",
-      companyEmail: "",
       companyWebsite: "",
     }
   });
@@ -266,25 +264,12 @@ export default function AuthPage() {
                           />
                           <FormField
                             control={registerForm.control}
-                            name="companyEmail"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Company Email (Optional)</FormLabel>
-                                <FormControl>
-                                  <Input type="email" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={registerForm.control}
                             name="companyWebsite"
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>Company Website (Optional)</FormLabel>
                                 <FormControl>
-                                  <Input {...field} placeholder="https://" />
+                                  <Input {...field} placeholder="Company website" />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>
