@@ -17,6 +17,8 @@ import Logo from "@/components/logo";
 import {
   Sheet,
   SheetContent,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 
@@ -32,11 +34,6 @@ const roleLinks: Record<string, SidebarLink[]> = {
     { label: "Users", href: "/admin/users", icon: <Users className="h-5 w-5" /> },
     { label: "Products", href: "/admin/products", icon: <Package className="h-5 w-5" /> },
     { label: "Orders", href: "/admin/orders", icon: <ShoppingCart className="h-5 w-5" /> },
-  ],
-  retail: [
-    { label: "Dashboard", href: "/retail", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { label: "Products", href: "/retail/products", icon: <Package className="h-5 w-5" /> },
-    { label: "Orders", href: "/retail/orders", icon: <ShoppingCart className="h-5 w-5" /> },
   ],
   wholesale: [
     { label: "Dashboard", href: "/wholesale", icon: <LayoutDashboard className="h-5 w-5" /> },
@@ -64,25 +61,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const links = roleLinks[user.role] || [];
 
-  const NavigationLinks = () => (
-    <>
-      {links.map((link) => (
-        <Button
-          key={link.href}
-          variant={location === link.href ? "secondary" : "ghost"}
-          onClick={() => {
-            setLocation(link.href);
-            setIsMobileMenuOpen(false);
-          }}
-          className="flex items-center"
-        >
-          {link.icon}
-          <span className="ml-2">{link.label}</span>
-        </Button>
-      ))}
-    </>
-  );
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header with navigation */}
@@ -95,7 +73,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
               {/* Desktop Navigation */}
               <nav className="hidden md:flex items-center space-x-2">
-                <NavigationLinks />
+                {links.map((link) => (
+                  <Button
+                    key={link.href}
+                    variant={location === link.href ? "secondary" : "ghost"}
+                    onClick={() => setLocation(link.href)}
+                    className="flex items-center"
+                  >
+                    {link.icon}
+                    <span className="ml-2">{link.label}</span>
+                  </Button>
+                ))}
               </nav>
             </div>
 
@@ -118,22 +106,39 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <Menu className="h-6 w-6" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[240px] sm:w-[300px]">
-                  <div className="flex flex-col space-y-4 py-4">
-                    <NavigationLinks />
-                    {/* Logout button (mobile) */}
-                    <Button
-                      variant="ghost"
-                      className="flex items-center justify-start text-destructive hover:text-destructive"
-                      onClick={() => {
-                        logoutMutation.mutate();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      disabled={logoutMutation.isPending}
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </Button>
+                <SheetContent side="right" className="w-[280px] sm:w-[400px]">
+                  <SheetHeader>
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col space-y-2 mt-6">
+                    {links.map((link) => (
+                      <Button
+                        key={link.href}
+                        variant={location === link.href ? "secondary" : "ghost"}
+                        onClick={() => {
+                          setLocation(link.href);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full justify-start"
+                      >
+                        {link.icon}
+                        <span className="ml-2">{link.label}</span>
+                      </Button>
+                    ))}
+                    <div className="pt-4 mt-4 border-t">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-destructive hover:text-destructive"
+                        onClick={() => {
+                          logoutMutation.mutate();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        disabled={logoutMutation.isPending}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </Button>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
