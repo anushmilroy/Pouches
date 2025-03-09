@@ -90,6 +90,7 @@ export default function OnboardingPage() {
       if (user?.role === "WHOLESALE") {
         setLocation("/wholesale");
       } else {
+        // Retail users go to shop page
         setLocation("/shop");
       }
     } catch (error) {
