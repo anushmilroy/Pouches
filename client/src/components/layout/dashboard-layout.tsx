@@ -57,44 +57,53 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const links = roleLinks[user.role] || [];
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-sidebar border-r border-sidebar-border">
-        <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
-          <Logo className="h-6" />
-        </div>
-        <nav className="p-4 space-y-2">
-          {links.map((link) => (
+    <div className="min-h-screen bg-background">
+      {/* Header with navigation */}
+      <header className="border-b border-border">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <div className="flex items-center">
+              <Logo className="h-8" />
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex items-center space-x-2">
+              {links.map((link) => (
+                <Button
+                  key={link.href}
+                  variant={location === link.href ? "secondary" : "ghost"}
+                  onClick={() => setLocation(link.href)}
+                  className="flex items-center"
+                >
+                  {link.icon}
+                  <span className="ml-2">{link.label}</span>
+                </Button>
+              ))}
+            </nav>
+
+            {/* Logout button */}
             <Button
-              key={link.href}
-              variant={location === link.href ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setLocation(link.href)}
+              variant="ghost"
+              className="flex items-center text-destructive hover:text-destructive"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
             >
-              {link.icon}
-              <span className="ml-2">{link.label}</span>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
             </Button>
-          ))}
-        </nav>
-      </aside>
+          </div>
+        </div>
+      </header>
 
       {/* Main content */}
-      <main className="flex-1 bg-background">
-        <div className="h-16 border-b border-border flex items-center justify-between px-6">
-          <h2 className="text-lg font-semibold">
+      <main className="container mx-auto px-4 py-6">
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold">
             {links.find((link) => link.href === location)?.label || "Dashboard"}
           </h2>
-          <Button
-            variant="ghost"
-            className="flex items-center text-destructive hover:text-destructive"
-            onClick={() => logoutMutation.mutate()}
-            disabled={logoutMutation.isPending}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
         </div>
-        <div className="p-6">{children}</div>
+        {children}
       </main>
     </div>
   );
