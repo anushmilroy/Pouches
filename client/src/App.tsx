@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import ShopPage from "@/pages/shop-page";
+import WholesaleShopPage from "@/pages/wholesale-shop";
 import CheckoutPage from "@/pages/checkout-page";
 import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminDashboard from "@/pages/dashboard/admin";
@@ -30,6 +31,7 @@ function Router() {
       <ProtectedRoute path="/admin" component={AdminDashboard} />
       <ProtectedRoute path="/wholesale" component={WholesaleDashboard} />
       <ProtectedRoute path="/distributor" component={DistributorDashboard} />
+      <ProtectedRoute path="/wholesale-shop" component={WholesaleShopPage} />
 
       <Route component={NotFound} />
     </Switch>

@@ -3,7 +3,8 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ShoppingBag, UserCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { NicotineStrength } from "@shared/schema";
+import { NicotineStrength, UserRole } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
 
 interface StoreLayoutProps {
   children: ReactNode;
@@ -12,11 +13,14 @@ interface StoreLayoutProps {
 export default function StoreLayout({ children }: StoreLayoutProps) {
   const [location, setLocation] = useLocation();
   const [cartItemCount, setCartItemCount] = useState(0);
+  const { user } = useAuth();
 
   // Update cart count whenever localStorage changes
   useEffect(() => {
     const updateCartCount = () => {
-      const savedCart = localStorage.getItem('cart');
+      // Check if user is wholesale to determine which cart to look at
+      const cartKey = user?.role === UserRole.WHOLESALE ? 'wholesale_cart' : 'cart';
+      const savedCart = localStorage.getItem(cartKey);
       if (savedCart) {
         const cart = JSON.parse(savedCart) as Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>;
         const total = Object.values(cart).reduce((sum, item) => sum + item.quantity, 0);
@@ -35,7 +39,7 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
     return () => {
       window.removeEventListener('storage', updateCartCount);
     };
-  }, []);
+  }, [user?.role]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -58,12 +62,21 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
                 >
                   Home
                 </Button>
-                <Button 
-                  variant="ghost"
-                  onClick={() => setLocation("/shop")}
-                >
-                  Shop
-                </Button>
+                {user?.role === UserRole.WHOLESALE ? (
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setLocation("/wholesale-shop")}
+                  >
+                    Wholesale Shop
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="ghost"
+                    onClick={() => setLocation("/shop")}
+                  >
+                    Shop
+                  </Button>
+                )}
               </nav>
             </div>
 
@@ -116,13 +129,23 @@ export default function StoreLayout({ children }: StoreLayoutProps) {
             <div>
               <h3 className="font-semibold mb-4">Quick Links</h3>
               <div className="space-y-2">
-                <Button 
-                  variant="link" 
-                  className="p-0 h-auto text-muted-foreground"
-                  onClick={() => setLocation("/shop")}
-                >
-                  Shop
-                </Button>
+                {user?.role === UserRole.WHOLESALE ? (
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-muted-foreground"
+                    onClick={() => setLocation("/wholesale-shop")}
+                  >
+                    Wholesale Shop
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-muted-foreground"
+                    onClick={() => setLocation("/shop")}
+                  >
+                    Shop
+                  </Button>
+                )}
                 <br />
                 <Button 
                   variant="link" 
