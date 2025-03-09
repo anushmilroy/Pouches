@@ -26,11 +26,11 @@ export default function DistributorDashboard() {
   const { toast } = useToast();
   const [processingOrder, setProcessingOrder] = useState<number | null>(null);
 
-  const { data: assignedOrders, isLoading: ordersLoading } = useQuery<Order[]>({
+  const { data: assignedOrders, isLoading: ordersLoading, error: ordersError } = useQuery<Order[]>({
     queryKey: ["/api/orders/distributor"],
   });
 
-  const { data: commissionStats } = useQuery<{
+  const { data: commissionStats, isLoading: statsLoading, error: statsError } = useQuery<{
     total: number;
     thisMonth: number;
     pendingDeliveries: number;
@@ -38,11 +38,11 @@ export default function DistributorDashboard() {
     queryKey: ["/api/distributor/stats"],
   });
 
-  const { data: inventory, isLoading: inventoryLoading } = useQuery<InventoryWithProduct[]>({
+  const { data: inventory, isLoading: inventoryLoading, error: inventoryError } = useQuery<InventoryWithProduct[]>({
     queryKey: ["/api/distributors/inventory"],
   });
 
-  const { data: commissions, isLoading: commissionsLoading } = useQuery<DistributorCommission[]>({
+  const { data: commissions, isLoading: commissionsLoading, error: commissionsError } = useQuery<DistributorCommission[]>({
     queryKey: ["/api/distributors/commissions"],
   });
 
@@ -69,20 +69,16 @@ export default function DistributorDashboard() {
     }
   };
 
-  const getStatusColor = (status: keyof typeof OrderStatus) => {
-    switch (status) {
-      case OrderStatus.PAID:
-        return "bg-yellow-100 text-yellow-800";
-      case OrderStatus.PROCESSING:
-        return "bg-blue-100 text-blue-800";
-      case OrderStatus.SHIPPED:
-        return "bg-purple-100 text-purple-800";
-      case OrderStatus.DELIVERED:
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  if (ordersError || statsError || inventoryError || commissionsError) {
+    return (
+      <DashboardLayout>
+        <div className="p-4 text-center text-red-600">
+          <h2 className="text-lg font-semibold mb-2">Error Loading Dashboard</h2>
+          <p>Please try refreshing the page</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -96,7 +92,11 @@ export default function DistributorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {commissionStats?.pendingDeliveries || 0}
+              {statsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                commissionStats?.pendingDeliveries || 0
+              )}
             </div>
           </CardContent>
         </Card>
@@ -110,7 +110,11 @@ export default function DistributorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-primary">
-              ${commissionStats?.total || 0}
+              {statsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                `$${commissionStats?.total || 0}`
+              )}
             </div>
           </CardContent>
         </Card>
@@ -124,7 +128,11 @@ export default function DistributorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-muted-foreground">
-              ${commissionStats?.thisMonth || 0}
+              {statsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                `$${commissionStats?.thisMonth || 0}`
+              )}
             </div>
           </CardContent>
         </Card>
@@ -138,7 +146,11 @@ export default function DistributorDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-muted-foreground">
-              {inventory?.reduce((acc, item) => acc + item.quantity, 0) || 0}
+              {inventoryLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                inventory?.reduce((acc, item) => acc + item.quantity, 0) || 0
+              )}
             </div>
           </CardContent>
         </Card>
@@ -213,7 +225,15 @@ export default function DistributorDashboard() {
                   <TableRow key={order.id}>
                     <TableCell>#{order.id}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={getStatusColor(order.status)}>
+                      <Badge variant="outline" className={
+                        order.status === OrderStatus.DELIVERED
+                          ? 'bg-green-100 text-green-800'
+                          : order.status === OrderStatus.SHIPPED
+                          ? 'bg-blue-100 text-blue-800'
+                          : order.status === OrderStatus.PROCESSING
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }>
                         {order.status}
                       </Badge>
                     </TableCell>

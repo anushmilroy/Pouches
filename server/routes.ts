@@ -119,14 +119,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(orders);
   });
 
+  // Update getDistributorOrders endpoint with better error handling
   app.get("/api/orders/distributor", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
       return res.sendStatus(401);
     }
 
-    const orders = await storage.getDistributorOrders(req.user.id);
-    res.json(orders);
+    try {
+      console.log(`Fetching orders for distributor ${req.user.id}...`);
+      const orders = await storage.getDistributorOrders(req.user.id);
+      console.log(`Found ${orders.length} orders for distributor ${req.user.id}`);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching distributor orders:", error);
+      res.status(500).json({ error: "Failed to fetch distributor orders" });
+    }
   });
+
+  // Add new distributor stats endpoint
+  app.get("/api/distributor/stats", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log(`Fetching stats for distributor ${req.user.id}`);
+      const orders = await storage.getDistributorOrders(req.user.id);
+      const commissions = await storage.getDistributorCommissions(req.user.id);
+
+      const total = commissions
+        .filter(c => c.status === 'PAID')
+        .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
+
+      const thisMonth = commissions
+        .filter(c => {
+          const date = new Date(c.createdAt);
+          const now = new Date();
+          return date.getMonth() === now.getMonth() && 
+                 date.getFullYear() === now.getFullYear() &&
+                 c.status === 'PAID';
+        })
+        .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
+
+      const pendingDeliveries = orders.filter(
+        o => o.status !== OrderStatus.DELIVERED && o.status !== OrderStatus.CANCELLED
+      ).length;
+
+      res.json({
+        total: total.toFixed(2),
+        thisMonth: thisMonth.toFixed(2),
+        pendingDeliveries
+      });
+    } catch (error) {
+      console.error("Error fetching distributor stats:", error);
+      res.status(500).json({ error: "Failed to fetch distributor statistics" });
+    }
+  });
+
 
   // Commission management
   app.patch("/api/users/:id/commission", async (req, res) => {
@@ -512,14 +561,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add new distributor inventory route
+  // Update inventory endpoint with better error handling
   app.get("/api/distributors/inventory", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
       return res.sendStatus(401);
     }
 
     try {
+      console.log(`Fetching inventory for distributor ${req.user.id}...`);
       const inventory = await storage.getDistributorInventory(req.user.id);
+      console.log(`Found ${inventory.length} inventory items`);
       res.json(inventory);
     } catch (error) {
       console.error("Error fetching distributor inventory:", error);
@@ -560,6 +611,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching distributor commissions:", error);
       res.status(500).json({ error: "Failed to fetch distributor commissions" });
+    }
+  });
+
+  // Update commissions endpoint with better error handling
+  app.get("/api/distributors/commissions", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.DISTRIBUTOR) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log(`Fetching commissions for distributor ${req.user.id}...`);
+      const commissions = await storage.getDistributorCommissions(req.user.id);
+      console.log(`Found ${commissions.length} commission records`);
+      res.json(commissions);
+    } catch (error) {
+      console.error("Error fetching distributor commissions:", error);
+      res.status(500).json({ error: "Failed to fetch commissions" });
     }
   });
 
