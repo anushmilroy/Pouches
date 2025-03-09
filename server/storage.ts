@@ -46,25 +46,43 @@ export class DatabaseStorage implements IStorage {
   async getWholesaleUsers(): Promise<User[]> {
     try {
       console.log("Fetching wholesale users...");
-      // Modified to return all fields from the users table
+      // Get all fields explicitly to ensure nothing is missed
       const users = await db
-        .select()
+        .select({
+          id: usersTable.id,
+          username: usersTable.username,
+          password: usersTable.password,
+          role: usersTable.role,
+          wholesaleStatus: usersTable.wholesaleStatus,
+          companyName: usersTable.companyName,
+          companyAddress: usersTable.companyAddress,
+          companyWebsite: usersTable.companyWebsite,
+          bankDetails: usersTable.bankDetails,
+          referrerId: usersTable.referrerId,
+          referralCode: usersTable.referralCode,
+          commission: usersTable.commission,
+          commissionTier: usersTable.commissionTier,
+          totalReferrals: usersTable.totalReferrals,
+          createdAt: usersTable.createdAt,
+          customPricing: usersTable.customPricing
+        })
         .from(usersTable)
         .where(eq(usersTable.role, UserRole.WHOLESALE))
         .orderBy(desc(usersTable.createdAt));
 
-      console.log("Found wholesale users:", users.map(u => ({
-        ...u,
-        password: '***',
-        id: u.id,
-        username: u.username,
-        companyName: u.companyName || 'Not provided',
-        companyAddress: u.companyAddress || 'Not provided',
-        companyWebsite: u.companyWebsite || 'Not provided',
-        referralCode: u.referralCode || 'None',
-        wholesaleStatus: u.wholesaleStatus,
-        createdAt: u.createdAt
-      })));
+      // Log each user's details (excluding sensitive info)
+      users.forEach(user => {
+        console.log("Wholesale user details:", {
+          id: user.id,
+          username: user.username,
+          companyName: user.companyName || 'Not provided',
+          companyAddress: user.companyAddress || 'Not provided',
+          companyWebsite: user.companyWebsite || 'Not provided',
+          referralCode: user.referralCode || 'None',
+          wholesaleStatus: user.wholesaleStatus,
+          createdAt: user.createdAt
+        });
+      });
 
       return users;
     } catch (error) {
@@ -73,7 +91,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // [Previous implementations remain unchanged...]
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log("Creating new user:", { 
