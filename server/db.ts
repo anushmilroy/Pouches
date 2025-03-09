@@ -17,6 +17,6 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle(pool, { schema });
 console.log("Database connection initialized successfully");
 
-// Export the database connection and schema tables
+// Export the database connection and utility functions
 export { pool, db };
 export { eq, or, and, desc };
