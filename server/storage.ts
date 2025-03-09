@@ -1,7 +1,7 @@
 import { sql, eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import { users as usersTable, orders as ordersTable, commissionTransactions as commissionsTable } from "@shared/schema";
-import type { User } from "@shared/schema";
+import type { User, InsertUser } from "@shared/schema";
 import type { CommissionTransaction } from "@shared/schema";
 import type { Order } from "@shared/schema";
 
@@ -9,6 +9,7 @@ export interface IStorage {
   // User management
   getUserByUsername(username: string): Promise<User | undefined>;
   getUser(id: number): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
   getUserOrders(userId: number): Promise<Order[]>;
   getConsignmentOrders(): Promise<Order[]>;
   updateCustomPricing(userId: number, customPricing: Record<string, number>): Promise<User>;
@@ -22,12 +23,49 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  async createUser(userData: InsertUser): Promise<User> {
+    try {
+      console.log("Creating new user:", { 
+        ...userData,
+        password: '***',
+        role: userData.role,
+        wholesaleStatus: userData.wholesaleStatus 
+      });
+
+      // Insert the user with all required fields
+      const [newUser] = await db
+        .insert(usersTable)
+        .values({
+          ...userData,
+          commission: userData.commission ?? "0.00",
+          commissionTier: userData.commissionTier ?? "STANDARD",
+          totalReferrals: userData.totalReferrals ?? 0
+        })
+        .returning();
+
+      if (!newUser) {
+        console.error("User creation failed: No user returned from insert operation");
+        throw new Error("Failed to create user");
+      }
+
+      console.log("User created successfully:", { 
+        id: newUser.id,
+        username: newUser.username,
+        role: newUser.role,
+        wholesaleStatus: newUser.wholesaleStatus 
+      });
+
+      return newUser;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
       console.log(`Looking up user by username: ${username}`);
-      const [user] = await db.select()
-        .from(usersTable)
-        .where(eq(usersTable.username, username));
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.username, username));
       return user;
     } catch (error) {
       console.error("Error getting user by username:", error);
@@ -38,9 +76,7 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     try {
       console.log(`Looking up user by ID: ${id}`);
-      const [user] = await db.select()
-        .from(usersTable)
-        .where(eq(usersTable.id, id));
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id));
       return user;
     } catch (error) {
       console.error("Error getting user by ID:", error);
@@ -78,7 +114,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Referral management implementation
   async getUsersWithReferrals(): Promise<User[]> {
     try {
       console.log("Fetching users with referrals...");
@@ -150,6 +185,7 @@ export class DatabaseStorage implements IStorage {
       return 0;
     }
   }
+
   async updateCustomPricing(userId: number, customPricing: Record<string, number>): Promise<User> {
     try {
       console.log(`Updating custom pricing for user ${userId}`);

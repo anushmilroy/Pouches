@@ -119,7 +119,6 @@ export const users = pgTable("users", {
   wholesaleStatus: text("wholesale_status").$type<keyof typeof WholesaleStatus>(),
   companyName: text("company_name"),
   companyAddress: text("company_address"),
-  companyEmail: text("company_email"),
   companyWebsite: text("company_website"),
   bankDetails: jsonb("bank_details"),
   referrerId: integer("referrer_id").references(() => users.id),
