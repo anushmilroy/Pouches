@@ -1,14 +1,24 @@
 import { motion } from "framer-motion";
-import { WholesaleStatus, OrderStatus } from "@shared/schema";
+import { OrderStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { CheckCircle, XCircle, AlertCircle, Ban, Truck, PackageCheck, UserCheck } from "lucide-react";
+import { 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  Ban, 
+  Truck, 
+  PackageCheck, 
+  UserCheck,
+  Clock,
+  RefreshCw
+} from "lucide-react";
 
-interface StatusBadgeProps {
-  status: keyof typeof WholesaleStatus | keyof typeof OrderStatus;
+interface OrderStatusBadgeProps {
+  status: keyof typeof OrderStatus;
   className?: string;
 }
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
+export function OrderStatusBadge({ status, className }: OrderStatusBadgeProps) {
   const variants = {
     initial: { scale: 0.95, opacity: 0 },
     animate: { scale: 1, opacity: 1 },
@@ -26,12 +36,11 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     },
   };
 
-  const getStatusConfig = (status: keyof typeof WholesaleStatus | keyof typeof OrderStatus) => {
+  const getStatusConfig = (status: keyof typeof OrderStatus) => {
     switch (status) {
-      // Order Statuses
       case "PENDING":
         return {
-          icon: AlertCircle,
+          icon: Clock,
           bgColor: "bg-yellow-100",
           textColor: "text-yellow-800",
           animation: pulseVariants,
@@ -43,19 +52,19 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
           textColor: "text-green-800",
           animation: variants,
         };
-      case "REJECTED":
-        return {
-          icon: XCircle,
-          bgColor: "bg-red-100",
-          textColor: "text-red-800",
-          animation: variants,
-        };
       case "DISTRIBUTOR_ASSIGNED":
         return {
           icon: UserCheck,
           bgColor: "bg-blue-100",
           textColor: "text-blue-800",
           animation: variants,
+        };
+      case "PROCESSING":
+        return {
+          icon: RefreshCw,
+          bgColor: "bg-indigo-100",
+          textColor: "text-indigo-800",
+          animation: pulseVariants,
         };
       case "SHIPPED":
         return {
@@ -71,11 +80,11 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
           textColor: "text-emerald-800",
           animation: variants,
         };
-      case "BLOCKED":
+      case "CANCELLED":
         return {
-          icon: Ban,
-          bgColor: "bg-gray-100",
-          textColor: "text-gray-800",
+          icon: XCircle,
+          bgColor: "bg-red-100",
+          textColor: "text-red-800",
           animation: variants,
         };
       default:
