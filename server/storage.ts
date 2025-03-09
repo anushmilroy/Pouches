@@ -7,7 +7,7 @@ import type { Order } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
-import { UserRole } from "@shared/schema";
+import { UserRole, WholesaleStatus } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -29,7 +29,7 @@ export interface IStorage {
   getActiveReferrersCount(): Promise<number>;
   getPromotions(): Promise<any[]>;
   getDistributors(): Promise<User[]>;
-
+  updateWholesaleStatus(userId: number, status: keyof typeof WholesaleStatus): Promise<User>;
   sessionStore: session.Store;
 }
 
@@ -43,29 +43,36 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  async updateWholesaleStatus(userId: number, status: keyof typeof WholesaleStatus): Promise<User> {
+    try {
+      console.log(`Updating wholesale status for user ${userId} to ${status}`);
+      const [updatedUser] = await db
+        .update(usersTable)
+        .set({ wholesaleStatus: status })
+        .where(eq(usersTable.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User ${userId} not found`);
+      }
+
+      console.log(`Successfully updated wholesale status for user ${userId}:`, {
+        ...updatedUser,
+        password: '***'
+      });
+
+      return updatedUser;
+    } catch (error) {
+      console.error(`Error updating wholesale status for user ${userId}:`, error);
+      throw new Error(`Failed to update wholesale status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async getWholesaleUsers(): Promise<User[]> {
     try {
       console.log("Fetching wholesale users...");
-      // Get all fields explicitly to ensure nothing is missed
       const users = await db
-        .select({
-          id: usersTable.id,
-          username: usersTable.username,
-          password: usersTable.password,
-          role: usersTable.role,
-          wholesaleStatus: usersTable.wholesaleStatus,
-          companyName: usersTable.companyName,
-          companyAddress: usersTable.companyAddress,
-          companyWebsite: usersTable.companyWebsite,
-          bankDetails: usersTable.bankDetails,
-          referrerId: usersTable.referrerId,
-          referralCode: usersTable.referralCode,
-          commission: usersTable.commission,
-          commissionTier: usersTable.commissionTier,
-          totalReferrals: usersTable.totalReferrals,
-          createdAt: usersTable.createdAt,
-          customPricing: usersTable.customPricing
-        })
+        .select()
         .from(usersTable)
         .where(eq(usersTable.role, UserRole.WHOLESALE))
         .orderBy(desc(usersTable.createdAt));

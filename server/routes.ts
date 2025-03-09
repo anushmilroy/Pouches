@@ -253,6 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Admin requesting wholesale users");
       const users = await storage.getWholesaleUsers();
+
       // Add detailed logging of the response
       console.log("Found wholesale users:", users.map(u => ({
         ...u,
@@ -264,6 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         wholesaleStatus: u.wholesaleStatus,
         createdAt: u.createdAt
       })));
+
       res.json(users);
     } catch (error) {
       console.error("Error fetching wholesale users:", error);
@@ -277,7 +279,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log(`Admin updating wholesale status for user ${req.params.id} to ${req.body.status}`);
       const user = await storage.updateWholesaleStatus(parseInt(req.params.id), req.body.status);
+
+      // Log the updated user details
+      console.log("Updated wholesale user:", {
+        id: user.id,
+        username: user.username,
+        companyName: user.companyName,
+        companyAddress: user.companyAddress,
+        companyWebsite: user.companyWebsite,
+        wholesaleStatus: user.wholesaleStatus,
+        createdAt: user.createdAt
+      });
+
       res.json(user);
     } catch (error) {
       console.error("Error updating wholesale status:", error);
