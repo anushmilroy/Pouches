@@ -124,6 +124,20 @@ export const OnboardingStatus = {
   COMPLETED: 'COMPLETED'
 } as const;
 
+// Add new loan status enum
+export const LoanStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  PAID: 'PAID'
+} as const;
+
+// Add loan repayment type
+export const RepaymentType = {
+  REFERRAL_EARNINGS: 'REFERRAL_EARNINGS',
+  DIRECT_PAYMENT: 'DIRECT_PAYMENT'
+} as const;
+
 // Update users table definition to include onboarding fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -163,6 +177,7 @@ export const products = pgTable("products", {
   imagePath: text("image_path"),
 });
 
+// Update orders table to include loan reference
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -178,6 +193,8 @@ export const orders = pgTable("orders", {
   paymentMethod: text("payment_method").notNull().$type<keyof typeof PaymentMethod>(),
   paymentDetails: jsonb("payment_details"),
   createdAt: timestamp("created_at").defaultNow(),
+  // Add loan reference
+  wholesaleLoanId: integer("wholesale_loan_id").references(() => wholesaleLoans.id),
 });
 
 export const promotions = pgTable("promotions", {
@@ -242,6 +259,30 @@ export const distributorCommissions = pgTable("distributor_commissions", {
   paidAt: timestamp("paid_at"),
 });
 
+// Add wholesale loan table
+export const wholesaleLoans = pgTable("wholesale_loans", {
+  id: serial("id").primaryKey(),
+  wholesalerId: integer("wholesaler_id").notNull().references(() => users.id),
+  amount: numeric("amount").notNull(),
+  status: text("status").notNull().$type<keyof typeof LoanStatus>(),
+  remainingAmount: numeric("remaining_amount").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  approvedAt: timestamp("approved_at"),
+  paidAt: timestamp("paid_at"),
+  notes: text("notes"),
+});
+
+// Add loan repayment table
+export const loanRepayments = pgTable("loan_repayments", {
+  id: serial("id").primaryKey(),
+  loanId: integer("loan_id").notNull().references(() => wholesaleLoans.id),
+  amount: numeric("amount").notNull(),
+  type: text("type").notNull().$type<keyof typeof RepaymentType>(),
+  referralTransactionId: integer("referral_transaction_id").references(() => commissionTransactions.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  processedAt: timestamp("processed_at"),
+});
+
 export const distributorInventoryRelations = relations(distributorInventory, ({ one }) => ({
   product: one(products, {
     fields: [distributorInventory.productId],
@@ -264,6 +305,27 @@ export const distributorCommissionRelations = relations(distributorCommissions, 
   }),
 }));
 
+// Add relations
+export const wholesaleLoanRelations = relations(wholesaleLoans, ({ one, many }) => ({
+  wholesaler: one(users, {
+    fields: [wholesaleLoans.wholesalerId],
+    references: [users.id],
+  }),
+  repayments: many(loanRepayments),
+  orders: many(orders),
+}));
+
+export const loanRepaymentRelations = relations(loanRepayments, ({ one }) => ({
+  loan: one(wholesaleLoans, {
+    fields: [loanRepayments.loanId],
+    references: [wholesaleLoans.id],
+  }),
+  referralTransaction: one(commissionTransactions, {
+    fields: [loanRepayments.referralTransactionId],
+    references: [commissionTransactions.id],
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users);
 export const insertProductSchema = createInsertSchema(products);
 export const insertOrderSchema = createInsertSchema(orders);
@@ -273,6 +335,10 @@ export const insertCommissionPayoutSchema = createInsertSchema(commissionPayouts
 export const insertCommissionTransactionSchema = createInsertSchema(commissionTransactions);
 export const insertDistributorInventorySchema = createInsertSchema(distributorInventory);
 export const insertDistributorCommissionSchema = createInsertSchema(distributorCommissions);
+
+// Add schema types
+export const insertWholesaleLoanSchema = createInsertSchema(wholesaleLoans);
+export const insertLoanRepaymentSchema = createInsertSchema(loanRepayments);
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -288,3 +354,7 @@ export type InsertDistributorInventory = z.infer<typeof insertDistributorInvento
 export type InsertDistributorCommission = z.infer<typeof insertDistributorCommissionSchema>;
 export type DistributorInventory = typeof distributorInventory.$inferSelect;
 export type DistributorCommission = typeof distributorCommissions.$inferSelect;
+export type WholesaleLoan = typeof wholesaleLoans.$inferSelect;
+export type InsertWholesaleLoan = z.infer<typeof insertWholesaleLoanSchema>;
+export type LoanRepayment = typeof loanRepayments.$inferSelect;
+export type InsertLoanRepayment = z.infer<typeof insertLoanRepaymentSchema>;

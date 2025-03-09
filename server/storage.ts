@@ -6,7 +6,9 @@ import {
   commissionTransactions as commissionsTable,
   distributorInventory as distributorInventoryTable,
   distributorCommissions as distributorCommissionsTable,
-  products as productsTable
+  products as productsTable,
+  wholesaleLoans,
+  loanRepayments
 } from "@shared/schema";
 import type { 
   User, 
@@ -16,12 +18,16 @@ import type {
   DistributorInventory,
   DistributorCommission,
   InsertDistributorInventory,
-  InsertDistributorCommission
+  InsertDistributorCommission,
+  WholesaleLoan,
+  InsertWholesaleLoan,
+  LoanRepayment,
+  InsertLoanRepayment
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
-import { UserRole, WholesaleStatus, DistributorCommissionStatus } from "@shared/schema";
+import { UserRole, WholesaleStatus, DistributorCommissionStatus, LoanStatus } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -59,6 +65,14 @@ export interface IStorage {
   getProducts(): Promise<any[]>;
   // Add updateUser to the interface
   updateUser(id: number, data: Partial<InsertUser>): Promise<User>;
+
+  // Wholesale loan methods
+  createWholesaleLoan(data: InsertWholesaleLoan): Promise<WholesaleLoan>;
+  getWholesaleLoanById(id: number): Promise<WholesaleLoan | undefined>;
+  getWholesaleLoansForUser(wholesalerId: number): Promise<WholesaleLoan[]>;
+  updateWholesaleLoanStatus(id: number, status: keyof typeof LoanStatus): Promise<WholesaleLoan>;
+  createLoanRepayment(data: InsertLoanRepayment): Promise<LoanRepayment>;
+  getLoanRepayments(loanId: number): Promise<LoanRepayment[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -524,7 +538,7 @@ export class DatabaseStorage implements IStorage {
       throw new Error(`Failed to create distributor: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
-    async getDistributorOrders(distributorId: number): Promise<Order[]> {
+  async getDistributorOrders(distributorId: number): Promise<Order[]> {
     try {
       console.log(`Fetching orders for distributor ${distributorId}...`);
       const orders = await db.select()
@@ -569,6 +583,120 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error updating user ${id}:`, error);
       throw new Error(`Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async createWholesaleLoan(data: InsertWholesaleLoan): Promise<WholesaleLoan> {
+    try {
+      console.log(`Creating wholesale loan for user ${data.wholesalerId}`);
+      const [loan] = await db
+        .insert(wholesaleLoans)
+        .values(data)
+        .returning();
+
+      if (!loan) {
+        throw new Error("Failed to create wholesale loan");
+      }
+
+      return loan;
+    } catch (error) {
+      console.error("Error creating wholesale loan:", error);
+      throw new Error(`Failed to create wholesale loan: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  async getWholesaleLoanById(id: number): Promise<WholesaleLoan | undefined> {
+    try {
+      console.log(`Fetching wholesale loan ${id}`);
+      const [loan] = await db
+        .select()
+        .from(wholesaleLoans)
+        .where(eq(wholesaleLoans.id, id));
+      return loan;
+    } catch (error) {
+      console.error(`Error fetching wholesale loan ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getWholesaleLoansForUser(wholesalerId: number): Promise<WholesaleLoan[]> {
+    try {
+      console.log(`Fetching wholesale loans for user ${wholesalerId}`);
+      const loans = await db
+        .select()
+        .from(wholesaleLoans)
+        .where(eq(wholesaleLoans.wholesalerId, wholesalerId))
+        .orderBy(desc(wholesaleLoans.createdAt));
+      return loans;
+    } catch (error) {
+      console.error(`Error fetching wholesale loans for user ${wholesalerId}:`, error);
+      return [];
+    }
+  }
+
+  async updateWholesaleLoanStatus(id: number, status: keyof typeof LoanStatus): Promise<WholesaleLoan> {
+    try {
+      console.log(`Updating wholesale loan ${id} status to ${status}`);
+      const [loan] = await db
+        .update(wholesaleLoans)
+        .set({
+          status,
+          ...(status === 'APPROVED' ? { approvedAt: new Date() } : {}),
+          ...(status === 'PAID' ? { paidAt: new Date() } : {})
+        })
+        .where(eq(wholesaleLoans.id, id))
+        .returning();
+
+      if (!loan) {
+        throw new Error(`Wholesale loan ${id} not found`);
+      }
+
+      return loan;
+    } catch (error) {
+      console.error(`Error updating wholesale loan ${id} status:`, error);
+      throw error;
+    }
+  }
+
+  async createLoanRepayment(data: InsertLoanRepayment): Promise<LoanRepayment> {
+    try {
+      console.log(`Creating loan repayment for loan ${data.loanId}`);
+      const [repayment] = await db
+        .insert(loanRepayments)
+        .values(data)
+        .returning();
+
+      if (!repayment) {
+        throw new Error("Failed to create loan repayment");
+      }
+
+      // Update the remaining amount on the loan
+      await db
+        .update(wholesaleLoans)
+        .set({
+          remainingAmount: sql`remaining_amount - ${data.amount}`
+        })
+        .where(eq(wholesaleLoans.id, data.loanId));
+
+      return repayment;
+    } catch (error) {
+      console.error("Error creating loan repayment:", error);
+      throw error;
+    }
+  }
+
+  async getLoanRepayments(loanId: number): Promise<LoanRepayment[]> {
+    try {
+      console.log(`Fetching repayments for loan ${loanId}`);
+      const repayments = await db
+        .select()
+        .from(loanRepayments)
+        .where(eq(loanRepayments.loanId, loanId))
+        .orderBy(desc(loanRepayments.createdAt));
+      return repayments;
+    } catch (error) {
+      console.error(`Error fetching loan repayments for loan ${loanId}:`, error);
+      return [];
     }
   }
 }

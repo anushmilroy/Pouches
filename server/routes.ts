@@ -798,6 +798,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add new wholesale loan routes
+  app.post("/api/wholesale/loans", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const loan = await storage.createWholesaleLoan({
+        ...req.body,
+        wholesalerId: req.user.id,
+        status: "PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"
+        remainingAmount: req.body.amount
+      });
+      res.status(201).json(loan);
+    } catch (error) {
+      console.error("Error creating wholesale loan:", error);
+      res.status(500).json({ error: "Failed to create wholesale loan" });
+    }
+  });
+
+  app.get("/api/wholesale/loans", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const loans = await storage.getWholesaleLoansForUser(req.user.id);
+      res.json(loans);
+    } catch (error) {
+      console.error("Error fetching wholesale loans:", error);
+      res.status(500).json({ error: "Failed to fetch wholesale loans" });
+    }
+  });
+
+  app.post("/api/wholesale/loans/:id/repayments", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const loan = await storage.getWholesaleLoanById(parseInt(req.params.id));
+      if (!loan || loan.wholesalerId !== req.user.id) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+
+      const repayment = await storage.createLoanRepayment({
+        ...req.body,
+        loanId: loan.id
+      });
+      res.status(201).json(repayment);
+    } catch (error) {
+      console.error("Error creating loan repayment:", error);
+      res.status(500).json({ error: "Failed to create loan repayment" });
+    }
+  });
+
+  // Admin routes for loan management
+  app.get("/api/admin/wholesale/loans", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const loans = await storage.getAllWholesaleLoans();
+      res.json(loans);
+    } catch (error) {
+      console.error("Error fetching all wholesale loans:", error);
+      res.status(500).json({ error: "Failed to fetch wholesale loans" });
+    }
+  });
+
+  app.patch("/api/admin/wholesale/loans/:id/status", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const loan = await storage.updateWholesaleLoanStatus(
+        parseInt(req.params.id),
+        req.body.status
+      );
+      res.json(loan);
+    } catch (error) {
+      console.error("Error updating wholesale loan status:", error);
+      res.status(500).json({ error: "Failed to update loan status" });
+    }
+  });
+
+  app.get("/api/wholesale/loans/:id/repayments", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const loan = await storage.getWholesaleLoanById(parseInt(req.params.id));
+      if (!loan || (req.user.role !== UserRole.ADMIN && loan.wholesalerId !== req.user.id)) {
+        return res.status(404).json({ error: "Loan not found" });
+      }
+
+      const repayments = await storage.getLoanRepayments(loan.id);
+      res.json(repayments);
+    } catch (error) {
+      console.error("Error fetching loan repayments:", error);
+      res.status(500).json({ error: "Failed to fetch loan repayments" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
