@@ -13,6 +13,7 @@ import { UserRole } from "@shared/schema";
 import { Home, ShoppingBag } from "lucide-react";
 import { useEffect } from "react";
 import Logo from "@/components/logo";
+import { Redirect } from "wouter";
 
 // Separate schemas for login and registration
 const loginSchema = z.object({
@@ -41,13 +42,13 @@ export default function AuthPage() {
           case UserRole.ADMIN:
             return "/admin";
           case UserRole.RETAIL:
-            return "/retail";
+            return "/shop"; // Changed from "/retail" to "/shop"
           case UserRole.WHOLESALE:
             return "/wholesale";
           case UserRole.DISTRIBUTOR:
             return "/distributor";
           default:
-            return "/";
+            return "/shop"; // Default to shop page
         }
       };
       setLocation(getRouteForRole(user.role));
@@ -84,12 +85,22 @@ export default function AuthPage() {
       onSuccess: (response) => {
         if (data.role === UserRole.WHOLESALE) {
           setLocation("/auth/registration-success");
+        } else {
+          setLocation("/shop"); // Redirect retail users to shop
         }
       }
     });
   });
 
   const showCompanyFields = registerForm.watch("role") === "WHOLESALE";
+
+  // Redirect if already logged in
+  if (user) {
+    if (user.role === UserRole.WHOLESALE) {
+      return <Redirect to="/wholesale" />;
+    }
+    return <Redirect to="/shop" />; // Redirect retail users to shop
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

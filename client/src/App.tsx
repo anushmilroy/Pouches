@@ -51,34 +51,24 @@ function Router() {
       <ProtectedRoute path="/retail/orders" component={RetailOrders} />
       <ProtectedRoute path="/retail/earnings" component={RetailEarnings} />
 
+      {/* Shop Routes - Available to retail users and guests */}
+      <Route path="/shop" component={ShopPage} />
+      <Route path="/checkout" component={CheckoutPage} />
+      <Route path="/order-confirmation" component={OrderConfirmationPage} />
+
       {/* Wholesale Routes */}
       {user?.role === UserRole.WHOLESALE ? (
         <>
-          <ProtectedRoute path="/wholesale" component={WholesaleShop} />
           <ProtectedRoute path="/wholesale/dashboard" component={WholesaleDashboard} />
+          <ProtectedRoute path="/wholesale" component={WholesaleShop} />
           <ProtectedRoute path="/wholesale/orders" component={WholesaleOrders} />
           <ProtectedRoute path="/wholesale/profile" component={WholesaleProfile} />
           <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
           <ProtectedRoute path="/wholesale/earnings" component={WholesaleEarnings} />
           <ProtectedRoute path="/wholesale/referral-guide" component={WholesaleReferralGuide} />
           <ProtectedRoute path="/wholesale/order-confirmation" component={WholesaleOrderConfirmation} />
-          <Route path="/shop">
-            <Redirect to="/wholesale" />
-          </Route>
-          <Route path="/checkout">
-            <Redirect to="/wholesale/checkout" />
-          </Route>
-          <Route path="/order-confirmation">
-            <Redirect to="/wholesale/order-confirmation" />
-          </Route>
         </>
-      ) : (
-        <>
-          <Route path="/shop" component={ShopPage} />
-          <Route path="/checkout" component={CheckoutPage} />
-          <Route path="/order-confirmation" component={OrderConfirmationPage} />
-        </>
-      )}
+      ) : null}
 
       <Route component={NotFound} />
     </Switch>
