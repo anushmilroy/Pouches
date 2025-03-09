@@ -21,6 +21,47 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  // Add wholesale products endpoint
+  app.get("/api/products/wholesale", async (_req, res) => {
+    try {
+      console.log("Fetching wholesale products...");
+      const wholesaleProducts = await db
+        .select()
+        .from(products)
+        .where(
+          or(
+            eq(products.allocation, ProductAllocation.WHOLESALE_ONLY),
+            eq(products.allocation, ProductAllocation.BOTH)
+          )
+        );
+      console.log(`Found ${wholesaleProducts.length} wholesale products`);
+      res.json(wholesaleProducts);
+    } catch (error) {
+      console.error("Error fetching wholesale products:", error);
+      res.status(500).json({ error: "Failed to fetch wholesale products" });
+    }
+  });
+
+  // Update existing products endpoint
+  app.get("/api/products", async (req, res) => {
+    try {
+      console.log("Fetching products with filters:", req.query);
+      let query = db.select().from(products);
+
+      // Filter by allocation if specified
+      if (req.query.allocation) {
+        query = query.where(eq(products.allocation, req.query.allocation as string));
+      }
+
+      const allProducts = await query;
+      console.log(`Found ${allProducts.length} products`);
+      res.json(allProducts);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
   // Serve static files from attached_assets
   app.use('/attached_assets', (req, res, next) => {
     console.log('Static file request:', {
@@ -102,46 +143,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add wholesale products endpoint
-  app.get("/api/products/wholesale", async (_req, res) => {
-    try {
-      console.log("Fetching wholesale products...");
-      const wholesaleProducts = await db
-        .select()
-        .from(products)
-        .where(
-          or(
-            eq(products.allocation, ProductAllocation.WHOLESALE_ONLY),
-            eq(products.allocation, ProductAllocation.BOTH)
-          )
-        );
-      console.log(`Found ${wholesaleProducts.length} wholesale products`);
-      res.json(wholesaleProducts);
-    } catch (error) {
-      console.error("Error fetching wholesale products:", error);
-      res.status(500).json({ error: "Failed to fetch wholesale products" });
-    }
-  });
-
-  // Update existing products endpoint
-  app.get("/api/products", async (req, res) => {
-    try {
-      console.log("Fetching products with filters:", req.query);
-      let query = db.select().from(products);
-
-      // Filter by allocation if specified
-      if (req.query.allocation) {
-        query = query.where(eq(products.allocation, req.query.allocation as string));
-      }
-
-      const allProducts = await query;
-      console.log(`Found ${allProducts.length} products`);
-      res.json(allProducts);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      res.status(500).json({ error: "Failed to fetch products" });
-    }
-  });
 
   app.get("/api/orders", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -856,8 +857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const loans = await storage.getWholesaleLoansForUser(req.user.id);
-      res.json(loans);
-    } catch (error) {
+      res.json(loans);} catch (error) {
       console.error("Error fetching wholesale loans:", error);
       res.status(500).json({ error: "Failed to fetch wholesale loans" });
     }
