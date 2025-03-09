@@ -17,6 +17,7 @@ import WholesaleProfile from "@/pages/wholesale/profile";
 import WholesaleOrders from "@/pages/wholesale/orders";
 import WholesaleEarnings from "@/pages/wholesale/earnings";
 import WholesaleShop from "@/pages/wholesale/shop";
+import WholesaleReferralGuide from "@/pages/wholesale/referral-guide";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 import RegistrationSuccess from "@/pages/auth/registration-success";
 import { useAuth } from "@/hooks/use-auth";
@@ -50,6 +51,7 @@ function Router() {
           <ProtectedRoute path="/wholesale/profile" component={WholesaleProfile} />
           <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
           <ProtectedRoute path="/wholesale/earnings" component={WholesaleEarnings} />
+          <ProtectedRoute path="/wholesale/referral-guide" component={WholesaleReferralGuide} />
           <Route path="/shop">
             <Redirect to="/wholesale" />
           </Route>
