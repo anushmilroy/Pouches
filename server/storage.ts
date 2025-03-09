@@ -48,15 +48,20 @@ export class DatabaseStorage implements IStorage {
         wholesaleStatus: userData.wholesaleStatus 
       });
 
-      // Insert the user with all required fields
+      // Clean up the user data before insertion
+      const cleanedData = {
+        ...userData,
+        commission: userData.commission ?? "0.00",
+        commissionTier: userData.commissionTier ?? "STANDARD",
+        totalReferrals: userData.totalReferrals ?? 0,
+        // Only include referralCode if it's not empty
+        referralCode: userData.referralCode?.trim() || null
+      };
+
+      // Insert the user with cleaned data
       const [newUser] = await db
         .insert(usersTable)
-        .values({
-          ...userData,
-          commission: userData.commission ?? "0.00",
-          commissionTier: userData.commissionTier ?? "STANDARD",
-          totalReferrals: userData.totalReferrals ?? 0
-        })
+        .values(cleanedData)
         .returning();
 
       if (!newUser) {
@@ -74,6 +79,9 @@ export class DatabaseStorage implements IStorage {
       return newUser;
     } catch (error) {
       console.error("Error creating user:", error);
+      if (error instanceof Error && error.message.includes('users_referral_code_key')) {
+        throw new Error("Invalid referral code");
+      }
       throw new Error(`Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
