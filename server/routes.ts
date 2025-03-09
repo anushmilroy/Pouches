@@ -145,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           discountCode: orderData.discountCode || null,
           discountAmount: orderData.discountAmount ? parseFloat(orderData.discountAmount) : 0,
           paymentDetails: orderData.paymentDetails || {},
-          createdAt: new Date().toISOString(),
+          createdAt: new Date(), // Fix: Use Date object instead of string
           referralCode: orderData.referralCode || null,
           commissionAmount: orderData.commissionAmount ? parseFloat(orderData.commissionAmount) : 0,
         })
@@ -861,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Filter out any failed stats
       const validStats = stats.filter(stat => stat !== null);
-console.log('Successfully processed stats for', validStats.length, 'users');
+      console.log('Successfully processed stats for', validStats.length, 'users');
 
       res.json(validStats);
     } catch (error) {
