@@ -24,11 +24,17 @@ import WholesaleReferralGuide from "@/pages/wholesale/referral-guide";
 import WholesaleOrderConfirmation from "@/pages/wholesale/order-confirmation";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 import RegistrationSuccess from "@/pages/auth/registration-success";
+import OnboardingPage from "@/pages/onboarding";
 import { useAuth } from "@/hooks/use-auth";
 import { UserRole } from "@shared/schema";
 
 function Router() {
   const { user } = useAuth();
+
+  // If user is logged in but hasn't completed onboarding, redirect to onboarding
+  if (user && !user.onboardingCompletedAt && window.location.pathname !== '/onboarding') {
+    return <Redirect to="/onboarding" />;
+  }
 
   // Redirect wholesalers to their dashboard
   if (user?.role === UserRole.WHOLESALE && window.location.pathname === '/') {
@@ -41,6 +47,9 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/registration-success" component={RegistrationSuccess} />
+
+      {/* Onboarding Route */}
+      <ProtectedRoute path="/onboarding" component={OnboardingPage} />
 
       {/* Protected Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
