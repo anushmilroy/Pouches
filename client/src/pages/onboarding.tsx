@@ -11,8 +11,11 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import StoreLayout from "@/components/layout/store-layout";
 
 const onboardingSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   shippingAddress: z.object({
     street: z.string().min(1, "Street address is required"),
     city: z.string().min(1, "City is required"),
@@ -26,6 +29,7 @@ const onboardingSchema = z.object({
     accountNumber: z.string().min(1, "Account number is required"),
     bankName: z.string().min(1, "Bank name is required"),
     routingNumber: z.string().min(1, "Routing number is required"),
+    swiftCode: z.string().min(8, "SWIFT/BIC code is required").max(11),
   }),
 });
 
@@ -39,6 +43,8 @@ export default function OnboardingPage() {
   const form = useForm<OnboardingData>({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
+      firstName: "",
+      lastName: "",
       shippingAddress: {
         street: "",
         city: "",
@@ -52,6 +58,7 @@ export default function OnboardingPage() {
         accountNumber: "",
         bankName: "",
         routingNumber: "",
+        swiftCode: "",
       },
     },
   });
@@ -107,7 +114,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <StoreLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
           <Card>
@@ -126,6 +133,39 @@ export default function OnboardingPage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Personal Information */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Personal Information</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
                   {/* Shipping Address Section */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Shipping Information</h3>
@@ -261,19 +301,34 @@ export default function OnboardingPage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="bankDetails.routingNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Routing Number</FormLabel>
-                            <FormControl>
-                              <Input {...field} type="text" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="bankDetails.routingNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Routing Number</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="text" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="bankDetails.swiftCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>SWIFT/BIC Code</FormLabel>
+                              <FormControl>
+                                <Input {...field} type="text" placeholder="e.g., CHASUS33" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -297,6 +352,6 @@ export default function OnboardingPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </StoreLayout>
   );
 }
