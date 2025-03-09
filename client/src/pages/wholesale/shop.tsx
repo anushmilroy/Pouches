@@ -39,6 +39,14 @@ function formatStrength(strength: string): string {
   return strength.replace("MG_", "").concat(" MG");
 }
 
+// Function to format flavor value (e.g., "Apple_mint" to "Apple Mint")
+function formatFlavor(flavor: string): string {
+  return flavor
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export default function WholesaleShop() {
   const { toast } = useToast();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -222,7 +230,7 @@ export default function WholesaleShop() {
                           <p className="text-sm text-muted-foreground mb-4">
                             {product.description}
                             <br />
-                            <span className="font-medium">Flavor: {product.flavor}</span>
+                            <span className="font-medium">Flavor: {formatFlavor(product.flavor)}</span>
                           </p>
                           <div className="space-y-4">
                             <div>
