@@ -29,14 +29,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (!user) return null;
 
+  const handleTabChange = (href: string, tab: string) => {
+    setLocation(href);
+    // Set the default tab in the URL hash
+    window.location.hash = tab;
+  };
+
   const menuItems = [
-    { label: "Overview", href: "/admin", icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: "Wholesale Accounts", href: "/admin/wholesale", icon: <Users className="h-4 w-4" /> },
-    { label: "Distributors", href: "/admin/distributors", icon: <Boxes className="h-4 w-4" /> },
-    { label: "Promotions", href: "/admin/promotions", icon: <Gift className="h-4 w-4" /> },
-    { label: "Orders", href: "/admin/orders", icon: <ClipboardList className="h-4 w-4" /> },
-    { label: "Consignments", href: "/admin/consignments", icon: <Package className="h-4 w-4" /> },
-    { label: "Referrals", href: "/admin/referrals", icon: <Share2 className="h-4 w-4" /> },
+    { label: "Overview", href: "/admin", tab: "overview", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: "Wholesale Accounts", href: "/admin", tab: "wholesale", icon: <Users className="h-4 w-4" /> },
+    { label: "Distributors", href: "/admin", tab: "distributors", icon: <Boxes className="h-4 w-4" /> },
+    { label: "Promotions", href: "/admin", tab: "promotions", icon: <Gift className="h-4 w-4" /> },
+    { label: "Orders", href: "/admin", tab: "orders", icon: <ClipboardList className="h-4 w-4" /> },
+    { label: "Consignments", href: "/admin", tab: "consignments", icon: <Package className="h-4 w-4" /> },
+    { label: "Referrals", href: "/admin", tab: "referrals", icon: <Share2 className="h-4 w-4" /> },
   ];
 
   return (
@@ -52,9 +58,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <nav className="hidden md:flex items-center space-x-1 overflow-x-auto">
               {menuItems.map((item) => (
                 <Button
-                  key={item.href}
-                  variant={location === item.href ? "secondary" : "ghost"}
-                  onClick={() => setLocation(item.href)}
+                  key={item.tab}
+                  variant={window.location.hash === `#${item.tab}` ? "secondary" : "ghost"}
+                  onClick={() => handleTabChange(item.href, item.tab)}
                   size="sm"
                   className="whitespace-nowrap"
                 >
@@ -92,10 +98,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <div className="flex flex-col gap-1 mt-6">
                     {menuItems.map((item) => (
                       <Button
-                        key={item.href}
-                        variant={location === item.href ? "secondary" : "ghost"}
+                        key={item.tab}
+                        variant={window.location.hash === `#${item.tab}` ? "secondary" : "ghost"}
                         onClick={() => {
-                          setLocation(item.href);
+                          handleTabChange(item.href, item.tab);
                           setIsMobileMenuOpen(false);
                         }}
                         className="w-full justify-start"

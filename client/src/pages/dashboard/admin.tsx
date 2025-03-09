@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CustomPricingDialog } from "@/components/admin/custom-pricing-dialog";
@@ -708,7 +708,6 @@ function AdminDashboard() {
     }
   };
 
-
   // Add these queries in the AdminDashboard component
   const { data: referralStats, isLoading: referralStatsLoading } = useQuery({
     queryKey: ["/api/admin/referral-stats"],
@@ -728,15 +727,6 @@ function AdminDashboard() {
   return (
     <DashboardLayout>
       <Tabs defaultValue="overview" className="space-y-8">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="wholesale">Wholesale Accounts</TabsTrigger>
-          <TabsTrigger value="distributors">Distributors</TabsTrigger>
-          <TabsTrigger value="promotions">Promotions</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="consignments">Consignments</TabsTrigger>
-          <TabsTrigger value="referrals">Referrals</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -976,7 +966,7 @@ function AdminDashboard() {
                               onClick={() => handleVerifyPayment(order.id)}
                               disabled={processingOrder === order.id}
                             >
-                              {processingOrder === order.id && (
+                                                            {processingOrder === order.id && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               )}
                               Verify Payment
@@ -1120,7 +1110,7 @@ function AdminDashboard() {
   );
 }
 
-// Assuming WholesalePricingTier is defined elsewhere,  replace with your actual definition.
+// Rest of the file remains unchanged
 const WholesalePricingTier = {
   TIER_1: { min: 1, max: 10, price: 10 },
   TIER_2: { min: 11, max: 100, price: 9 },
