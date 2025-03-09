@@ -55,6 +55,8 @@ export interface IStorage {
   getAllDistributorCommissions(): Promise<DistributorCommission[]>;
   getUnassignedOrders(): Promise<Order[]>;
   createDistributor(data: InsertUser): Promise<User>;
+  getDistributorOrders(distributorId: number): Promise<Order[]>;
+  getProducts(): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -518,6 +520,33 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error creating distributor:", error);
       throw new Error(`Failed to create distributor: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+    async getDistributorOrders(distributorId: number): Promise<Order[]> {
+    try {
+      console.log(`Fetching orders for distributor ${distributorId}...`);
+      const orders = await db.select()
+        .from(ordersTable)
+        .where(eq(ordersTable.distributorId, distributorId))
+        .orderBy(desc(ordersTable.createdAt));
+
+      console.log(`Found ${orders.length} orders for distributor ${distributorId}`);
+      return orders;
+    } catch (error) {
+      console.error(`Error getting orders for distributor ${distributorId}:`, error);
+      return [];
+    }
+  }
+
+  async getProducts(): Promise<any[]> {
+    try {
+      console.log('Fetching products...');
+      const products = await db.select().from(productsTable);
+      console.log(`Found ${products.length} products`);
+      return products;
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return [];
     }
   }
 }
