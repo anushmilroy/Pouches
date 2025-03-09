@@ -26,8 +26,8 @@ const registrationSchema = z.object({
   referralCode: z.string().optional(),
   companyName: z.string().optional(),
   companyAddress: z.string().optional(),
-  companyEmail: z.string().email("Invalid email").optional(),
-  companyWebsite: z.string().url("Invalid URL").optional(),
+  companyEmail: z.string().email("Invalid email format").optional(),
+  companyWebsite: z.string().url("Invalid URL format").optional(),
 });
 
 export default function AuthPage() {
@@ -50,7 +50,6 @@ export default function AuthPage() {
             return "/";
         }
       };
-      console.log("Redirecting user with role:", user.role);
       setLocation(getRouteForRole(user.role));
     }
   }, [user, setLocation]);
@@ -244,7 +243,7 @@ export default function AuthPage() {
                             name="companyName"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Company Name*</FormLabel>
+                                <FormLabel>Company Name (Optional)</FormLabel>
                                 <FormControl>
                                   <Input {...field} />
                                 </FormControl>
@@ -257,7 +256,7 @@ export default function AuthPage() {
                             name="companyAddress"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Company Address*</FormLabel>
+                                <FormLabel>Company Address (Optional)</FormLabel>
                                 <FormControl>
                                   <Input {...field} />
                                 </FormControl>
@@ -270,7 +269,7 @@ export default function AuthPage() {
                             name="companyEmail"
                             render={({ field }) => (
                               <FormItem>
-                                <FormLabel>Company Email*</FormLabel>
+                                <FormLabel>Company Email (Optional)</FormLabel>
                                 <FormControl>
                                   <Input type="email" {...field} />
                                 </FormControl>
