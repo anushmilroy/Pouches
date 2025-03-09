@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
@@ -248,7 +248,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      const referralCode = await storage.generateReferralCode(req.user.id);
+      // Generate a random alphanumeric code
+      const referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+      // Update the user's referral code in the database
+      await db
+        .update(users)
+        .set({ referralCode })
+        .where(eq(users.id, req.user.id));
+
+      // Return the new referral code
       res.json({ referralCode });
     } catch (error) {
       console.error("Error generating referral code:", error);
