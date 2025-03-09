@@ -11,25 +11,25 @@ export default function WholesaleOrders() {
 
   return (
     <WholesaleLayout>
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold">My Orders</h1>
-        
+      <div className="container mx-auto px-4 py-6">
+        <h1 className="text-3xl font-bold mb-6">My Orders</h1>
+
         {isLoading ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : (
           <div className="grid gap-6">
-            {orders?.length === 0 ? (
+            {!orders || orders.length === 0 ? (
               <Card>
                 <CardContent className="py-8">
                   <p className="text-center text-muted-foreground">
-                    You haven't placed any orders yet.
+                    You haven't placed any orders yet. Visit our <a href="/wholesale" className="text-primary hover:underline">shop</a> to start ordering.
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              orders?.map((order) => (
+              orders.map((order) => (
                 <Card key={order.id}>
                   <CardHeader>
                     <CardTitle>Order #{order.id}</CardTitle>
@@ -42,12 +42,12 @@ export default function WholesaleOrders() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Total</span>
-                        <span className="font-medium">${order.total}</span>
+                        <span className="font-medium">${order.total.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Date</span>
                         <span className="font-medium">
-                          {new Date(order.createdAt).toLocaleDateString()}
+                          {new Date(order.createdAt || '').toLocaleDateString()}
                         </span>
                       </div>
                     </div>

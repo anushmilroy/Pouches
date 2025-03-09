@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, TrendingUp, Users, Gift, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, TrendingUp, Users, Gift, Wallet, Copy, ExternalLink } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WholesaleEarnings() {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   // Mock data for now - to be replaced with actual API endpoints
   const earningsData = {
@@ -17,6 +20,20 @@ export default function WholesaleEarnings() {
     activeReferrals: 8,
     commissionRate: 5, // percentage
     nextTierThreshold: 20000,
+  };
+
+  const handleCopyReferralLink = () => {
+    const referralLink = `${window.location.origin}/auth?ref=${user?.referralCode || ''}`;
+    navigator.clipboard.writeText(referralLink);
+    toast({
+      title: "Referral Link Copied",
+      description: "The referral link has been copied to your clipboard.",
+    });
+  };
+
+  const handleVisitReferralLink = () => {
+    const referralLink = `${window.location.origin}/auth?ref=${user?.referralCode || ''}`;
+    window.open(referralLink, '_blank');
   };
 
   return (
@@ -86,6 +103,44 @@ export default function WholesaleEarnings() {
             </Card>
           </div>
 
+          {/* Referral Link Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Your Referral Link</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-muted p-4 rounded-lg flex items-center justify-between">
+                  <code className="text-sm font-mono break-all">
+                    {`${window.location.origin}/auth?ref=${user?.referralCode || ''}`}
+                  </code>
+                  <div className="flex gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleCopyReferralLink}
+                      title="Copy referral link"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleVisitReferralLink}
+                      title="Visit referral link"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Share this link with other businesses to earn commissions on their orders.
+                  You'll earn {earningsData.commissionRate}% of their order value.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Commission Tiers */}
           <Card>
             <CardHeader>
@@ -129,26 +184,6 @@ export default function WholesaleEarnings() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Referral Links */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Referral Link</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 bg-muted rounded-lg">
-                  <p className="text-sm font-mono break-all">
-                    {`https://pouchesworldwide.com/ref/${user?.referralCode || ''}`}
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Share this link with other businesses to earn commissions on their orders.
-                  You'll earn a percentage of their order value based on your current commission tier.
-                </p>
               </div>
             </CardContent>
           </Card>
