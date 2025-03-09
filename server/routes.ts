@@ -242,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add route to generate referral code for user (from edited snippet)
-  app.post("/api/users/referral-code", async (req, res) => {
+  app.post("/api/generate-referral-code", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
     }
@@ -861,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/wholesale/loans/:id/repayments", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+    if(!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
       return res.sendStatus(401);
     }
 
