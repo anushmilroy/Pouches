@@ -153,18 +153,32 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().$type<UserRole>(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
   wholesaleStatus: text("wholesale_status").$type<keyof typeof WholesaleStatus>(),
   companyName: text("company_name"),
   companyAddress: text("company_address"),
   companyWebsite: text("company_website"),
-  // Add new fields for wholesaler details
   contactPhone: text("contact_phone"),
   contactEmail: text("contact_email"),
   businessType: text("business_type"),
   taxId: text("tax_id"),
-  shippingAddress: jsonb("shipping_address"),
+  shippingAddress: jsonb("shipping_address").$type<{
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+    phone?: string;
+  }>(),
   billingAddress: jsonb("billing_address"),
-  bankDetails: jsonb("bank_details"),
+  bankDetails: jsonb("bank_details").$type<{
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    routingNumber: string;
+    swiftCode: string;
+  }>(),
   referrerId: integer("referrer_id").references(() => users.id),
   referralCode: text("referral_code").unique(),
   commission: numeric("commission").default("0.00"),

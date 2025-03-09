@@ -82,14 +82,15 @@ export default function OnboardingPage() {
       const response = await apiRequest("POST", "/api/user/complete-onboarding", data);
 
       if (!response.ok) {
-        throw new Error("Failed to save onboarding information");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to save onboarding information");
       }
 
       // Invalidate user query to refresh the data
       await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
 
       toast({
-        title: "Onboarding Complete",
+        title: "Profile Completed",
         description: "Your information has been saved successfully.",
       });
 
@@ -97,10 +98,10 @@ export default function OnboardingPage() {
       if (user?.role === "WHOLESALE") {
         setLocation("/wholesale");
       } else {
-        // Retail users go to shop page
-        setLocation("/shop");
+        setLocation("/shop"); // Ensure retail users go to shop
       }
     } catch (error) {
+      console.error("Onboarding error:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to save information",

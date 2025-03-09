@@ -100,7 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
       console.error('Error creating payment intent:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Failed to create payment intent',
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -182,9 +182,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .filter(c => {
           const date = new Date(c.createdAt);
           const now = new Date();
-          return date.getMonth() === now.getMonth() && 
-                 date.getFullYear() === now.getFullYear() &&
-                 c.status === 'PAID';
+          return date.getMonth() === now.getMonth() &&
+            date.getFullYear() === now.getFullYear() &&
+            c.status === 'PAID';
         })
         .reduce((sum, c) => sum + parseFloat(c.amount.toString()), 0);
 
@@ -855,7 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Fix the bug in the loan route
   app.get("/api/wholesale/loans", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+    if (!req.isAuthenticated() || req.user.role !== UserRole. WHOLESALE) {
       return res.sendStatus(401);
     }
 
@@ -975,6 +975,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Update the onboarding completion endpoint
+  app.post("/api/user/complete-onboarding", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log("Processing onboarding data for user:", req.user.id, {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        // Log sensitive data safely
+        hasShippingAddress: !!req.body.shippingAddress,
+        hasBankDetails: !!req.body.bankDetails
+      });
+
+      // Validate required fields based on user role
+      if (!req.body.firstName || !req.body.lastName) {
+        return res.status(400).json({ error: "Name is required" });
+      }
+
+      if (!req.body.shippingAddress) {
+        return res.status(400).json({ error: "Shipping address is required" });
+      }
+
+      if (!req.body.bankDetails) {
+        return res.status(400).json({ error: "Bank details are required" });
+      }
+
+      // Update user with onboarding data
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          firstName: req.body.firstName,
+          lastName: req.body.lastName,
+          shippingAddress: req.body.shippingAddress,
+          bankDetails: req.body.bankDetails,
+          onboardingStatus: "COMPLETED",
+          onboardingCompletedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, req.user.id))
+        .returning();
+
+      console.log("Onboarding completed successfully for user:", req.user.id);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      res.status(500).json({ error: "Failed to complete onboarding" });
     }
   });
 
