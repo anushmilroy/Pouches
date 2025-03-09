@@ -22,10 +22,25 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    if (!stored || !stored.includes('.')) {
+      console.error('Invalid stored password format');
+      return false;
+    }
+
+    const [hashed, salt] = stored.split(".");
+    if (!hashed || !salt) {
+      console.error('Invalid password components');
+      return false;
+    }
+
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } catch (error) {
+    console.error('Error comparing passwords:', error);
+    return false;
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -43,32 +58,61 @@ export function setupAuth(app: Express) {
 
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false, { message: "Invalid username or password" });
-      }
+      try {
+        console.log('Attempting login for username:', username);
+        const user = await storage.getUserByUsername(username);
 
-      // Check wholesale account status
-      if (user.role === UserRole.WHOLESALE) {
-        if (!user.wholesaleStatus || user.wholesaleStatus === WholesaleStatus.PENDING) {
-          return done(null, false, { message: "Your wholesale account is pending approval" });
+        if (!user) {
+          console.log('User not found:', username);
+          return done(null, false, { message: "Invalid username or password" });
         }
-        if (user.wholesaleStatus === WholesaleStatus.REJECTED) {
-          return done(null, false, { message: "Your wholesale account application was rejected" });
-        }
-        if (user.wholesaleStatus === WholesaleStatus.BLOCKED) {
-          return done(null, false, { message: "Your wholesale account has been blocked" });
-        }
-      }
 
-      return done(null, user);
-    }),
+        const isValidPassword = await comparePasswords(password, user.password);
+        if (!isValidPassword) {
+          console.log('Invalid password for user:', username);
+          return done(null, false, { message: "Invalid username or password" });
+        }
+
+        // Check wholesale account status
+        if (user.role === UserRole.WHOLESALE) {
+          if (!user.wholesaleStatus || user.wholesaleStatus === WholesaleStatus.PENDING) {
+            return done(null, false, { message: "Your wholesale account is pending approval" });
+          }
+          if (user.wholesaleStatus === WholesaleStatus.REJECTED) {
+            return done(null, false, { message: "Your wholesale account application was rejected" });
+          }
+          if (user.wholesaleStatus === WholesaleStatus.BLOCKED) {
+            return done(null, false, { message: "Your wholesale account has been blocked" });
+          }
+        }
+
+        console.log('Successful login for user:', username, 'with role:', user.role);
+        return done(null, user);
+      } catch (error) {
+        console.error('Error during authentication:', error);
+        return done(error);
+      }
+    })
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    console.log('Serializing user:', user.id);
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      console.log('Deserializing user:', id);
+      const user = await storage.getUser(id);
+      if (!user) {
+        console.log('User not found during deserialization:', id);
+        return done(null, false);
+      }
+      done(null, user);
+    } catch (error) {
+      console.error('Error deserializing user:', error);
+      done(error);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -110,25 +154,42 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
-      if (err) return next(err);
-      if (!user) return res.status(401).json({ message: info.message || "Authentication failed" });
+      if (err) {
+        console.error("Error during login:", err);
+        return next(err);
+      }
+      if (!user) {
+        console.log("Authentication failed:", info?.message);
+        return res.status(401).json({ message: info?.message || "Authentication failed" });
+      }
 
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          console.error("Error logging in user:", err);
+          return next(err);
+        }
+        console.log("User logged in successfully:", { id: user.id, role: user.role });
         res.status(200).json(user);
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res, next) => {
+    console.log("Logging out user:", req.user?.id);
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        console.error("Error during logout:", err);
+        return next(err);
+      }
       res.sendStatus(200);
     });
   });
 
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      console.log("Unauthorized access attempt to /api/user");
+      return res.sendStatus(401);
+    }
     res.json(req.user);
   });
 }
