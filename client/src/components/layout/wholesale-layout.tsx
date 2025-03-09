@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { LogOut, ShoppingCart, Settings } from "lucide-react";
+import { LogOut, ShoppingCart, Settings, Store, BookCheck, TrendingUp } from "lucide-react";
 
 interface WholesaleLayoutProps {
   children: ReactNode;
@@ -15,25 +15,40 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border">
+      <header className="border-b border-border sticky top-0 bg-background z-50">
         <div className="container mx-auto px-6">
           <div className="h-16 flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <h1 className="text-xl font-bold">Pouches Worldwide</h1>
+              <h1 
+                className="text-xl font-bold cursor-pointer"
+                onClick={() => setLocation("/wholesale")}
+              >
+                Pouches Worldwide
+              </h1>
               <nav className="hidden md:flex items-center space-x-4">
                 <Button
                   variant={location === "/wholesale" ? "secondary" : "ghost"}
                   className="flex items-center"
                   onClick={() => setLocation("/wholesale")}
                 >
-                  Products
+                  <Store className="h-4 w-4 mr-2" />
+                  Shop
                 </Button>
                 <Button
                   variant={location === "/wholesale/orders" ? "secondary" : "ghost"}
                   className="flex items-center"
                   onClick={() => setLocation("/wholesale/orders")}
                 >
+                  <BookCheck className="h-4 w-4 mr-2" />
                   Orders
+                </Button>
+                <Button
+                  variant={location === "/wholesale/dashboard" ? "secondary" : "ghost"}
+                  className="flex items-center"
+                  onClick={() => setLocation("/wholesale/dashboard")}
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Dashboard
                 </Button>
                 <Button
                   variant={location === "/wholesale/profile" ? "secondary" : "ghost"}
@@ -41,12 +56,12 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
                   onClick={() => setLocation("/wholesale/profile")}
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  Profile Settings
+                  Profile
                 </Button>
                 <Button
-                  variant={location.startsWith("/wholesale/cart") ? "secondary" : "ghost"}
+                  variant={location.startsWith("/wholesale/checkout") ? "secondary" : "ghost"}
                   className="flex items-center"
-                  onClick={() => setLocation("/wholesale/cart")}
+                  onClick={() => setLocation("/wholesale/checkout")}
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Cart

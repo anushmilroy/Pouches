@@ -14,6 +14,7 @@ import AdminDashboard from "@/pages/dashboard/admin";
 import WholesaleDashboard from "@/pages/dashboard/wholesale";
 import WholesaleCheckout from "@/pages/wholesale/checkout";
 import WholesaleProfile from "@/pages/wholesale/profile";
+import WholesaleOrders from "@/pages/wholesale/orders";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 import RegistrationSuccess from "@/pages/auth/registration-success";
 import { useAuth } from "@/hooks/use-auth";
@@ -36,14 +37,16 @@ function Router() {
 
       {/* Protected Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
-      <ProtectedRoute path="/wholesale" component={WholesaleDashboard} />
       <ProtectedRoute path="/distributor" component={DistributorDashboard} />
 
-      {/* Conditional Routes based on user role */}
+      {/* Wholesale Routes */}
       {user?.role === UserRole.WHOLESALE ? (
         <>
-          <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
+          <ProtectedRoute path="/wholesale" component={WholesaleDashboard} />
+          <ProtectedRoute path="/wholesale/dashboard" component={WholesaleDashboard} />
+          <ProtectedRoute path="/wholesale/orders" component={WholesaleOrders} />
           <ProtectedRoute path="/wholesale/profile" component={WholesaleProfile} />
+          <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
           <Route path="/shop">
             <Redirect to="/wholesale" />
           </Route>
