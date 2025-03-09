@@ -8,7 +8,9 @@ import {
   distributorCommissions as distributorCommissionsTable,
   products as productsTable,
   wholesaleLoans,
-  loanRepayments
+  loanRepayments,
+  orders,
+  users
 } from "@shared/schema";
 import type { 
   User, 
@@ -22,7 +24,8 @@ import type {
   WholesaleLoan,
   InsertWholesaleLoan,
   LoanRepayment,
-  InsertLoanRepayment
+  InsertLoanRepayment,
+  InsertOrder
 } from "@shared/schema";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -73,6 +76,9 @@ export interface IStorage {
   updateWholesaleLoanStatus(id: number, status: keyof typeof LoanStatus): Promise<WholesaleLoan>;
   createLoanRepayment(data: InsertLoanRepayment): Promise<LoanRepayment>;
   getLoanRepayments(loanId: number): Promise<LoanRepayment[]>;
+
+  // Order management
+  createOrder(order: InsertOrder): Promise<Order>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -697,6 +703,69 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error fetching loan repayments for loan ${loanId}:`, error);
       return [];
+    }
+  }
+
+  async createOrder(orderData: InsertOrder): Promise<Order> {
+    try {
+      console.log("Creating new order:", { 
+        ...orderData,
+        userId: orderData.userId,
+        total: orderData.total
+      });
+
+      const [order] = await db
+        .insert(orders)
+        .values(orderData)
+        .returning();
+
+      if (!order) {
+        throw new Error("Failed to create order");
+      }
+
+      console.log("Order created successfully:", { 
+        id: order.id,
+        status: order.status,
+        total: order.total 
+      });
+
+      // If there's a referral code, update the referrer's stats
+      if (orderData.referrerId) {
+        await this.updateReferralStats(orderData.referrerId, orderData.total);
+      }
+
+      return order;
+    } catch (error) {
+      console.error("Error creating order:", error);
+      throw new Error(`Failed to create order: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  private async updateReferralStats(referrerId: number, orderTotal: number | string) {
+    try {
+      // Convert orderTotal to number if it's a string
+      const total = typeof orderTotal === 'string' ? parseFloat(orderTotal) : orderTotal;
+
+      await db
+        .update(users)
+        .set({
+          totalReferrals: sql`${users.totalReferrals} + 1`
+        })
+        .where(eq(users.id, referrerId));
+
+      // Create commission transaction
+      await db
+        .insert(commissionTransactions)
+        .values({
+          userId: referrerId,
+          amount: (total * 0.05).toFixed(2), // 5% commission
+          status: 'PENDING',
+          type: 'REFERRAL_EARNINGS'
+        });
+
+    } catch (error) {
+      console.error("Error updating referral stats:", error);
+      // Don't throw error here to prevent order creation from failing
     }
   }
 }
