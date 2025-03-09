@@ -138,6 +138,13 @@ export const RepaymentType = {
   DIRECT_PAYMENT: 'DIRECT_PAYMENT'
 } as const;
 
+// Add allocation type to schema
+export const ProductAllocation = {
+  WHOLESALE_ONLY: 'WHOLESALE_ONLY',
+  RETAIL_ONLY: 'RETAIL_ONLY',
+  BOTH: 'BOTH'
+} as const;
+
 // Update users table definition to include onboarding fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -162,6 +169,7 @@ export const users = pgTable("users", {
   onboardingCompletedAt: timestamp("onboarding_completed_at"),
 });
 
+// Update products table to include allocation
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -175,6 +183,8 @@ export const products = pgTable("products", {
   minRetailOrder: integer("min_retail_order").notNull().default(5),
   minWholesaleOrder: integer("min_wholesale_order").notNull().default(100),
   imagePath: text("image_path"),
+  // Add allocation field
+  allocation: text("allocation").notNull().$type<keyof typeof ProductAllocation>().default("BOTH"),
 });
 
 // Update orders table to include loan reference

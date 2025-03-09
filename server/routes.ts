@@ -2,13 +2,20 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema";
 import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
+import { 
+  db, 
+  productsTable, 
+  or, 
+  eq, 
+  desc 
+} from "./db";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -101,10 +108,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all products
-  app.get("/api/products", async (_req, res) => {
+  // Add wholesale products endpoint
+  app.get("/api/products/wholesale", async (_req, res) => {
     try {
-      const products = await storage.getProducts();
+      console.log("Fetching wholesale products...");
+      const products = await db
+        .select()
+        .from(productsTable)
+        .where(
+          or(
+            eq(productsTable.allocation, ProductAllocation.WHOLESALE_ONLY),
+            eq(productsTable.allocation, ProductAllocation.BOTH)
+          )
+        );
+      console.log(`Found ${products.length} wholesale products`);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching wholesale products:", error);
+      res.status(500).json({ error: "Failed to fetch wholesale products" });
+    }
+  });
+
+  // Update existing products endpoint
+  app.get("/api/products", async (req, res) => {
+    try {
+      console.log("Fetching products with filters:", req.query);
+      let query = db.select().from(productsTable);
+
+      // Filter by allocation if specified
+      if (req.query.allocation) {
+        query = query.where(eq(productsTable.allocation, req.query.allocation as string));
+      }
+
+      const products = await query;
+      console.log(`Found ${products.length} products`);
       res.json(products);
     } catch (error) {
       console.error("Error fetching products:", error);

@@ -42,8 +42,9 @@ export default function WholesaleDashboard() {
   // Check if user has bank details
   const needsBankDetails = !user?.bankDetails;
 
+  // Update the useQuery to filter wholesale products
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products"],
+    queryKey: ["/api/products/wholesale"],
   });
 
   // Load cart from localStorage on mount
@@ -238,9 +239,9 @@ export default function WholesaleDashboard() {
                           <p className="font-medium">Total</p>
                           <p className="text-lg font-bold">${cartTotal.toFixed(2)}</p>
                         </div>
-                        <Button 
-                          className="w-full" 
-                          onClick={() => setLocation("/checkout")}
+                        <Button
+                          className="w-full"
+                          onClick={() => setLocation("/wholesale/checkout")}
                         >
                           Checkout
                           <ChevronRight className="h-4 w-4 ml-2" />

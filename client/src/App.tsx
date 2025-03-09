@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,25 +12,51 @@ import CheckoutPage from "@/pages/checkout-page";
 import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminDashboard from "@/pages/dashboard/admin";
 import WholesaleDashboard from "@/pages/dashboard/wholesale";
+import WholesaleCheckout from "@/pages/wholesale/checkout";
 import DistributorDashboard from "@/pages/dashboard/distributor";
 import RegistrationSuccess from "@/pages/auth/registration-success";
+import { useAuth } from "@/hooks/use-auth";
+import { UserRole } from "@shared/schema";
 
 function Router() {
+  const { user } = useAuth();
+
+  // Redirect wholesalers to their dashboard
+  if (user?.role === UserRole.WHOLESALE && window.location.pathname === '/') {
+    return <Redirect to="/wholesale" />;
+  }
+
   return (
     <Switch>
       {/* Public Routes */}
       <Route path="/" component={HomePage} />
-      <Route path="/shop" component={ShopPage} />
       <Route path="/auth" component={AuthPage} />
       <Route path="/auth/registration-success" component={RegistrationSuccess} />
-      <Route path="/checkout" component={CheckoutPage} />
-      <Route path="/order-confirmation" component={OrderConfirmationPage} />
 
       {/* Protected Routes */}
       <ProtectedRoute path="/admin" component={AdminDashboard} />
       <ProtectedRoute path="/wholesale" component={WholesaleDashboard} />
       <ProtectedRoute path="/distributor" component={DistributorDashboard} />
 
+      {/* Conditional Routes based on user role */}
+      {user?.role === UserRole.WHOLESALE ? (
+        <>
+          <ProtectedRoute path="/wholesale/checkout" component={WholesaleCheckout} />
+          <Route path="/shop">
+            <Redirect to="/wholesale" />
+          </Route>
+          <Route path="/checkout">
+            <Redirect to="/wholesale/checkout" />
+          </Route>
+        </>
+      ) : (
+        <>
+          <Route path="/shop" component={ShopPage} />
+          <Route path="/checkout" component={CheckoutPage} />
+        </>
+      )}
+
+      <Route path="/order-confirmation" component={OrderConfirmationPage} />
       <Route component={NotFound} />
     </Switch>
   );
