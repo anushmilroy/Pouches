@@ -164,25 +164,12 @@ export default function WholesaleCheckout() {
     }
 
     try {
-      // Create order with minimal required data
       const orderData = {
         total: total,
         subtotal: subtotal,
-        paymentMethod: paymentMethod,
-        shippingCost: shippingCost,
-        items: Object.entries(cartItems).map(([itemKey, item]) => {
-          const [productId] = itemKey.split('-');
-          return {
-            productId: parseInt(productId),
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            strength: item.strength,
-            flavor: item.flavor
-          };
-        })
+        paymentMethod: paymentMethod === "INVOICE" ? "INVOICE" : "LOAN",
+        shippingCost: shippingCost
       };
-
-      console.log("Creating order with data:", orderData);
 
       const response = await fetch('/api/orders', {
         method: 'POST',
@@ -194,20 +181,19 @@ export default function WholesaleCheckout() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create order');
+        throw new Error('Failed to create order');
       }
 
       // Clear the cart
       localStorage.removeItem('wholesale_cart');
 
-      // Redirect to invoice confirmation
+      // Redirect to confirmation
       setLocation("/wholesale/order-confirmation/invoice");
     } catch (error) {
       console.error("Error creating order:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create order. Please try again.",
+        description: "Failed to create order. Please try again.",
         variant: "destructive",
       });
     }

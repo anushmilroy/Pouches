@@ -118,7 +118,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const orderData = req.body;
 
-      // Create the order with minimal required fields
+      // Basic required fields validation
+      if (!orderData.total || !orderData.subtotal || !orderData.paymentMethod) {
+        return res.status(400).json({ error: "Missing required order fields" });
+      }
+
+      // Create the order with required fields
       const [newOrder] = await db
         .insert(ordersTable)
         .values({
@@ -127,20 +132,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           total: orderData.total,
           subtotal: orderData.subtotal,
           paymentMethod: orderData.paymentMethod,
-          shippingMethod: 'WHOLESALE',
-          shippingCost: orderData.shippingCost,
+          shippingMethod: "WHOLESALE", // Always set for wholesale orders
+          shippingCost: orderData.shippingCost || 0,
           paymentDetails: {},
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
         })
         .returning();
 
-      console.log("Order created successfully:", {
-        orderId: newOrder.id,
-        status: newOrder.status,
-        userId: newOrder.userId,
-        total: newOrder.total
-      });
-
+      console.log("Order created successfully:", newOrder);
       res.status(201).json(newOrder);
     } catch (error) {
       console.error("Error creating order:", error);
