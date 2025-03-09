@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Loader2, TrendingUp, Users, Gift, Wallet, Copy, ExternalLink, RefreshCw } from "lucide-react";
+import { Loader2, TrendingUp, Users, Gift, Wallet, Copy, ExternalLink, RefreshCw, BrainCircuit } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -170,6 +170,30 @@ export default function WholesaleEarnings() {
             </CardContent>
           </Card>
 
+          {/* Referral Strategy Guide Section */}
+          {user?.referralCode && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Referral Strategy Guide</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Get personalized AI-powered insights on how to maximize your referral earnings
+                    and grow your network effectively.
+                  </p>
+                  <Button
+                    onClick={() => window.location.href = '/wholesale/referral-guide'}
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    <BrainCircuit className="h-4 w-4" />
+                    View Personalized Strategy
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Referral Link Section */}
           {user?.referralCode && (
             <Card>
@@ -225,7 +249,7 @@ export default function WholesaleEarnings() {
                     </p>
                   </div>
                   <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-primary rounded-full"
                       style={{ width: `${(earningsData.totalEarnings / earningsData.nextTierThreshold) * 100}%` }}
                     />

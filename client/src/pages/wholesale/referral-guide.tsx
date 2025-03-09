@@ -4,10 +4,19 @@ import WholesaleLayout from "@/components/layout/wholesale-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw, TrendingUp, BrainCircuit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReferralGuide() {
-  const { data: guide, isLoading, refetch } = useQuery({
+  const { toast } = useToast();
+  const { data: guide, isLoading, isError, refetch } = useQuery({
     queryKey: ["/api/referral-guide"],
+    onError: (error) => {
+      toast({
+        title: "Error loading guide",
+        description: "Failed to load your personalized referral strategy. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   return (
@@ -35,9 +44,23 @@ export default function ReferralGuide() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center p-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="flex flex-col items-center justify-center p-12 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Generating your personalized strategy...</p>
           </div>
+        ) : isError ? (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  Failed to load referral strategy guide. Please try again.
+                </p>
+                <Button onClick={() => refetch()} variant="outline">
+                  Retry
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         ) : guide ? (
           <div className="grid gap-6">
             {/* Performance Analysis */}
@@ -65,7 +88,7 @@ export default function ReferralGuide() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-4">
-                  {guide.recommendations.map((recommendation, index) => (
+                  {guide.recommendations?.map((recommendation: string, index: number) => (
                     <li key={index} className="flex gap-3">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border bg-muted">
                         {index + 1}
@@ -84,7 +107,7 @@ export default function ReferralGuide() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-primary">
-                  ${guide.potentialEarnings.toFixed(2)}
+                  ${guide.potentialEarnings?.toFixed(2)}
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
                   Estimated earnings if recommendations are implemented
@@ -92,15 +115,7 @@ export default function ReferralGuide() {
               </CardContent>
             </Card>
           </div>
-        ) : (
-          <Card>
-            <CardContent className="py-8">
-              <p className="text-center text-muted-foreground">
-                Failed to load referral strategy guide. Please try again.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+        ) : null}
       </div>
     </WholesaleLayout>
   );
