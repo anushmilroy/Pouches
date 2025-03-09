@@ -210,7 +210,7 @@ export default function ShopPage() {
 
                 <CardHeader>
                   <CardTitle>
-                    {PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
+                    {product.name}
                   </CardTitle>
                   <CardDescription>{product.description}</CardDescription>
                 </CardHeader>
