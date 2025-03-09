@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
@@ -11,9 +11,8 @@ import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
 import { 
   db, 
-  productsTable, 
-  or, 
   eq, 
+  or, 
   desc 
 } from "./db";
 
@@ -112,17 +111,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products/wholesale", async (_req, res) => {
     try {
       console.log("Fetching wholesale products...");
-      const products = await db
+      const wholesaleProducts = await db
         .select()
-        .from(productsTable)
+        .from(products)
         .where(
           or(
-            eq(productsTable.allocation, ProductAllocation.WHOLESALE_ONLY),
-            eq(productsTable.allocation, ProductAllocation.BOTH)
+            eq(products.allocation, ProductAllocation.WHOLESALE_ONLY),
+            eq(products.allocation, ProductAllocation.BOTH)
           )
         );
-      console.log(`Found ${products.length} wholesale products`);
-      res.json(products);
+      console.log(`Found ${wholesaleProducts.length} wholesale products`);
+      res.json(wholesaleProducts);
     } catch (error) {
       console.error("Error fetching wholesale products:", error);
       res.status(500).json({ error: "Failed to fetch wholesale products" });
@@ -133,16 +132,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products", async (req, res) => {
     try {
       console.log("Fetching products with filters:", req.query);
-      let query = db.select().from(productsTable);
+      let query = db.select().from(products);
 
       // Filter by allocation if specified
       if (req.query.allocation) {
-        query = query.where(eq(productsTable.allocation, req.query.allocation as string));
+        query = query.where(eq(products.allocation, req.query.allocation as string));
       }
 
-      const products = await query;
-      console.log(`Found ${products.length} products`);
-      res.json(products);
+      const allProducts = await query;
+      console.log(`Found ${allProducts.length} products`);
+      res.json(allProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
       res.status(500).json({ error: "Failed to fetch products" });

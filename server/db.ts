@@ -19,6 +19,4 @@ console.log("Database connection initialized successfully");
 
 // Export the database connection and schema tables
 export { pool, db };
-export { products as productsTable } from "@shared/schema";
-// Export utility functions directly
 export { eq, or, and, desc };
