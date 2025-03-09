@@ -4,6 +4,11 @@ import { users as usersTable, orders as ordersTable, commissionTransactions as c
 import type { User, InsertUser } from "@shared/schema";
 import type { CommissionTransaction } from "@shared/schema";
 import type { Order } from "@shared/schema";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   // User management
@@ -20,9 +25,20 @@ export interface IStorage {
   getCommissionTransactions(userId: number): Promise<CommissionTransaction[]>;
   getAllCommissionTransactions(): Promise<CommissionTransaction[]>;
   getActiveReferrersCount(): Promise<number>;
+
+  sessionStore: session.Store;
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
+    });
+  }
+
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log("Creating new user:", { 
