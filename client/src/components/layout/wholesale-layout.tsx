@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { LogOut, ShoppingCart } from "lucide-react";
+import { LogOut, ShoppingCart, Settings } from "lucide-react";
 
 interface WholesaleLayoutProps {
   children: ReactNode;
@@ -34,6 +34,14 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
                   onClick={() => setLocation("/wholesale/orders")}
                 >
                   Orders
+                </Button>
+                <Button
+                  variant={location === "/wholesale/profile" ? "secondary" : "ghost"}
+                  className="flex items-center"
+                  onClick={() => setLocation("/wholesale/profile")}
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  Profile Settings
                 </Button>
                 <Button
                   variant={location.startsWith("/wholesale/cart") ? "secondary" : "ghost"}
