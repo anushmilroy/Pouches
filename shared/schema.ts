@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, numeric, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 export type UserRole = keyof typeof UserRole;
 export type PayoutStatus = keyof typeof PayoutStatus;
@@ -228,6 +229,28 @@ export const distributorCommissions = pgTable("distributor_commissions", {
   createdAt: timestamp("created_at").defaultNow(),
   paidAt: timestamp("paid_at"),
 });
+
+export const distributorInventoryRelations = relations(distributorInventory, ({ one }) => ({
+  product: one(products, {
+    fields: [distributorInventory.productId],
+    references: [products.id],
+  }),
+  distributor: one(users, {
+    fields: [distributorInventory.distributorId],
+    references: [users.id],
+  }),
+}));
+
+export const distributorCommissionRelations = relations(distributorCommissions, ({ one }) => ({
+  order: one(orders, {
+    fields: [distributorCommissions.orderId],
+    references: [orders.id],
+  }),
+  distributor: one(users, {
+    fields: [distributorCommissions.distributorId],
+    references: [users.id],
+  }),
+}));
 
 export const insertUserSchema = createInsertSchema(users);
 export const insertProductSchema = createInsertSchema(products);
