@@ -7,6 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Package, ShoppingCart, ChevronRight, Minus, Plus, Trash2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useQuery } from "@tanstack/react-query";
 
@@ -14,7 +21,6 @@ interface CartItem {
   quantity: number;
   unitPrice: number;
   strength: string;
-  flavor: string;
 }
 
 // Function to calculate wholesale price based on total cart quantity
@@ -28,21 +34,28 @@ function calculateWholesalePrice(totalCartQuantity: number): number {
   return 8.00; // TIER_1
 }
 
+// Function to format strength value (e.g., "MG_6" to "6 MG")
+function formatStrength(strength: string): string {
+  return strength.replace("MG_", "").concat(" MG");
+}
+
 export default function WholesaleShop() {
   const { toast } = useToast();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [cartItems, setCartItems] = useState<Record<string, CartItem>>({});
-  const [selectedStrength, setSelectedStrength] = useState<string>("");
-  const [selectedFlavor, setSelectedFlavor] = useState<string>("");
+  const [selectedStrengths, setSelectedStrengths] = useState<Record<string, string>>({});
   const [, setLocation] = useLocation();
 
   const { data: products, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
-  // Get unique strengths and flavors
-  const strengths = [...new Set(products?.map(p => p.strength) || [])];
-  const flavors = [...new Set(products?.map(p => p.flavor) || [])];
+  // Get unique strengths
+  const strengths = [...new Set(products?.map(p => p.strength) || [])].sort((a, b) => {
+    const numA = parseInt(a.replace("MG_", ""));
+    const numB = parseInt(b.replace("MG_", ""));
+    return numA - numB;
+  });
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -63,10 +76,11 @@ export default function WholesaleShop() {
   };
 
   const addToCart = (product: Product) => {
-    if (!selectedStrength || !selectedFlavor) {
+    const selectedStrength = selectedStrengths[product.id.toString()];
+    if (!selectedStrength) {
       toast({
         title: "Selection Required",
-        description: "Please select both strength and flavor",
+        description: "Please select a strength",
         variant: "destructive",
       });
       return;
@@ -82,7 +96,7 @@ export default function WholesaleShop() {
       return;
     }
 
-    const itemKey = `${product.id}-${selectedStrength}-${selectedFlavor}`;
+    const itemKey = `${product.id}-${selectedStrength}`;
     try {
       const newCart = {
         ...cartItems,
@@ -90,7 +104,6 @@ export default function WholesaleShop() {
           quantity,
           unitPrice: calculateWholesalePrice(getTotalCartQuantity() + quantity),
           strength: selectedStrength,
-          flavor: selectedFlavor
         }
       };
 
@@ -106,13 +119,12 @@ export default function WholesaleShop() {
 
       toast({
         title: "Added to Cart",
-        description: `${quantity} units of ${product.name} (${selectedStrength}, ${selectedFlavor}) added`,
+        description: `${quantity} units of ${product.name} (${formatStrength(selectedStrength)}) added`,
       });
 
       // Reset inputs
       setQuantities({ ...quantities, [product.id.toString()]: 0 });
-      setSelectedStrength("");
-      setSelectedFlavor("");
+      setSelectedStrengths({ ...selectedStrengths, [product.id.toString()]: "" });
     } catch (error) {
       toast({
         title: "Error",
@@ -157,12 +169,11 @@ export default function WholesaleShop() {
     if (newQuantity <= 0) {
       delete newCart[itemKey];
     } else {
-      const [productId, strength, flavor] = itemKey.split('-');
+      const [productId, strength] = itemKey.split('-');
       newCart[itemKey] = {
         quantity: newQuantity,
         unitPrice: calculateWholesalePrice(getTotalCartQuantity(newCart)),
-        strength,
-        flavor
+        strength
       };
     }
 
@@ -210,37 +221,34 @@ export default function WholesaleShop() {
                         <CardContent className="flex-1">
                           <p className="text-sm text-muted-foreground mb-4">
                             {product.description}
+                            <br />
+                            <span className="font-medium">Flavor: {product.flavor}</span>
                           </p>
                           <div className="space-y-4">
                             <div>
                               <label className="text-sm font-medium">Current Price</label>
                               <p className="text-lg font-bold">${calculateWholesalePrice(cartItemCount).toFixed(2)}/unit</p>
                             </div>
-                            <div>
+                            <div className="space-y-2">
                               <label className="text-sm font-medium">Strength</label>
-                              <select
-                                className="w-full mt-1 p-2 border rounded"
-                                value={selectedStrength}
-                                onChange={(e) => setSelectedStrength(e.target.value)}
+                              <Select
+                                value={selectedStrengths[product.id.toString()] || ""}
+                                onValueChange={(value) => setSelectedStrengths({ 
+                                  ...selectedStrengths, 
+                                  [product.id.toString()]: value 
+                                })}
                               >
-                                <option value="">Select Strength</option>
-                                {strengths.map(strength => (
-                                  <option key={strength} value={strength}>{strength}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-sm font-medium">Flavor</label>
-                              <select
-                                className="w-full mt-1 p-2 border rounded"
-                                value={selectedFlavor}
-                                onChange={(e) => setSelectedFlavor(e.target.value)}
-                              >
-                                <option value="">Select Flavor</option>
-                                {flavors.map(flavor => (
-                                  <option key={flavor} value={flavor}>{flavor}</option>
-                                ))}
-                              </select>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select Strength" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {strengths.map(strength => (
+                                    <SelectItem key={strength} value={strength}>
+                                      {formatStrength(strength)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                             </div>
                             <div>
                               <label className="text-sm font-medium">Quantity</label>
@@ -255,7 +263,7 @@ export default function WholesaleShop() {
                             <Button
                               className="w-full"
                               onClick={() => addToCart(product)}
-                              disabled={!selectedStrength || !selectedFlavor || (quantities[product.id.toString()] || 0) <= 0}
+                              disabled={!selectedStrengths[product.id.toString()] || (quantities[product.id.toString()] || 0) <= 0}
                             >
                               Add to Cart
                             </Button>
@@ -288,7 +296,7 @@ export default function WholesaleShop() {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-medium">{product?.name}</p>
-                            <p className="text-sm">{item.strength} - {item.flavor}</p>
+                            <p className="text-sm">{formatStrength(item.strength)}</p>
                             <p className="text-sm text-muted-foreground">
                               ${item.unitPrice.toFixed(2)}/unit
                             </p>
