@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -22,28 +22,49 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+interface DashboardLayoutProps {
+  children: ReactNode;
+  onTabChange?: (tab: string) => void;
+}
+
+export default function DashboardLayout({ children, onTabChange }: DashboardLayoutProps) {
   const { user, logoutMutation } = useAuth();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(() => {
+    // Initialize from URL hash or default to overview
+    return window.location.hash.replace("#", "") || "overview";
+  });
 
   if (!user) return null;
 
-  const handleTabChange = (href: string, tab: string) => {
-    setLocation(href);
-    // Set the default tab in the URL hash
-    window.location.hash = tab;
-  };
-
   const menuItems = [
-    { label: "Overview", href: "/admin", tab: "overview", icon: <LayoutDashboard className="h-4 w-4" /> },
-    { label: "Wholesale Accounts", href: "/admin", tab: "wholesale", icon: <Users className="h-4 w-4" /> },
-    { label: "Distributors", href: "/admin", tab: "distributors", icon: <Boxes className="h-4 w-4" /> },
-    { label: "Promotions", href: "/admin", tab: "promotions", icon: <Gift className="h-4 w-4" /> },
-    { label: "Orders", href: "/admin", tab: "orders", icon: <ClipboardList className="h-4 w-4" /> },
-    { label: "Consignments", href: "/admin", tab: "consignments", icon: <Package className="h-4 w-4" /> },
-    { label: "Referrals", href: "/admin", tab: "referrals", icon: <Share2 className="h-4 w-4" /> },
+    { label: "Overview", tab: "overview", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { label: "Wholesale Accounts", tab: "wholesale", icon: <Users className="h-4 w-4" /> },
+    { label: "Distributors", tab: "distributors", icon: <Boxes className="h-4 w-4" /> },
+    { label: "Promotions", tab: "promotions", icon: <Gift className="h-4 w-4" /> },
+    { label: "Orders", tab: "orders", icon: <ClipboardList className="h-4 w-4" /> },
+    { label: "Consignments", tab: "consignments", icon: <Package className="h-4 w-4" /> },
+    { label: "Referrals", tab: "referrals", icon: <Share2 className="h-4 w-4" /> },
   ];
+
+  // Update active tab when hash changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "") || "overview";
+      setActiveTab(hash);
+      onTabChange?.(hash);
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, [onTabChange]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    window.location.hash = tab;
+    onTabChange?.(tab);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,8 +80,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               {menuItems.map((item) => (
                 <Button
                   key={item.tab}
-                  variant={window.location.hash === `#${item.tab}` ? "secondary" : "ghost"}
-                  onClick={() => handleTabChange(item.href, item.tab)}
+                  variant={activeTab === item.tab ? "secondary" : "ghost"}
+                  onClick={() => handleTabChange(item.tab)}
                   size="sm"
                   className="whitespace-nowrap"
                 >
@@ -99,9 +120,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     {menuItems.map((item) => (
                       <Button
                         key={item.tab}
-                        variant={window.location.hash === `#${item.tab}` ? "secondary" : "ghost"}
+                        variant={activeTab === item.tab ? "secondary" : "ghost"}
                         onClick={() => {
-                          handleTabChange(item.href, item.tab);
+                          handleTabChange(item.tab);
                           setIsMobileMenuOpen(false);
                         }}
                         className="w-full justify-start"

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,31 +7,30 @@ import { Button } from "@/components/ui/button";
 import { AdminReferralStats } from "@/components/admin/referral-stats";
 import { Order, OrderStatus, Promotion, UserRole, WholesaleStatus, ConsignmentStatus } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState as useStateOriginal } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { CustomPricingDialog } from "@/components/admin/custom-pricing-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 
-
 function CreatePromotionDialog() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [code, setCode] = useState("");
-  const [description, setDescription] = useState("");
-  const [discountType, setDiscountType] = useState<"PERCENTAGE" | "FIXED">("PERCENTAGE");
-  const [discountValue, setDiscountValue] = useState("");
-  const [minOrderAmount, setMinOrderAmount] = useState("");
-  const [maxDiscount, setMaxDiscount] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
+  const [code, setCode] = useStateOriginal("");
+  const [description, setDescription] = useStateOriginal("");
+  const [discountType, setDiscountType] = useStateOriginal<"PERCENTAGE" | "FIXED">("PERCENTAGE");
+  const [discountValue, setDiscountValue] = useStateOriginal("");
+  const [minOrderAmount, setMinOrderAmount] = useStateOriginal("");
+  const [maxDiscount, setMaxDiscount] = useStateOriginal("");
+  const [startDate, setStartDate] = useStateOriginal("");
+  const [endDate, setEndDate] = useStateOriginal("");
 
   const handleSubmit = async () => {
     try {
@@ -322,10 +322,10 @@ function WholesalerDetailsDialog({
 
 function CreateDistributorDialog() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
+  const [username, setUsername] = useStateOriginal("");
+  const [password, setPassword] = useStateOriginal("");
+  const [email, setEmail] = useStateOriginal("");
 
   const handleSubmit = async () => {
     try {
@@ -400,9 +400,9 @@ function CreateDistributorDialog() {
 
 function AllocateInventoryDialog({ distributor }) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState("");
-  const [quantity, setQuantity] = useState("");
+  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
+  const [selectedProduct, setSelectedProduct] = useStateOriginal("");
+  const [quantity, setQuantity] = useStateOriginal("");
 
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["/api/products"],
@@ -459,9 +459,9 @@ function AllocateInventoryDialog({ distributor }) {
           </div>
           <div>
             <label className="text-sm font-medium">Quantity</label>
-            <Input 
-              type="number" 
-              value={quantity} 
+            <Input
+              type="number"
+              value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               min="1"
             />
@@ -488,8 +488,8 @@ function AllocateInventoryDialog({ distributor }) {
 
 function AssignOrderDialog({ distributor }) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState("");
+  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
+  const [selectedOrder, setSelectedOrder] = useStateOriginal("");
 
   const { data: unassignedOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/orders/unassigned"],
@@ -566,7 +566,20 @@ function AssignOrderDialog({ distributor }) {
 
 function AdminDashboard() {
   const { toast } = useToast();
-  const [processingOrder, setProcessingOrder] = useState<number | null>(null);
+  const [processingOrder, setProcessingOrder] = useStateOriginal<number | null>(null);
+  const [activeTab, setActiveTab] = useStateOriginal(() => {
+    return window.location.hash.replace("#", "") || "overview";
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace("#", "") || "overview";
+      setActiveTab(hash);
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/orders"],
@@ -591,13 +604,29 @@ function AdminDashboard() {
     }
   });
 
-  const { data: distributors, isLoading: distributorsLoading } = useQuery({
+  const { data: distributors, isLoading: distributorsLoading, error: distributorsError } = useQuery({
     queryKey: ["/api/users/distributors"],
+    onError: (error) => {
+      console.error("Admin dashboard - Error fetching distributors:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch distributors",
+        variant: "destructive",
+      });
+    }
   });
 
 
-  const { data: consignmentOrders, isLoading: consignmentOrdersLoading } = useQuery<Order[]>({
+  const { data: consignmentOrders, isLoading: consignmentOrdersLoading, error: consignmentOrdersError } = useQuery<Order[]>({
     queryKey: ["/api/orders/consignment"],
+    onError: (error) => {
+      console.error("Admin dashboard - Error fetching consignment orders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch consignment orders",
+        variant: "destructive",
+      });
+    }
   });
 
   const handleApproveWholesale = async (userId: number) => {
@@ -708,9 +737,16 @@ function AdminDashboard() {
     }
   };
 
-  // Add these queries in the AdminDashboard component
-  const { data: referralStats, isLoading: referralStatsLoading } = useQuery({
+  const { data: referralStats, isLoading: referralStatsLoading, error: referralStatsError } = useQuery({
     queryKey: ["/api/admin/referral-stats"],
+    onError: (error) => {
+      console.error("Admin dashboard - Error fetching referral stats:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch referral stats",
+        variant: "destructive",
+      });
+    }
   });
 
   const {
@@ -719,14 +755,24 @@ function AdminDashboard() {
       totalCommissionPending,
       activeReferrers
     } = {},
-    isLoading: summaryLoading
+    isLoading: summaryLoading,
+    error: summaryError
   } = useQuery({
     queryKey: ["/api/admin/referral-summary"],
+    onError: (error) => {
+      console.error("Admin dashboard - Error fetching referral summary:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch referral summary",
+        variant: "destructive",
+      });
+    }
   });
 
+
   return (
-    <DashboardLayout>
-      <Tabs defaultValue="overview" className="space-y-8">
+    <DashboardLayout onTabChange={setActiveTab}>
+      <Tabs value={activeTab} className="space-y-8">
 
         <TabsContent value="overview">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -756,7 +802,7 @@ function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {orders?.filter(o => o.isConsignment && o.consignmentStatus === ConsignmentStatus.PENDING_APPROVAL).length || 0}
+                  {consignmentOrders?.filter(o => o.isConsignment && o.consignmentStatus === ConsignmentStatus.PENDING_APPROVAL).length || 0}
                 </div>
               </CardContent>
             </Card>
@@ -773,6 +819,8 @@ function AdminDashboard() {
                 <div className="flex justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
+              ) : wholesaleError ? (
+                <div className="text-center text-red-500 py-4">Error fetching wholesale users</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -826,6 +874,8 @@ function AdminDashboard() {
                 <div className="flex justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
+              ) : distributorsError ? (
+                <div className="text-center text-red-500 py-4">Error fetching distributors</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -886,7 +936,7 @@ function AdminDashboard() {
                       <TableHead>Code</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Value</TableHead>
-                      <TableHead>Valid Until</TableHead>
+                      <TableHead>End Date</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
@@ -894,24 +944,24 @@ function AdminDashboard() {
                   <TableBody>
                     {promotions?.map((promotion) => (
                       <TableRow key={promotion.id}>
-                        <TableCell className="font-medium">{promotion.code}</TableCell>
+                        <TableCell>{promotion.code}</TableCell>
                         <TableCell>{promotion.discountType}</TableCell>
                         <TableCell>
-                          {promotion.discountType === 'PERCENTAGE'
+                          {promotion.discountType === "PERCENTAGE"
                             ? `${promotion.discountValue}%`
                             : `$${promotion.discountValue}`}
                         </TableCell>
                         <TableCell>{format(new Date(promotion.endDate), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs ${
-                            promotion.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            promotion.isActive ?                            'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                             {promotion.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </TableCell>
                         <TableCell>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleTogglePromotion(promotion.id, !promotion.isActive)}
                           >
@@ -930,43 +980,54 @@ function AdminDashboard() {
         <TabsContent value="orders">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Orders</CardTitle>
+              <CardTitle>Order Management</CardTitle>
             </CardHeader>
             <CardContent>
-              {ordersLoading ? (
-                <div className="flex justify-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Order Date</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {ordersLoading ? (
                     <TableRow>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Payment Method</TableHead>
-                      <TableHead>Order Date</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableCell colSpan={7} className="text-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto" />
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orders?.map((order) => (
+                  ) : orders?.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-4">
+                        No orders found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    orders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell>#{order.id}</TableCell>
-                        <TableCell>{order.status}</TableCell>
+                        <TableCell>{order.userId}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={order.status} />
+                        </TableCell>
                         <TableCell>${order.total}</TableCell>
                         <TableCell>{order.paymentMethod}</TableCell>
-                        <TableCell>
-                          {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
-                        </TableCell>
+                        <TableCell>{format(new Date(order.createdAt), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
                           {order.status === OrderStatus.PENDING && (
                             <Button
+                              variant="outline"
                               size="sm"
                               onClick={() => handleVerifyPayment(order.id)}
                               disabled={processingOrder === order.id}
                             >
-                                                            {processingOrder === order.id && (
+                              {processingOrder === order.id && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               )}
                               Verify Payment
@@ -974,17 +1035,10 @@ function AdminDashboard() {
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
-                    {(!orders || orders.length === 0) && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
-                          No orders found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              )}
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -995,10 +1049,12 @@ function AdminDashboard() {
               <CardTitle>Consignment Orders Management</CardTitle>
             </CardHeader>
             <CardContent>
-              {ordersLoading ? (
+              {consignmentOrdersLoading ? (
                 <div className="flex justify-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
+              ) : consignmentOrdersError ? (
+                <div className="text-center text-red-500 py-4">Error fetching consignment orders</div>
               ) : (
                 <Table>
                   <TableHeader>
@@ -1012,7 +1068,7 @@ function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders?.filter(order => order.isConsignment).map((order) => (
+                    {consignmentOrders?.map((order) => (
                       <TableRow key={order.id}>
                         <TableCell>#{order.id}</TableCell>
                         <TableCell>{order.userId}</TableCell>
@@ -1038,7 +1094,7 @@ function AdminDashboard() {
                                 className="bg-green-50 hover:bggreen-100 text-green-700"
                                 onClick={async () => {
                                   try {
-                                    await apiRequest("PATCH", `/api/api/orders/${order.id}/consignment-status`, {
+                                    await apiRequest("PATCH", `/api/orders/${order.id}/consignment-status`, {
                                       status:ConsignmentStatus.APPROVED
                                     });
                                     queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
@@ -1087,7 +1143,7 @@ function AdminDashboard() {
                         </TableCell>
                       </TableRow>
                     ))}
-                    {(!orders|| orders.filter(o => o.isConsignment).length === 0) && (
+                    {(!consignmentOrders || consignmentOrders.length === 0) && (
                       <TableRow>
                         <TableCell colSpan={6} className="text-center text-muted-foreground">
                           No consignment orders found
@@ -1110,11 +1166,10 @@ function AdminDashboard() {
   );
 }
 
-// Rest of the file remains unchanged
+export default AdminDashboard;
+
 const WholesalePricingTier = {
   TIER_1: { min: 1, max: 10, price: 10 },
   TIER_2: { min: 11, max: 100, price: 9 },
   TIER_3: { min: 101, price: 8 },
 };
-
-export default AdminDashboard;
