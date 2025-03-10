@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserRole } from "@shared/schema";
+import { UserRole, WholesaleStatus } from "@shared/schema";
 import { Home, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 import Logo from "@/components/logo";
@@ -32,42 +32,20 @@ const registrationSchema = z.object({
   companyWebsite: z.string().optional(),
 });
 
-// Assuming WholesaleStatus enum exists elsewhere
-enum WholesaleStatus {
-  PENDING = "PENDING",
-  APPROVED = "APPROVED",
-  REJECTED = "REJECTED"
-}
-
-
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [showCompanyFields, setShowCompanyFields] = useState(false);
 
-  useEffect(() => {
-    if (user?.role) {
-      const getRouteForRole = (role: string) => {
-        switch (role) {
-          case UserRole.ADMIN:
-            return "/admin";
-          case UserRole.RETAIL:
-            return "/onboarding";
-          case UserRole.WHOLESALE:
-            // Check if wholesale account is approved
-            if (user.wholesaleStatus === WholesaleStatus.PENDING) {
-              return "/auth/registration-success";
-            }
-            return "/wholesale";
-          case UserRole.DISTRIBUTOR:
-            return "/distributor";
-          default:
-            return "/onboarding";
-        }
-      };
-      setLocation(getRouteForRole(user.role));
+  // Redirect if already logged in
+  if (user) {
+    if (user.role === UserRole.WHOLESALE && user.wholesaleStatus === WholesaleStatus.PENDING) {
+      return <Redirect to="/auth/registration-success" />;
+    } else if (user.role === UserRole.WHOLESALE) {
+      return <Redirect to="/wholesale" />;
     }
-  }, [user, setLocation]);
+    return <Redirect to="/shop" />;
+  }
 
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
@@ -96,24 +74,17 @@ export default function AuthPage() {
   });
 
   const onRegister = registerForm.handleSubmit((data) => {
-    registerMutation.mutate(data, {
-      onSuccess: (response) => {
+    registerMutation.mutate({
+      ...data,
+      wholesaleStatus: data.role === UserRole.WHOLESALE ? WholesaleStatus.PENDING : undefined
+    }, {
+      onSuccess: () => {
         if (data.role === UserRole.WHOLESALE) {
           setLocation("/auth/registration-success");
-        } else {
-          setLocation("/onboarding");
         }
       }
     });
   });
-
-  // Redirect if already logged in
-  if (user) {
-    if (user.role === UserRole.WHOLESALE) {
-      return <Redirect to="/wholesale" />;
-    }
-    return <Redirect to="/shop" />;
-  }
 
   return (
     <div className="min-h-screen flex flex-col">

@@ -54,9 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Handle post-login navigation based on user role and status
       if (user.role === UserRole.WHOLESALE) {
-        if (user.onboardingStatus !== OnboardingStatus.COMPLETED) {
+        if (user.onboardingStatus === OnboardingStatus.NOT_STARTED) {
           setLocation("/wholesale/onboarding");
-        } else {
+        } else if (user.onboardingStatus === OnboardingStatus.COMPLETED) {
           setLocation("/wholesale");
         }
       } else if (user.role === UserRole.RETAIL) {
@@ -79,10 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", credentials);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Registration failed");
+      }
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      // After registration, always redirect wholesale users to registration success page
       if (user.role === UserRole.WHOLESALE) {
         setLocation("/auth/registration-success");
       }
