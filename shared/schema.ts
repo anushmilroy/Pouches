@@ -59,6 +59,11 @@ export const PouchCategory = {
   WET: 'WET'
 } as const;
 
+export const PouchBrand = {
+  PUXX: 'PUXX',
+  BLUE_GIANT: 'Blue Giant'
+} as const;
+
 export const PouchFlavor = {
   APPLE_MINT: 'Apple Mint',
   COOL_MINT: 'Cool Mint',
@@ -196,6 +201,7 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   category: text("category").notNull().$type<keyof typeof PouchCategory>(),
+  brand: text("brand").notNull().$type<keyof typeof PouchBrand>().default("PUXX"),
   flavor: text("flavor").notNull().$type<keyof typeof PouchFlavor>(),
   strength: text("strength").notNull().$type<keyof typeof NicotineStrength>(),
   price: numeric("price").notNull(),

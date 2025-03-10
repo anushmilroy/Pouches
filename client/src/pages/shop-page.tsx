@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Product, PouchCategory, PouchFlavor, NicotineStrength } from "@shared/schema";
+import { Product, PouchCategory, PouchFlavor, NicotineStrength, PouchBrand } from "@shared/schema";
 import { Loader2, Package, ShoppingCart, Plus, Minus } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ export default function ShopPage() {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<keyof typeof PouchCategory | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<keyof typeof PouchBrand | null>(null);
   const [selectedFlavor, setSelectedFlavor] = useState<keyof typeof PouchFlavor | null>(null);
   const [selectedStrength, setSelectedStrength] = useState<keyof typeof NicotineStrength | null>(null);
   const [cart, setCart] = useState<Record<string, { quantity: number, strength: keyof typeof NicotineStrength }>>({});
@@ -54,10 +55,11 @@ export default function ShopPage() {
         product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesCategory = !selectedCategory || product.category === selectedCategory;
+      const matchesBrand = !selectedBrand || product.brand === selectedBrand;
       const matchesFlavor = !selectedFlavor || product.flavor === selectedFlavor;
       const matchesStrength = !selectedStrength || product.strengths.includes(selectedStrength);
 
-      return matchesSearch && matchesCategory && matchesFlavor && matchesStrength;
+      return matchesSearch && matchesCategory && matchesBrand && matchesFlavor && matchesStrength;
     }) : [];
 
   const handleAddToCart = (productId: string, strength: keyof typeof NicotineStrength) => {
@@ -112,7 +114,7 @@ export default function ShopPage() {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           <Input
             placeholder="Search products..."
             value={searchTerm}
@@ -130,6 +132,21 @@ export default function ShopPage() {
               <SelectItem value="all">All Categories</SelectItem>
               {Object.entries(PouchCategory).map(([key, value]) => (
                 <SelectItem key={key} value={key}>{value} Nicotine Pouches</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={selectedBrand || "all"}
+            onValueChange={(value) => setSelectedBrand(value === "all" ? null : value as keyof typeof PouchBrand)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select Brand" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Brands</SelectItem>
+              {Object.entries(PouchBrand).map(([key, value]) => (
+                <SelectItem key={key} value={key}>{value}</SelectItem>
               ))}
             </SelectContent>
           </Select>
