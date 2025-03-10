@@ -267,9 +267,27 @@ function WholesalerDetailsDialog({
           {/* Bank Information */}
           <div>
             <h3 className="text-lg font-semibold mb-4">Bank Information</h3>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Bank Details</h4>
-              <p className="text-lg whitespace-pre-wrap">{user.bankDetails || 'Not provided'}</p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Bank Name</h4>
+                <p className="text-lg">{user.bankDetails?.bankName || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Swift Code</h4>
+                <p className="text-lg">{user.bankDetails?.swiftCode || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Account Name</h4>
+                <p className="text-lg">{user.bankDetails?.accountName || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Account Number</h4>
+                <p className="text-lg">{user.bankDetails?.accountNumber || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Routing Number</h4>
+                <p className="text-lg">{user.bankDetails?.routingNumber || 'Not provided'}</p>
+              </div>
             </div>
           </div>
 
