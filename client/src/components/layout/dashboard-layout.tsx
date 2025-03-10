@@ -69,27 +69,31 @@ export default function DashboardLayout({ children, onTabChange }: DashboardLayo
   return (
     <div className="min-h-screen bg-background">
       {/* Header with navigation */}
-      <header className="border-b border-border py-4">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center space-x-6">
-            {/* Logo */}
-            <Logo className="h-8 flex-shrink-0" />
+      <header className="border-b py-2">
+        <div className="container mx-auto px-6">
+          <div className="h-16 flex items-center justify-between">
+            <div className="flex items-center space-x-8">
+              {/* Logo */}
+              <div className="cursor-pointer">
+                <Logo />
+              </div>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-1 overflow-x-auto">
-              {menuItems.map((item) => (
-                <Button
-                  key={item.tab}
-                  variant={activeTab === item.tab ? "secondary" : "ghost"}
-                  onClick={() => handleTabChange(item.tab)}
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  {item.icon}
-                  <span className="ml-1.5 text-sm">{item.label}</span>
-                </Button>
-              ))}
-            </nav>
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex items-center space-x-1 overflow-x-auto">
+                {menuItems.map((item) => (
+                  <Button
+                    key={item.tab}
+                    variant={activeTab === item.tab ? "secondary" : "ghost"}
+                    onClick={() => handleTabChange(item.tab)}
+                    size="sm"
+                    className="whitespace-nowrap"
+                  >
+                    {item.icon}
+                    <span className="ml-1.5 text-sm">{item.label}</span>
+                  </Button>
+                ))}
+              </nav>
+            </div>
 
             {/* Right side with logout and mobile menu */}
             <div className="flex items-center space-x-4 ml-auto flex-shrink-0">

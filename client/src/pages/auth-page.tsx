@@ -103,30 +103,32 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b bg-background sticky top-0 py-2">
+      <header className="border-b py-2">
         <div className="container mx-auto px-6">
           <div className="h-16 flex items-center justify-between">
-            <div className="cursor-pointer" onClick={() => setLocation("/")}>
-              <Logo />
+            <div className="flex items-center space-x-8">
+              <div className="cursor-pointer" onClick={() => setLocation("/")}>
+                <Logo />
+              </div>
+              <nav className="flex items-center space-x-4">
+                <Button
+                  variant="ghost"
+                  className="flex items-center"
+                  onClick={() => setLocation("/")}
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  Home
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="flex items-center"
+                  onClick={() => setLocation("/shop")}
+                >
+                  <ShoppingBag className="h-4 w-4 mr-2" />
+                  Shop
+                </Button>
+              </nav>
             </div>
-            <nav className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                className="flex items-center"
-                onClick={() => setLocation("/")}
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Home
-              </Button>
-              <Button
-                variant="ghost"
-                className="flex items-center"
-                onClick={() => setLocation("/shop")}
-              >
-                <ShoppingBag className="h-4 w-4 mr-2" />
-                Shop
-              </Button>
-            </nav>
           </div>
         </div>
       </header>

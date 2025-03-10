@@ -16,14 +16,11 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border sticky top-0 bg-background z-50">
+      <header className="border-b py-2">
         <div className="container mx-auto px-6">
           <div className="h-16 flex items-center justify-between">
             <div className="flex items-center space-x-8">
-              <div 
-                className="cursor-pointer"
-                onClick={() => setLocation("/wholesale")}
-              >
+              <div className="cursor-pointer" onClick={() => setLocation("/wholesale")}>
                 <Logo />
               </div>
               <nav className="hidden md:flex items-center space-x-4">
@@ -77,8 +74,8 @@ export default function WholesaleLayout({ children }: WholesaleLayoutProps) {
                 </Button>
               </nav>
             </div>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className="flex items-center text-destructive hover:text-destructive"
               onClick={() => logoutMutation.mutate()}
               disabled={logoutMutation.isPending}
