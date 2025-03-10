@@ -95,7 +95,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
       // After registration, always redirect wholesale users to registration success page
       if (user.role === UserRole.WHOLESALE) {
         setLocation("/auth/registration-success");

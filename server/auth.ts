@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser, UserRole, WholesaleStatus } from "@shared/schema";
+import { User as SelectUser, UserRole, WholesaleStatus, OnboardingStatus } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -72,6 +72,12 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
+        // Block unapproved wholesale users from logging in
+        if (user.role === UserRole.WHOLESALE && user.wholesaleStatus !== WholesaleStatus.APPROVED) {
+          console.log('Wholesale user not approved:', username);
+          return done(null, false, { message: "Your wholesale account is pending approval. You will be notified once approved." });
+        }
+
         console.log('Found user:', username);
         const isValidPassword = await comparePasswords(password, user.password);
 
@@ -80,7 +86,7 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Invalid username or password" });
         }
 
-        console.log('Password verified for user:', username);
+        console.log('Login successful for user:', username);
         return done(null, user);
       } catch (error) {
         console.error('Error during authentication:', error);
@@ -119,19 +125,32 @@ export function setupAuth(app: Express) {
       }
 
       const hashedPassword = await hashPassword(req.body.password);
+
+      // Set initial status for wholesale users
       const userData = {
         ...req.body,
-        password: hashedPassword
+        password: hashedPassword,
+        wholesaleStatus: req.body.role === UserRole.WHOLESALE ? WholesaleStatus.PENDING : undefined,
+        onboardingStatus: req.body.role === UserRole.WHOLESALE ? OnboardingStatus.NOT_STARTED : undefined
       };
 
       console.log("Creating new user:", userData.username);
       const user = await storage.createUser(userData);
       console.log("User created successfully:", user.username);
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json({ user });
-      });
+      if (user.role === UserRole.WHOLESALE) {
+        // For wholesale users, don't log them in after registration
+        res.status(201).json({ 
+          message: "Registration successful. Your wholesale account is pending approval.",
+          user
+        });
+      } else {
+        // For other users, log them in automatically
+        req.login(user, (err) => {
+          if (err) return next(err);
+          res.status(201).json({ user });
+        });
+      }
     } catch (error) {
       console.error("Error during registration:", error);
       next(error);
