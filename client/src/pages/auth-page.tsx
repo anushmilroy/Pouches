@@ -103,7 +103,7 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b bg-background sticky top-0">
+      <header className="border-b bg-background sticky top-0 py-2">
         <div className="container mx-auto px-6">
           <div className="h-16 flex items-center justify-between">
             <div className="cursor-pointer" onClick={() => setLocation("/")}>
