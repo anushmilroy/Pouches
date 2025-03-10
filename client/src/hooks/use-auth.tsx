@@ -4,7 +4,7 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { insertUserSchema, User as SelectUser, InsertUser, WholesaleStatus, OnboardingStatus, UserRole } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -36,10 +36,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loginMutation = useMutation({
     mutationFn: async (credentials: Omit<InsertUser, "role" | "referrerId">) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Login failed");
+      }
+      const userData = await res.json();
+
+      // Prevent unapproved wholesale users from logging in
+      if (userData.role === UserRole.WHOLESALE && userData.wholesaleStatus !== WholesaleStatus.APPROVED) {
+        throw new Error("Your wholesale account is pending approval. You will be notified once approved.");
+      }
+
+      return userData;
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+
+      // Handle post-login navigation based on user role and status
+      if (user.role === UserRole.WHOLESALE) {
+        if (user.onboardingStatus !== OnboardingStatus.COMPLETED) {
+          setLocation("/wholesale/onboarding");
+        } else {
+          setLocation("/wholesale");
+        }
+      } else if (user.role === UserRole.RETAIL) {
+        setLocation("/shop");
+      } else if (user.role === UserRole.ADMIN) {
+        setLocation("/admin");
+      } else if (user.role === UserRole.DISTRIBUTOR) {
+        setLocation("/distributor");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -57,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      if (user.role === UserRole.WHOLESALE) {
+        setLocation("/auth/registration-success");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -73,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
-      setLocation("/auth"); // Redirect to auth page after logout
+      setLocation("/auth");
       toast({
         title: "Logged out",
         description: "You have been successfully logged out.",
