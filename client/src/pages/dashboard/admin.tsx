@@ -179,44 +179,120 @@ function WholesalerDetailsDialog({
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm">View Details</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Wholesaler Account Details</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Username</h4>
-              <p className="text-lg">{user.username}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
-              <p className="text-lg">{user.email}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Registration Date</h4>
-              <p className="text-lg">{format(new Date(user.createdAt), 'MMM d, yyyy')}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Account Status</h4>
-              <StatusBadge status={user.wholesaleStatus} className="mt-1" />
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Company Name</h4>
-              <p className="text-lg">{user.companyName || 'Not provided'}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Company Website</h4>
-              <p className="text-lg">{user.companyWebsite || 'Not provided'}</p>
-            </div>
-            <div className="col-span-2">
-              <h4 className="text-sm font-medium text-muted-foreground">Company Address</h4>
-              <p className="text-lg">{user.companyAddress || 'Not provided'}</p>
+        <div className="space-y-6">
+          {/* Basic Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Username</h4>
+                <p className="text-lg">{user.username}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
+                <p className="text-lg">{user.email}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Registration Date</h4>
+                <p className="text-lg">{format(new Date(user.createdAt), 'MMM d, yyyy')}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Account Status</h4>
+                <StatusBadge status={user.wholesaleStatus} className="mt-1" />
+              </div>
             </div>
           </div>
 
+          {/* Company Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Company Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Company Name</h4>
+                <p className="text-lg">{user.companyName || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Business Type</h4>
+                <p className="text-lg">{user.businessType || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Tax ID</h4>
+                <p className="text-lg">{user.taxId || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Company Website</h4>
+                <p className="text-lg">{user.companyWebsite || 'Not provided'}</p>
+              </div>
+              <div className="col-span-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Company Address</h4>
+                <p className="text-lg">{user.companyAddress || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Contact Phone</h4>
+                <p className="text-lg">{user.contactPhone || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Contact Email</h4>
+                <p className="text-lg">{user.contactEmail || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Address Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Address Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Shipping Address</h4>
+                <p className="text-lg whitespace-pre-wrap">{user.shippingAddress || 'Not provided'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Billing Address</h4>
+                <p className="text-lg whitespace-pre-wrap">{user.billingAddress || 'Not provided'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bank Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Bank Information</h3>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Bank Details</h4>
+              <p className="text-lg whitespace-pre-wrap">{user.bankDetails || 'Not provided'}</p>
+            </div>
+          </div>
+
+          {/* Onboarding Status */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Onboarding Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Onboarding Status</h4>
+                <p className="text-lg">{user.onboardingStatus || 'Not Started'}</p>
+              </div>
+              {user.onboardingCompletedAt && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Onboarding Completed</h4>
+                  <p className="text-lg">{format(new Date(user.onboardingCompletedAt), 'MMM d, yyyy')}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
           {user.wholesaleStatus === WholesaleStatus.PENDING && (
-            <div className="space-y-4 mt-6">
+            <div className="space-y-4">
               <h4 className="font-medium">Approve or Reject Application</h4>
               <div className="flex space-x-2">
                 <AlertDialog>
@@ -263,7 +339,7 @@ function WholesalerDetailsDialog({
           )}
 
           {user.wholesaleStatus === WholesaleStatus.APPROVED && (
-            <div className="space-y-4 mt-6">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">Custom Pricing Settings</h4>
                 <CustomPricingDialog user={user} />
@@ -291,7 +367,7 @@ function WholesalerDetailsDialog({
           )}
 
           {user.wholesaleStatus === WholesaleStatus.BLOCKED && (
-            <div className="space-y-4 mt-6">
+            <div className="space-y-4">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline">Unblock Account</Button>
@@ -960,7 +1036,7 @@ function AdminDashboard() {
                         </TableCell>
                         <TableCell>
                           <Button
-                            variant                          variant="ghost"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleTogglePromotion(promotion.id, !promotion.isActive)}
                           >
