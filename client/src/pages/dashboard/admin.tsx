@@ -190,6 +190,10 @@ function WholesalerDetailsDialog({
               <p className="text-lg">{user.username}</p>
             </div>
             <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
+              <p className="text-lg">{user.email}</p>
+            </div>
+            <div>
               <h4 className="text-sm font-medium text-muted-foreground">Registration Date</h4>
               <p className="text-lg">{format(new Date(user.createdAt), 'MMM d, yyyy')}</p>
             </div>
