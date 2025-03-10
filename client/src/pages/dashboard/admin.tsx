@@ -167,12 +167,14 @@ function WholesalerDetailsDialog({
   onReject,
   onBlock,
   onUnblock,
+  onDelete,
 }: {
   user: any;
   onApprove: (id: number) => Promise<void>;
   onReject: (id: number) => Promise<void>;
   onBlock: (id: number) => Promise<void>;
   onUnblock: (id: number) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
   return (
     <Dialog>
@@ -381,6 +383,33 @@ function WholesalerDetailsDialog({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+              {/* Delete Account Button */}
+              <div className="space-y-4">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">Delete Account</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Wholesale Account</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this wholesaler buyer? This action cannot be undone.
+                        The account will be permanently deleted and they will no longer be able to log in.
+                        Order history will be preserved.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => onDelete(user.id)}
+                      >
+                        Delete Account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           )}
 
@@ -862,13 +891,29 @@ function AdminDashboard() {
     }
   });
 
+  const handleDeleteWholesale = async (userId: number) => {
+    try {
+      await apiRequest("DELETE", `/api/users/${userId}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
+      toast({
+        title: "Account Deleted",
+        description: "The wholesale account has been permanently deleted.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete account",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <DashboardLayout onTabChange={setActiveTab}>
       <Tabs value={activeTab} className="space-y-8">
 
         <TabsContent value="overview">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader>
                 <CardTitle>Active Promotions</CardTitle>
@@ -891,15 +936,27 @@ function AdminDashboard() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Pending Consignments</CardTitle>
+                <CardTitle>Pending Wholesalers</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">
-                  {consignmentOrders?.filter(o => o.isConsignment && o.consignmentStatus === ConsignmentStatus.PENDING_APPROVAL).length || 0}
+                  {wholesaleUsers?.filter(u => u.wholesaleStatus === WholesaleStatus.PENDING).length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Distributors</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {distributors?.length || 0}
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Rest of the dashboard content remains unchanged */}
         </TabsContent>
 
         <TabsContent value="wholesale">
@@ -945,6 +1002,7 @@ function AdminDashboard() {
                             onReject={handleRejectWholesale}
                             onBlock={handleBlockWholesale}
                             onUnblock={handleUnblockWholesale}
+                            onDelete={handleDeleteWholesale}
                           />
                         </TableCell>
                       </TableRow>
@@ -1047,7 +1105,7 @@ function AdminDashboard() {
                         <TableCell>{format(new Date(promotion.endDate), 'MMM d, yyyy')}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs ${
-                            promotion.isActive ?                            'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            promotion.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                             {promotion.isActive ? 'Active' : 'Inactive'}
                           </span>

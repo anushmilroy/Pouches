@@ -1069,6 +1069,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to update addresses" });
     }
   });
+  // Add delete user endpoint near other user management routes
+  app.delete("/api/users/:id", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const userId = parseInt(req.params.id);
+
+      // Check if user exists and is a wholesaler
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user || user.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user[0].role !== UserRole.WHOLESALE) {
+        return res.status(400).json({ error: "Can only delete wholesale accounts" });
+      }
+
+      // Delete the user
+      await db
+        .delete(users)
+        .where(eq(users.id, userId));
+
+      // Orders will be preserved as they are not cascaded
+
+      console.log(`Admin deleted wholesale user ${userId}`);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error deleting wholesale user:", error);
+      res.status(500).json({ error: "Failed to delete wholesale user" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
