@@ -32,6 +32,14 @@ const registrationSchema = z.object({
   companyWebsite: z.string().optional(),
 });
 
+// Assuming WholesaleStatus enum exists elsewhere
+enum WholesaleStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED"
+}
+
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
@@ -46,7 +54,11 @@ export default function AuthPage() {
           case UserRole.RETAIL:
             return "/onboarding";
           case UserRole.WHOLESALE:
-            return "/auth/registration-success";
+            // Check if wholesale account is approved
+            if (user.wholesaleStatus === WholesaleStatus.PENDING) {
+              return "/auth/registration-success";
+            }
+            return "/wholesale";
           case UserRole.DISTRIBUTOR:
             return "/distributor";
           default:

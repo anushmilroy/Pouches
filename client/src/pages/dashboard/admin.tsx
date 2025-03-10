@@ -197,7 +197,10 @@ function WholesalerDetailsDialog({
               <h4 className="text-sm font-medium text-muted-foreground">Registration Date</h4>
               <p className="text-lg">{format(new Date(user.createdAt), 'MMM d, yyyy')}</p>
             </div>
-
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Account Status</h4>
+              <StatusBadge status={user.wholesaleStatus} className="mt-1" />
+            </div>
             <div>
               <h4 className="text-sm font-medium text-muted-foreground">Company Name</h4>
               <p className="text-lg">{user.companyName || 'Not provided'}</p>
@@ -206,17 +209,9 @@ function WholesalerDetailsDialog({
               <h4 className="text-sm font-medium text-muted-foreground">Company Website</h4>
               <p className="text-lg">{user.companyWebsite || 'Not provided'}</p>
             </div>
-            <div>
+            <div className="col-span-2">
               <h4 className="text-sm font-medium text-muted-foreground">Company Address</h4>
               <p className="text-lg">{user.companyAddress || 'Not provided'}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Referral Code</h4>
-              <p className="text-lg">{user.referralCode || 'None'}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground">Account Status</h4>
-              <StatusBadge status={user.wholesaleStatus} className="mt-1" />
             </div>
           </div>
 
@@ -965,7 +960,7 @@ function AdminDashboard() {
                         </TableCell>
                         <TableCell>
                           <Button
-                            variant="ghost"
+                            variant                          variant="ghost"
                             size="sm"
                             onClick={() => handleTogglePromotion(promotion.id, !promotion.isActive)}
                           >

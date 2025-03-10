@@ -13,9 +13,9 @@ export default function RegistrationSuccess() {
           <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <ClipboardCheck className="w-6 h-6 text-green-600" />
           </div>
-          <CardTitle className="text-2xl font-bold text-green-600">Registration Successful!</CardTitle>
+          <CardTitle className="text-2xl font-bold text-green-600">Registration Submitted!</CardTitle>
           <CardDescription className="text-lg mt-2">
-            Your wholesale account application has been submitted
+            Your wholesale account application is pending approval
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -23,8 +23,9 @@ export default function RegistrationSuccess() {
             <h3 className="font-semibold mb-2">What happens next?</h3>
             <ul className="list-disc list-inside space-y-2">
               <li>Our admin team will review your application</li>
-              <li>You'll receive notification once your account is approved</li>
-              <li>After approval, you can access wholesale prices and place bulk orders</li>
+              <li>You'll receive an email notification once your account is approved</li>
+              <li>Please note: You cannot access wholesale features until your account is approved</li>
+              <li>After approval, you can log in to access wholesale prices and place bulk orders</li>
             </ul>
           </div>
           <Button
