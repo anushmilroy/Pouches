@@ -78,6 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
+      // For wholesale registrations, always set status to PENDING
+      if (credentials.role === UserRole.WHOLESALE) {
+        credentials = {
+          ...credentials,
+          wholesaleStatus: WholesaleStatus.PENDING,
+          onboardingStatus: OnboardingStatus.NOT_STARTED
+        };
+      }
+
       const res = await apiRequest("POST", "/api/register", credentials);
       if (!res.ok) {
         const error = await res.json();
