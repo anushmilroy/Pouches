@@ -9,7 +9,7 @@ import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema";
 import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
-import { db, eq, or } from "./db";
+import { db, eq, or, desc } from "./db";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -169,7 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(order);
     } catch (error) {
       console.error("Error creating order:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to create order",
         details: error instanceof Error ? error.message : 'Unknown error'
       });
@@ -743,6 +743,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add these new routes after the distributor routes section
+
+  // Add admin orders endpoint
+  app.get("/api/admin/orders", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      console.log('Admin fetching all orders...');
+      const allOrders = await db
+        .select()
+        .from(orders)
+        .orderBy(desc(orders.createdAt));
+
+      console.log(`Found ${allOrders.length} orders`);
+      res.json(allOrders);
+    } catch (error) {
+      console.error("Error fetching admin orders:", error);
+      res.status(500).json({ error: "Failed to fetch orders" });
+    }
+  });
+
 
   // Distributor Onboarding Routes
   app.post("/api/distributor/onboarding/progress", async (req, res) => {

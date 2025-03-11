@@ -737,7 +737,7 @@ function AdminDashboard() {
   }, []);
 
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
-    queryKey: ["/api/orders"],
+    queryKey: ["/api/admin/orders"],
   });
 
   const { data: promotions, isLoading: promotionsLoading } = useQuery<Promotion[]>({
@@ -985,6 +985,71 @@ function AdminDashboard() {
             </Card>
           </div>
 
+          {/* Orders Section */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>All Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ordersLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders?.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell>#{order.id}</TableCell>
+                        <TableCell>
+                          {order.userId ? (
+                            order.username || 'User ' + order.userId
+                          ) : (
+                            <span className="text-muted-foreground">Guest Order</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={order.status} />
+                        </TableCell>
+                        <TableCell>${order.total}</TableCell>
+                        <TableCell>
+                          {order.createdAt ? format(new Date(order.createdAt), 'MMM d, yyyy') : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="outline" size="sm" onClick={() => {
+                            // Add order details view functionality here
+                            toast({
+                              title: "Coming Soon",
+                              description: "Order details view will be added soon.",
+                            });
+                          }}>
+                            View Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!orders || orders.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          No orders found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
           {/* Rest of the dashboard content remains unchanged */}
         </TabsContent>
 
