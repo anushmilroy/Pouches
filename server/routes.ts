@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, WholesaleStatus } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, orders, WholesaleStatus } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
