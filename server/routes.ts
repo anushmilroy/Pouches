@@ -1093,6 +1093,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Can only delete wholesale accounts" });
       }
 
+      // Verify user has appropriate status for deletion
+      if (![WholesaleStatus.APPROVED, WholesaleStatus.REJECTED].includes(user[0].wholesaleStatus)) {
+        return res.status(400).json({ error: "Can only delete approved or rejected wholesale accounts" });
+      }
+
       // Delete the user
       await db
         .delete(users)

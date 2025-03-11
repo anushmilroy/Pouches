@@ -383,33 +383,6 @@ function WholesalerDetailsDialog({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-              {/* Delete Account Button */}
-              <div className="space-y-4">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">Delete Account</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Wholesale Account</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete this wholesaler buyer? This action cannot be undone.
-                        The account will be permanently deleted and they will no longer be able to log in.
-                        Order history will be preserved.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => onDelete(user.id)}
-                      >
-                        Delete Account
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
             </div>
           )}
 
@@ -436,6 +409,38 @@ function WholesalerDetailsDialog({
               </AlertDialog>
             </div>
           )}
+
+          {/* Delete Account Button - Available for APPROVED and REJECTED statuses */}
+          {(user.wholesaleStatus === WholesaleStatus.APPROVED ||
+            user.wholesaleStatus === WholesaleStatus.REJECTED) && (
+            <div className="space-y-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">Delete Account</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Wholesale Account</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this wholesaler buyer? This action cannot be undone.
+                      The account will be permanently deleted and they will no longer be able to log in.
+                      Order history will be preserved.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => onDelete(user.id)}
+                    >
+                      Delete Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+
         </div>
       </DialogContent>
     </Dialog>
