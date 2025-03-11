@@ -216,7 +216,7 @@ export const products = pgTable("products", {
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
+  userId: integer("user_id").references(() => users.id),
   distributorId: integer("distributor_id").references(() => users.id),
   status: text("status").notNull().$type<keyof typeof OrderStatus>(),
   total: numeric("total").notNull(),
