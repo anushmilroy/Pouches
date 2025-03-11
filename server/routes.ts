@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, hashPassword } from "./auth";
 import { storage } from "./storage";
-import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users } from "@shared/schema";
+import { OrderStatus, UserRole, PaymentMethod, ProductAllocation, products, users, WholesaleStatus } from "@shared/schema";
 import path from "path";
 import express from "express";
 import Stripe from "stripe";
@@ -855,8 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Fix the bug in the loan route
   app.get("/api/wholesale/loans", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
-      return res.sendStatus(401);
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {      return res.sendStatus(401);
     }
 
     try {
@@ -1079,23 +1078,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.params.id);
 
       // Check if user exists and is a wholesaler
-      const user = await db
+      const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+        .where(eq(users.id, userId));
 
-      if (!user || user.length === 0) {
+      if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (user[0].role !== UserRole.WHOLESALE) {
+      if (user.role !== UserRole.WHOLESALE) {
         return res.status(400).json({ error: "Can only delete wholesale accounts" });
-      }
-
-      // Verify user has appropriate status for deletion
-      if (![WholesaleStatus.APPROVED, WholesaleStatus.REJECTED].includes(user[0].wholesaleStatus)) {
-        return res.status(400).json({ error: "Can only delete approved or rejected wholesale accounts" });
       }
 
       // Delete the user
@@ -1104,12 +1097,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(users.id, userId));
 
       // Orders will be preserved as they are not cascaded
-
       console.log(`Admin deleted wholesale user ${userId}`);
       res.sendStatus(200);
     } catch (error) {
       console.error("Error deleting wholesale user:", error);
       res.status(500).json({ error: "Failed to delete wholesale user" });
+    }
+  });
+
+  // Add the reject endpoint for any wholesale status
+  app.post("/api/users/:id/reject", async (req, res) => {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const userId = parseInt(req.params.id);
+
+      // Check if user exists and is a wholesaler
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.role !== UserRole.WHOLESALE) {
+        return res.status(400).json({ error: "Can only reject wholesale accounts" });
+      }
+
+      // Update user status to rejected
+      await db
+        .update(users)
+        .set({ wholesaleStatus: WholesaleStatus.REJECTED })
+        .where(eq(users.id, userId));
+
+      console.log(`Admin rejected wholesale user ${userId}`);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error rejecting wholesale user:", error);
+      res.status(500).json({ error: "Failed to reject wholesale user" });
     }
   });
 

@@ -361,28 +361,55 @@ function WholesalerDetailsDialog({
           {user.wholesaleStatus === WholesaleStatus.APPROVED && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="font-medium">Custom Pricing Settings</h4>
+                <h4 className="font-medium">Account Management</h4>
                 <CustomPricingDialog user={user} />
               </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">Block Account</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Block Wholesale Account</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will block the wholesale account from accessing the platform. Are you sure?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => onBlock(user.id)}>
-                      Block Account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex space-x-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">Block Account</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Block Wholesale Account</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will block the wholesale account from accessing the platform. Are you sure?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onBlock(user.id)}>
+                        Block Account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">Delete Account</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Wholesale Account</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this wholesaler buyer? This action cannot be undone.
+                        The account will be permanently deleted and they will no longer be able to log in.
+                        Order history will be preserved.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => onDelete(user.id)}
+                      >
+                        Delete Account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           )}
 
@@ -410,9 +437,7 @@ function WholesalerDetailsDialog({
             </div>
           )}
 
-          {/* Delete Account Button - Available for APPROVED and REJECTED statuses */}
-          {(user.wholesaleStatus === WholesaleStatus.APPROVED ||
-            user.wholesaleStatus === WholesaleStatus.REJECTED) && (
+          {user.wholesaleStatus === WholesaleStatus.REJECTED && (
             <div className="space-y-4">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -422,7 +447,7 @@ function WholesalerDetailsDialog({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Wholesale Account</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete this wholesaler buyer? This action cannot be undone.
+                      Are you sure you want to delete this rejected wholesaler account? This action cannot be undone.
                       The account will be permanently deleted and they will no longer be able to log in.
                       Order history will be preserved.
                     </AlertDialogDescription>
@@ -440,7 +465,6 @@ function WholesalerDetailsDialog({
               </AlertDialog>
             </div>
           )}
-
         </div>
       </DialogContent>
     </Dialog>
@@ -777,9 +801,7 @@ function AdminDashboard() {
 
   const handleRejectWholesale = async (userId: number) => {
     try {
-      await apiRequest("PATCH", `/api/users/${userId}/wholesale-status`, {
-        status: WholesaleStatus.REJECTED,
-      });
+      await apiRequest("POST", `/api/users/${userId}/reject`, {});
       queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
       toast({
         title: "Account Rejected",
