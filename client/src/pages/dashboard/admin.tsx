@@ -195,7 +195,7 @@ function WholesalerDetailsDialog({
                 <p className="text-lg">{user.username}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
+                <h4 className="text-sm font-medium text-muted-foreground">Registration Email</h4>
                 <p className="text-lg">{user.email}</p>
               </div>
               <div>
@@ -245,8 +245,12 @@ function WholesalerDetailsDialog({
                 <p className="text-lg">{user.contactPhone || 'Not provided'}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground">Contact Email</h4>
-                <p className="text-lg">{user.contactEmail || 'Not provided'}</p>
+                <h4 className="text-sm font-medium text-muted-foreground">Business Email</h4>
+                <p className="text-lg">{user.contactEmail || 'Same as registration email'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Registration Email</h4>
+                <p className="text-lg">{user.email}</p>
               </div>
             </div>
           </div>
@@ -920,9 +924,7 @@ function AdminDashboard() {
 
   const handleDeleteWholesale = async (userId: number) => {
     try {
-      await apiRequest("DELETE", `/api/users/${userId}`);
-      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
-      toast({
+      await apiRequest("DELETE",`/api/users/${userId}`);      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });      toast({
         title: "Account Deleted",
         description: "The wholesale account has been permanently deleted.",
       });
