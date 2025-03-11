@@ -110,31 +110,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Orders
   app.post("/api/orders", async (req, res) => {
     try {
+      console.log('Creating new order:', req.body);
       const orderData = req.body;
       let referrerId = null;
 
       // If a referral code is provided, look up the referrer
       if (orderData.referralCode) {
-        const referrer = await storage.getUserByReferralCode(orderData.referralCode);
-        if (referrer) {
-          referrerId = referrer.id;
-          // Calculate 5% commission
-          const commissionAmount = parseFloat(orderData.subtotal) * 0.05;
-          orderData.referrerId = referrerId;
-          orderData.commissionAmount = commissionAmount.toFixed(2);
+        console.log('Checking referral code:', orderData.referralCode);
+        try {
+          const [referrer] = await db
+            .select()
+            .from(users)
+            .where(eq(users.referralCode, orderData.referralCode))
+            .limit(1);
+
+          if (referrer) {
+            referrerId = referrer.id;
+            // Calculate 5% commission
+            const commissionAmount = parseFloat(orderData.subtotal) * 0.05;
+            orderData.referrerId = referrerId;
+            orderData.commissionAmount = commissionAmount.toFixed(2);
+            console.log('Found referrer:', referrerId, 'commission:', commissionAmount);
+          }
+        } catch (error) {
+          console.error('Error processing referral:', error);
+          // Continue with order creation even if referral processing fails
         }
       }
 
-      const order = await storage.createOrder({
-        ...orderData,
-        userId: req.user?.id || null,
-        status: OrderStatus.PENDING
-      });
+      // Create the order
+      const [order] = await db
+        .insert(orders)
+        .values({
+          ...orderData,
+          userId: req.user?.id || null,
+          status: OrderStatus.PENDING,
+          referrerId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .returning();
 
+      console.log('Order created successfully:', order.id);
       res.status(201).json(order);
     } catch (error) {
       console.error("Error creating order:", error);
-      res.status(500).json({ error: "Failed to create order" });
+      res.status(500).json({ 
+        error: "Failed to create order",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
@@ -843,7 +867,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const loan = await storage.createWholesaleLoan({
         ...req.body,
         wholesalerId: req.user.id,
-        status: "PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"
+        status:"PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"
         remainingAmount: req.body.amount
       });
       res.status(201).json(loan);
