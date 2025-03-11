@@ -138,17 +138,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Prepare order data with proper date handling
+      const orderInsertData = {
+        ...orderData,
+        userId: req.user?.id || null,
+        status: OrderStatus.PENDING,
+        referrerId,
+        commissionAmount: orderData.commissionAmount || null,
+        // Remove any existing date fields that might cause conflicts
+        createdAt: undefined,
+        updatedAt: undefined
+      };
+
+      // Remove any undefined fields
+      Object.keys(orderInsertData).forEach(key => {
+        if (orderInsertData[key] === undefined) {
+          delete orderInsertData[key];
+        }
+      });
+
+      console.log('Inserting order with data:', orderInsertData);
+
       // Create the order
       const [order] = await db
         .insert(orders)
-        .values({
-          ...orderData,
-          userId: req.user?.id || null,
-          status: OrderStatus.PENDING,
-          referrerId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
+        .values(orderInsertData)
         .returning();
 
       console.log('Order created successfully:', order.id);
@@ -867,7 +881,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const loan = await storage.createWholesaleLoan({
         ...req.body,
         wholesalerId: req.user.id,
-        status:"PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"
+        status: "PENDING", // Assuming LoanStatus.PENDING is a string "PENDING"
         remainingAmount: req.body.amount
       });
       res.status(201).json(loan);
@@ -879,7 +893,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Fix the bug in the loan route
   app.get("/api/wholesale/loans", async (req, res) => {
-    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {      return res.sendStatus(401);
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+      return res.sendStatus(401);
     }
 
     try {
@@ -892,7 +907,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/wholesale/loans/:id/repayments", async (req, res) => {
-    if(!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
+    if (!req.isAuthenticated() || req.user.role !== UserRole.WHOLESALE) {
       return res.sendStatus(401);
     }
 
