@@ -744,7 +744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add these new routes after the distributor routes section
 
-  // Add admin orders endpoint
+  // Add admin orders endpoint (from edited snippet)
   app.get("/api/admin/orders", async (req, res) => {
     if (!req.isAuthenticated() || req.user.role !== UserRole.ADMIN) {
       return res.sendStatus(401);
@@ -761,26 +761,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           subtotal: orders.subtotal,
           paymentMethod: orders.paymentMethod,
           createdAt: orders.createdAt,
-          customerName: orders.customerName,
-          customerEmail: orders.customerEmail,
-          customerPhone: orders.customerPhone,
-          shippingAddress: orders.shippingAddress,
-          shippingCity: orders.shippingCity,
-          shippingZipCode: orders.shippingZipCode,
-          shippingCountry: orders.shippingCountry,
-          notes: orders.notes,
-          items: orders.items
+          items: orders.items,
+          customerDetails: orders.customerDetails
         })
         .from(orders)
         .orderBy(desc(orders.createdAt));
 
       console.log(`Found ${allOrders.length} orders`);
 
-      // Format numeric values
+      // Format numeric values and extract customer details
       const formattedOrders = allOrders.map(order => ({
         ...order,
         total: parseFloat(order.total?.toString() || '0'),
-        subtotal: parseFloat(order.subtotal?.toString() || '0')
+        subtotal: parseFloat(order.subtotal?.toString() || '0'),
+        customerName: order.customerDetails?.name,
+        customerEmail: order.customerDetails?.email,
+        customerPhone: order.customerDetails?.phone,
+        shippingAddress: order.customerDetails?.address,
+        shippingCity: order.customerDetails?.city,
+        shippingZipCode: order.customerDetails?.zipCode,
+        shippingCountry: order.customerDetails?.country
       }));
 
       res.json(formattedOrders);
@@ -874,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Error processing stats for user ${user.id}:`, error);
           return null;
         }
-            }));
+      }));
 
       // Filter out any failed stats
       const validStats = stats.filter(stat => stat !== null);
