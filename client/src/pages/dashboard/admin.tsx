@@ -10,15 +10,16 @@ import { useToast } from "@/hooks/use-toast";
 import { useState as useStateOriginal } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { format } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { CustomPricingDialog } from "@/components/admin/custom-pricing-dialog";
-import { StatusBadge } from "@/components/ui/status-badge";
+
 
 function CreatePromotionDialog() {
   const { toast } = useToast();
@@ -844,22 +845,10 @@ function OrderDetailsDialog({ order }: { order: Order }) {
   );
 }
 
-function AdminDashboard() {
+export default function AdminDashboard() {
   const { toast } = useToast();
-  const [processingOrder, setProcessingOrder] = useStateOriginal<number | null>(null);
-  const [activeTab, setActiveTab] = useStateOriginal(() => {
-    return window.location.hash.replace("#", "") || "overview";
-  });
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace("#", "") || "overview";
-      setActiveTab(hash);
-    };
-
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [processingOrder, setProcessingOrder] = useState<number | null>(null);
 
   const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
     queryKey: ["/api/admin/orders"],
@@ -871,42 +860,14 @@ function AdminDashboard() {
 
   const { data: wholesaleUsers, isLoading: wholesaleLoading, error: wholesaleError } = useQuery({
     queryKey: ["/api/users/wholesale"],
-    onSuccess: (data) => {
-      console.log("Admin dashboard - Fetched wholesale users:", data);
-    },
-    onError: (error) => {
-      console.error("Admin dashboard - Error fetching wholesale users:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch wholesale users",
-        variant: "destructive",
-      });
-    }
   });
 
-  const { data: distributors, isLoading: distributorsLoading, error: distributorsError } = useQuery({
+  const { data: distributors,isLoading: distributorsLoading, error: distributorsError } = useQuery({
     queryKey: ["/api/users/distributors"],
-    onError: (error) => {
-      console.error("Admin dashboard - Error fetching distributors:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch distributors",
-        variant: "destructive",
-      });
-    }
   });
-
 
   const { data: consignmentOrders, isLoading: consignmentOrdersLoading, error: consignmentOrdersError } = useQuery<Order[]>({
     queryKey: ["/api/orders/consignment"],
-    onError: (error) => {
-      console.error("Admin dashboard - Error fetching consignment orders:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch consignment orders",
-        variant: "destructive",
-      });
-    }
   });
 
   const handleApproveWholesale = async (userId: number) => {
@@ -1017,14 +978,6 @@ function AdminDashboard() {
 
   const { data: referralStats, isLoading: referralStatsLoading, error: referralStatsError } = useQuery({
     queryKey: ["/api/admin/referral-stats"],
-    onError: (error) => {
-      console.error("Admin dashboard - Error fetching referral stats:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch referral stats",
-        variant: "destructive",
-      });
-    }
   });
 
   const {
@@ -1037,14 +990,6 @@ function AdminDashboard() {
     error: summaryError
   } = useQuery({
     queryKey: ["/api/admin/referral-summary"],
-    onError: (error) => {
-      console.error("Admin dashboard - Error fetching referral summary:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch referral summary",
-        variant: "destructive",
-      });
-    }
   });
 
   const handleDeleteWholesale = async (userId: number) => {
@@ -1066,363 +1011,287 @@ function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-8">
-        {/* Orders Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>All Orders</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ordersLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Created At</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders?.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>#{order.id}</TableCell>
-                      <TableCell>
-                        {order.customerDetails?.name || (order.userId ? 'User ' + order.userId : 'Guest Order')}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={order.status} />
-                      </TableCell>
-                      <TableCell>${order.total?.toFixed(2)}</TableCell>
-                      <TableCell>
-                        {order.createdAt ? format(new Date(order.createdAt), 'MMM d, yyyy') : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <OrderDetailsDialog order={order} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!orders || orders.length === 0) && (
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="wholesale">Wholesale</TabsTrigger>
+          <TabsTrigger value="distributors">Distributors</TabsTrigger>
+          <TabsTrigger value="promotions">Promotions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Promotions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {promotions?.filter(p => p.isActive).length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {orders?.filter(o => o.status === OrderStatus.PENDING).length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Wholesalers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {wholesaleUsers?.filter(u => u.wholesaleStatus === WholesaleStatus.PENDING).length || 0}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Distributors</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">
+                  {distributors?.length || 0}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="orders">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Orders</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {ordersLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No orders found
-                      </TableCell>
+                      <TableHead>Order ID</TableHead>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Created At</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {orders?.map((order) => (
+                      <TableRow key={order.id}>
+                        <TableCell>#{order.id}</TableCell>
+                        <TableCell>
+                          {order.customerDetails?.name || (order.userId ? 'User ' + order.userId : 'Guest Order')}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge status={order.status} />
+                        </TableCell>
+                        <TableCell>${order.total?.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {order.createdAt ? format(new Date(order.createdAt), 'MMM d, yyyy') : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <OrderDetailsDialog order={order} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!orders || orders.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          No orders found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* Wholesale Account Management */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Wholesale Account Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {wholesaleLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : wholesaleError ? (
-              <div className="text-center text-red-500 py-4">Error fetching wholesale users</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Registration Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Custom Pricing</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {wholesaleUsers?.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.username}</TableCell>
-                      <TableCell>{format(new Date(user.createdAt), 'MMM d, yyyy')}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={user.wholesaleStatus} />
-                      </TableCell>
-                      <TableCell>
-                        {user.wholesaleStatus === WholesaleStatus.APPROVED && (
-                          <CustomPricingDialog user={user} />
-                        )}
-                      </TableCell>
-                      <TableCell className="space-x-2">
-                        <WholesalerDetailsDialog
-                          user={user}
-                          onApprove={handleApproveWholesale}
-                          onReject={handleRejectWholesale}
-                          onBlock={handleBlockWholesale}
-                          onUnblock={handleUnblockWholesale}
-                          onDelete={handleDeleteWholesale}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Distributor Management */}
-        <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Distributor Management</CardTitle>
-            <CreateDistributorDialog />
-          </CardHeader>
-          <CardContent>
-            {distributorsLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : distributorsError ? (
-              <div className="text-center text-red-500 py-4">Error fetching distributors</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Orders Assigned</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {distributors?.map((distributor) => (
-                    <TableRow key={distributor.id}>
-                      <TableCell>{distributor.username}</TableCell>
-                      <TableCell>{distributor.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {distributor.active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{distributor.assignedOrders || 0}</TableCell>
-                      <TableCell className="space-x-2">
-                        <AllocateInventoryDialog distributor={distributor} />
-                        <AssignOrderDialog distributor={distributor} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!distributors || distributors.length === 0) && (
+        <TabsContent value="wholesale">
+          <Card>
+            <CardHeader>
+              <CardTitle>Wholesale Account Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {wholesaleLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : wholesaleError ? (
+                <div className="text-center text-red-500 py-4">Error fetching wholesale users</div>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        No distributors found
-                      </TableCell>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Registration Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Custom Pricing</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {wholesaleUsers?.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell>{format(new Date(user.createdAt), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={user.wholesaleStatus} />
+                        </TableCell>
+                        <TableCell>
+                          {user.wholesaleStatus === WholesaleStatus.APPROVED && (
+                            <CustomPricingDialog user={user} />
+                          )}
+                        </TableCell>
+                        <TableCell className="space-x-2">
+                          <WholesalerDetailsDialog
+                            user={user}
+                            onApprove={handleApproveWholesale}
+                            onReject={handleRejectWholesale}
+                            onBlock={handleBlockWholesale}
+                            onUnblock={handleUnblockWholesale}
+                            onDelete={handleDeleteWholesale}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* Promotional Codes */}
-        <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Promotional Codes</CardTitle>
-            <CreatePromotionDialog />
-          </CardHeader>
-          <CardContent>
-            {promotionsLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>End Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {promotions?.map((promotion) => (
-                    <TableRow key={promotion.id}>
-                      <TableCell>{promotion.code}</TableCell>
-                      <TableCell>{promotion.discountType}</TableCell>
-                      <TableCell>
-                        {promotion.discountType === "PERCENTAGE"
-                          ? `${promotion.discountValue}%`
-                          : `$${promotion.discountValue}`}
-                      </TableCell>
-                      <TableCell>{format(new Date(promotion.endDate), 'MMM d, yyyy')}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          promotion.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {promotion.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleTogglePromotion(promotion.id, !promotion.isActive)}
-                        >
-                          {promotion.isActive ? 'Deactivate' : 'Activate'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Consignment Orders Management */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Consignment Orders Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {consignmentOrdersLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : consignmentOrdersError ? (
-              <div className="text-center text-red-500 py-4">Error fetching consignment orders</div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order ID</TableHead>
-                    <TableHead>Wholesaler</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {consignmentOrders?.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>#{order.id}</TableCell>
-                      <TableCell>{order.userId}</TableCell>
-                      <TableCell>${order.total}</TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          order.consignmentStatus === ConsignmentStatus.APPROVED ? "success" :
-                            order.consignmentStatus === ConsignmentStatus.REJECTED ? "destructive" :
-                              "secondary"
-                        }>
-                          {order.consignmentStatus || ConsignmentStatus.PENDING_APPROVAL}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(order.createdAt), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell className="space-x-2">
-                        {order.consignmentStatus === ConsignmentStatus.PENDING_APPROVAL && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="bg-green-50 hover:bggreen-100 text-green-700"
-                              onClick={async () => {
-                                try {
-                                  await apiRequest("PATCH", `/api/orders/${order.id}/consignment-status`, {
-                                    status:ConsignmentStatus.APPROVED
-                                  });
-                                  queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-                                  toast({
-                                    title: "Consignment Approved",
-                                    description: `Order #${order.id} has been approved.`
-                                  });
-                                } catch (error) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to approve consignment order",
-                                    variant: "destructive"
-                                  });
-                                }
-                              }}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="bg-red-50 hover:bg-red-100 text-red-700"
-                              onClick={async () => {
-                                try {
-                                  await apiRequest("PATCH", `/api/orders/${order.id}/consignment-status`, {
-                                    status: ConsignmentStatus.REJECTED
-                                  });
-                                  queryClient.invalidateQueries({ queryKey: ["/api/orders"] });
-                                  toast({
-                                    title: "Consignment Rejected",
-                                    description: `Order #${order.id} has been rejected.`
-                                  });
-                                } catch (error) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Failed to reject consignment order",
-                                    variant: "destructive",
-                                  });
-                                }
-                              }}
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(!consignmentOrders || consignmentOrders.length === 0) && (
+        <TabsContent value="distributors">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Distributor Management</CardTitle>
+              <CreateDistributorDialog />
+            </CardHeader>
+            <CardContent>
+              {distributorsLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : distributorsError ? (
+                <div className="text-center text-red-500 py-4">Error fetching distributors</div>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground">
-                        No consignment orders found
-                      </TableCell>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Orders Assigned</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {distributors?.map((distributor) => (
+                      <TableRow key={distributor.id}>
+                        <TableCell>{distributor.username}</TableCell>
+                        <TableCell>{distributor.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {distributor.active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{distributor.assignedOrders || 0}</TableCell>
+                        <TableCell className="space-x-2">
+                          <AllocateInventoryDialog distributor={distributor} />
+                          <AssignOrderDialog distributor={distributor} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {(!distributors || distributors.length === 0) && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          No distributors found
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* Referral Stats */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Referral Statistics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {referralStatsLoading ? (
-              <div className="flex justify-center p-4">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            ) : referralStatsError ? (
-              <div className="text-center text-red-500 py-4">Error fetching referral stats</div>
-            ) : (
-              <AdminReferralStats referralStats={referralStats} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+        <TabsContent value="promotions">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Promotional Codes</CardTitle>
+              <CreatePromotionDialog />
+            </CardHeader>
+            <CardContent>
+              {promotionsLoading ? (
+                <div className="flex justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Code</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {promotions?.map((promotion) => (
+                      <TableRow key={promotion.id}>
+                        <TableCell>{promotion.code}</TableCell>
+                        <TableCell>{promotion.discountType}</TableCell>
+                        <TableCell>
+                          {promotion.discountType === "PERCENTAGE"
+                            ? `${promotion.discountValue}%`
+                            : `$${promotion.discountValue}`}
+                        </TableCell>
+                        <TableCell>{format(new Date(promotion.endDate), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            promotion.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {promotion.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTogglePromotion(promotion.id, !promotion.isActive)}
+                          >
+                            {promotion.isActive ? 'Deactivate' : 'Activate'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }
-
-export default AdminDashboard;
 
 const WholesalePricingTier = {
   TIER_1: { min: 1, max: 10, price: 10 },
