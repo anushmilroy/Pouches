@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
+import { Tabs, TabsContent, Tab } from "@/components/ui/tabs"; // Added import for Tabs and TabsContent
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -1010,43 +1011,9 @@ export default function AdminDashboard() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="p-4">
-        <div className="flex items-center gap-4 mb-6">
-          <Button 
-            variant={activeTab === "overview" ? "default" : "ghost"}
-            onClick={() => setActiveTab("overview")}
-          >
-            Overview
-          </Button>
-          <Button 
-            variant={activeTab === "orders" ? "default" : "ghost"}
-            onClick={() => setActiveTab("orders")}
-          >
-            Orders
-          </Button>
-          <Button 
-            variant={activeTab === "wholesale" ? "default" : "ghost"}
-            onClick={() => setActiveTab("wholesale")}
-          >
-            Wholesale
-          </Button>
-          <Button 
-            variant={activeTab === "distributors" ? "default" : "ghost"}
-            onClick={() => setActiveTab("distributors")}
-          >
-            Distributors
-          </Button>
-          <Button 
-            variant={activeTab === "promotions" ? "default" : "ghost"}
-            onClick={() => setActiveTab("promotions")}
-          >
-            Promotions
-          </Button>
-        </div>
-
-        {/* Overview Tab Content */}
-        {activeTab === "overview" && (
+    <DashboardLayout onTabChange={setActiveTab}>
+      <Tabs value={activeTab} className="space-y-8">
+        <TabsContent value="overview">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader>
@@ -1089,10 +1056,9 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
-        )}
+        </TabsContent>
 
-        {/* Orders Tab Content */}
-        {activeTab === "orders" && (
+        <TabsContent value="orders">
           <Card>
             <CardHeader>
               <CardTitle>All Orders</CardTitle>
@@ -1145,10 +1111,9 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        )}
+        </TabsContent>
 
-        {/* Wholesale Tab Content */}
-        {activeTab === "wholesale" && (
+        <TabsContent value="wholesale">
           <Card>
             <CardHeader>
               <CardTitle>Wholesale Account Management</CardTitle>
@@ -1201,10 +1166,9 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        )}
+        </TabsContent>
 
-        {/* Distributors Tab Content */}
-        {activeTab === "distributors" && (
+        <TabsContent value="distributors">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Distributor Management</CardTitle>
@@ -1257,10 +1221,9 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        )}
+        </TabsContent>
 
-        {/* Promotions Tab Content */}
-        {activeTab === "promotions" && (
+        <TabsContent value="promotions">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Promotional Codes</CardTitle>
@@ -1317,8 +1280,8 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        )}
-      </div>
+        </TabsContent>
+      </Tabs>
     </DashboardLayout>
   );
 }
