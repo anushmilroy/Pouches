@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Product, PouchCategory, PouchFlavor, NicotineStrength, PouchBrand } from "@shared/schema";
 import { Loader2, Package, ShoppingCart, Plus, Minus } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -211,24 +211,28 @@ export default function ShopPage() {
             {filteredProducts.map((product) => (
               <Card key={product.flavor} className="flex flex-col overflow-hidden">
                 {/* Product Image */}
-                {product.imagePath ? (
-                  <div className="aspect-square w-full relative bg-background border-b">
-                    <img
-                      src={product.imagePath}
-                      alt={PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
-                      className="object-contain w-full h-full p-8"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square w-full bg-muted flex items-center justify-center">
-                    <Package className="h-12 w-12 text-muted-foreground" />
-                  </div>
-                )}
+                <Link href={`/product/${product.id}`} className="cursor-pointer">
+                  {product.imagePath ? (
+                    <div className="aspect-square w-full relative bg-background border-b">
+                      <img
+                        src={product.imagePath}
+                        alt={PouchFlavor[product.flavor as keyof typeof PouchFlavor]}
+                        className="object-contain w-full h-full p-8"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-square w-full bg-muted flex items-center justify-center">
+                      <Package className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                  )}
+                </Link>
 
                 <CardHeader>
-                  <CardTitle>
-                    {product.name}
-                  </CardTitle>
+                  <Link href={`/product/${product.id}`} className="hover:text-primary transition-colors">
+                    <CardTitle className="cursor-pointer">
+                      {product.name}
+                    </CardTitle>
+                  </Link>
                   <CardDescription>{product.description}</CardDescription>
                 </CardHeader>
 

@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import ShopPage from "@/pages/shop-page";
+import ProductDetailPage from "@/pages/product/[id]";
 import CheckoutPage from "@/pages/checkout-page";
 import OrderConfirmationPage from "@/pages/order-confirmation";
 import AdminDashboard from "@/pages/dashboard/admin";
@@ -71,6 +72,7 @@ function Router() {
 
       {/* Shop Routes - Available to retail users and guests */}
       <Route path="/shop" component={ShopPage} />
+      <Route path="/product/:id" component={ProductDetailPage} />
       <Route path="/checkout" component={CheckoutPage} />
       <Route path="/order-confirmation" component={OrderConfirmationPage} />
 
