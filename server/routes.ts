@@ -753,12 +753,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Admin fetching all orders...');
       const allOrders = await db
-        .select()
+        .select({
+          id: orders.id,
+          userId: orders.userId,
+          status: orders.status,
+          total: orders.total,
+          subtotal: orders.subtotal,
+          paymentMethod: orders.paymentMethod,
+          createdAt: orders.createdAt,
+          customerName: orders.customerName,
+          customerEmail: orders.customerEmail,
+          customerPhone: orders.customerPhone,
+          shippingAddress: orders.shippingAddress,
+          shippingCity: orders.shippingCity,
+          shippingZipCode: orders.shippingZipCode,
+          shippingCountry: orders.shippingCountry,
+          notes: orders.notes,
+          items: orders.items
+        })
         .from(orders)
         .orderBy(desc(orders.createdAt));
 
       console.log(`Found ${allOrders.length} orders`);
-      res.json(allOrders);
+
+      // Format numeric values
+      const formattedOrders = allOrders.map(order => ({
+        ...order,
+        total: parseFloat(order.total?.toString() || '0'),
+        subtotal: parseFloat(order.subtotal?.toString() || '0')
+      }));
+
+      res.json(formattedOrders);
     } catch (error) {
       console.error("Error fetching admin orders:", error);
       res.status(500).json({ error: "Failed to fetch orders" });
@@ -849,7 +874,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`Error processing stats for user ${user.id}:`, error);
           return null;
         }
-      }));
+            }));
 
       // Filter out any failed stats
       const validStats = stats.filter(stat => stat !== null);

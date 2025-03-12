@@ -719,6 +719,130 @@ function AssignOrderDialog({ distributor }) {
   );
 }
 
+function OrderDetailsDialog({ order }: { order: Order }) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">View Details</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Order #{order.id} Details</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Order Status and Date */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Order Status</h4>
+              <StatusBadge status={order.status} className="mt-1" />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground">Order Date</h4>
+              <p className="text-lg">{order.createdAt ? format(new Date(order.createdAt), 'MMM d, yyyy HH:mm') : 'N/A'}</p>
+            </div>
+          </div>
+
+          {/* Customer Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Customer Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Name</h4>
+                <p className="text-lg">{order.customerName || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Email</h4>
+                <p className="text-lg">{order.customerEmail || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Phone</h4>
+                <p className="text-lg">{order.customerPhone || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Account Type</h4>
+                <p className="text-lg">{order.userId ? 'Registered User' : 'Guest Checkout'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Shipping Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Shipping Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Shipping Address</h4>
+                <p className="text-lg whitespace-pre-wrap">{order.shippingAddress || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">City</h4>
+                <p className="text-lg">{order.shippingCity || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">ZIP Code</h4>
+                <p className="text-lg">{order.shippingZipCode || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Country</h4>
+                <p className="text-lg">{order.shippingCountry || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Order Items */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Order Items</h3>
+            <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+              {order.items?.map((item, index) => (
+                <div key={index} className="flex justify-between items-center text-sm">
+                  <div>
+                    <span className="font-medium">{item.product.name}</span>
+                    <span className="text-muted-foreground ml-2">({item.strength})</span>
+                  </div>
+                  <div className="text-right">
+                    <span>{item.quantity} units</span>
+                    <span className="text-muted-foreground ml-2">@ ${item.unitPrice}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Payment Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Payment Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Payment Method</h4>
+                <p className="text-lg">{order.paymentMethod || 'N/A'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Payment Status</h4>
+                <StatusBadge status={order.status} className="mt-1" />
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Subtotal</h4>
+                <p className="text-lg">${order.subtotal || order.total}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground">Total</h4>
+                <p className="text-lg font-bold">${order.total}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          {order.notes && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Additional Notes</h3>
+              <p className="text-muted-foreground whitespace-pre-wrap">{order.notes}</p>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function AdminDashboard() {
   const { toast } = useToast();
   const [processingOrder, setProcessingOrder] = useStateOriginal<number | null>(null);
@@ -924,7 +1048,9 @@ function AdminDashboard() {
 
   const handleDeleteWholesale = async (userId: number) => {
     try {
-      await apiRequest("DELETE",`/api/users/${userId}`);      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });      toast({
+      await apiRequest("DELETE",`/api/users/${userId}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/users/wholesale"] });
+      toast({
         title: "Account Deleted",
         description: "The wholesale account has been permanently deleted.",
       });
@@ -1012,11 +1138,7 @@ function AdminDashboard() {
                       <TableRow key={order.id}>
                         <TableCell>#{order.id}</TableCell>
                         <TableCell>
-                          {order.userId ? (
-                            order.username || 'User ' + order.userId
-                          ) : (
-                            <span className="text-muted-foreground">Guest Order</span>
-                          )}
+                          {order.customerName || (order.userId ? 'User ' + order.userId : 'Guest Order')}
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={order.status} />
@@ -1026,15 +1148,7 @@ function AdminDashboard() {
                           {order.createdAt ? format(new Date(order.createdAt), 'MMM d, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          <Button variant="outline" size="sm" onClick={() => {
-                            // Add order details view functionality here
-                            toast({
-                              title: "Coming Soon",
-                              description: "Order details view will be added soon.",
-                            });
-                          }}>
-                            View Details
-                          </Button>
+                          <OrderDetailsDialog order={order} />
                         </TableCell>
                       </TableRow>
                     ))}
