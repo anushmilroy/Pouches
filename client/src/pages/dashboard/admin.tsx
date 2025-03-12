@@ -2,16 +2,21 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { AdminReferralStats } from "@/components/admin/referral-stats";
-import { Order, OrderStatus, Promotion, UserRole, WholesaleStatus, ConsignmentStatus } from "@shared/schema";
+import { Order, OrderStatus, Promotion, UserRole, WholesaleStatus } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useState as useStateOriginal } from "react";
 import { Loader2, Plus } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,18 +25,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CustomPricingDialog } from "@/components/admin/custom-pricing-dialog";
 
-
 function CreatePromotionDialog() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
-  const [code, setCode] = useStateOriginal("");
-  const [description, setDescription] = useStateOriginal("");
-  const [discountType, setDiscountType] = useStateOriginal<"PERCENTAGE" | "FIXED">("PERCENTAGE");
-  const [discountValue, setDiscountValue] = useStateOriginal("");
-  const [minOrderAmount, setMinOrderAmount] = useStateOriginal("");
-  const [maxDiscount, setMaxDiscount] = useStateOriginal("");
-  const [startDate, setStartDate] = useStateOriginal("");
-  const [endDate, setEndDate] = useStateOriginal("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [code, setCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [discountType, setDiscountType] = useState<"PERCENTAGE" | "FIXED">("PERCENTAGE");
+  const [discountValue, setDiscountValue] = useState("");
+  const [minOrderAmount, setMinOrderAmount] = useState("");
+  const [maxDiscount, setMaxDiscount] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const handleSubmit = async () => {
     try {
@@ -478,10 +482,10 @@ function WholesalerDetailsDialog({
 
 function CreateDistributorDialog() {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
-  const [username, setUsername] = useStateOriginal("");
-  const [password, setPassword] = useStateOriginal("");
-  const [email, setEmail] = useStateOriginal("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
 
   const handleSubmit = async () => {
     try {
@@ -556,9 +560,9 @@ function CreateDistributorDialog() {
 
 function AllocateInventoryDialog({ distributor }) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
-  const [selectedProduct, setSelectedProduct] = useStateOriginal("");
-  const [quantity, setQuantity] = useStateOriginal("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState("");
+  const [quantity, setQuantity] = useState("");
 
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["/api/products"],
@@ -644,8 +648,8 @@ function AllocateInventoryDialog({ distributor }) {
 
 function AssignOrderDialog({ distributor }) {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useStateOriginal(false);
-  const [selectedOrder, setSelectedOrder] = useStateOriginal("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState("");
 
   const { data: unassignedOrders, isLoading: ordersLoading } = useQuery({
     queryKey: ["/api/orders/unassigned"],
@@ -862,12 +866,8 @@ export default function AdminDashboard() {
     queryKey: ["/api/users/wholesale"],
   });
 
-  const { data: distributors,isLoading: distributorsLoading, error: distributorsError } = useQuery({
+  const { data: distributors, isLoading: distributorsLoading, error: distributorsError } = useQuery({
     queryKey: ["/api/users/distributors"],
-  });
-
-  const { data: consignmentOrders, isLoading: consignmentOrdersLoading, error: consignmentOrdersError } = useQuery<Order[]>({
-    queryKey: ["/api/orders/consignment"],
   });
 
   const handleApproveWholesale = async (userId: number) => {
@@ -1011,16 +1011,42 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="wholesale">Wholesale</TabsTrigger>
-          <TabsTrigger value="distributors">Distributors</TabsTrigger>
-          <TabsTrigger value="promotions">Promotions</TabsTrigger>
-        </TabsList>
+      <div className="p-4">
+        <div className="flex items-center gap-4 mb-6">
+          <Button 
+            variant={activeTab === "overview" ? "default" : "ghost"}
+            onClick={() => setActiveTab("overview")}
+          >
+            Overview
+          </Button>
+          <Button 
+            variant={activeTab === "orders" ? "default" : "ghost"}
+            onClick={() => setActiveTab("orders")}
+          >
+            Orders
+          </Button>
+          <Button 
+            variant={activeTab === "wholesale" ? "default" : "ghost"}
+            onClick={() => setActiveTab("wholesale")}
+          >
+            Wholesale
+          </Button>
+          <Button 
+            variant={activeTab === "distributors" ? "default" : "ghost"}
+            onClick={() => setActiveTab("distributors")}
+          >
+            Distributors
+          </Button>
+          <Button 
+            variant={activeTab === "promotions" ? "default" : "ghost"}
+            onClick={() => setActiveTab("promotions")}
+          >
+            Promotions
+          </Button>
+        </div>
 
-        <TabsContent value="overview">
+        {/* Overview Tab Content */}
+        {activeTab === "overview" && (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader>
@@ -1063,9 +1089,10 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        )}
 
-        <TabsContent value="orders">
+        {/* Orders Tab Content */}
+        {activeTab === "orders" && (
           <Card>
             <CardHeader>
               <CardTitle>All Orders</CardTitle>
@@ -1118,9 +1145,10 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="wholesale">
+        {/* Wholesale Tab Content */}
+        {activeTab === "wholesale" && (
           <Card>
             <CardHeader>
               <CardTitle>Wholesale Account Management</CardTitle>
@@ -1173,9 +1201,10 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="distributors">
+        {/* Distributors Tab Content */}
+        {activeTab === "distributors" && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Distributor Management</CardTitle>
@@ -1228,9 +1257,10 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        )}
 
-        <TabsContent value="promotions">
+        {/* Promotions Tab Content */}
+        {activeTab === "promotions" && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Promotional Codes</CardTitle>
@@ -1287,8 +1317,8 @@ export default function AdminDashboard() {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
