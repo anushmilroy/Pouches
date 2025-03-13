@@ -9,7 +9,7 @@ import Stripe from "stripe";
 import { PayoutStatus } from "@shared/schema";
 import fs from 'fs';
 import { ReferralGuideService } from "./services/referral-guide";
-import { db, eq, or, desc } from "./db";
+import { db, eq, or, desc, and, ne } from "./db";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -54,6 +54,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching products:", error);
       res.status(500).json({ error: "Failed to fetch products" });
+    }
+  });
+
+  // Add single product endpoint
+  app.get("/api/products/:id", async (req, res) => {
+    try {
+      console.log(`Fetching product with ID: ${req.params.id}`);
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, parseInt(req.params.id)))
+        .limit(1);
+
+      if (!product) {
+        console.log(`Product with ID ${req.params.id} not found`);
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      console.log(`Found product:`, product);
+      res.json(product);
+    } catch (error) {
+      console.error("Error fetching product:", error);
+      res.status(500).json({ error: "Failed to fetch product" });
+    }
+  });
+
+  // Add related products endpoint
+  app.get("/api/products/:id/related", async (req, res) => {
+    try {
+      const [product] = await db
+        .select()
+        .from(products)
+        .where(eq(products.id, parseInt(req.params.id)))
+        .limit(1);
+
+      if (!product) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      // Get products with the same flavor, excluding the current product
+      const relatedProducts = await db
+        .select()
+        .from(products)
+        .where(
+          and(
+            eq(products.flavor, product.flavor),
+            ne(products.id, product.id)
+          )
+        )
+        .limit(4);
+
+      res.json(relatedProducts);
+    } catch (error) {
+      console.error("Error fetching related products:", error);
+      res.status(500).json({ error: "Failed to fetch related products" });
     }
   });
 
