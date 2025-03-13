@@ -2,7 +2,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
-import { eq, or, and, desc } from 'drizzle-orm';
+import { eq, or, and, desc, ne } from 'drizzle-orm';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -19,4 +19,4 @@ console.log("Database connection initialized successfully");
 
 // Export the database connection and utility functions
 export { pool, db };
-export { eq, or, and, desc };
+export { eq, or, and, desc, ne };
